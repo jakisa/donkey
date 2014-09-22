@@ -1,0 +1,11 @@
+var number a;
+
+var string s("babetina");
+
+fun number add(number a, number b){
+    return a + b;
+}
+
+fun number main(){
+    return add(5, 4);
+}
