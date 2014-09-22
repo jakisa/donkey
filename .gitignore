@@ -58,7 +58,6 @@ TestResult.xml
 *.scc
 *.layout
 *.depend
-*.user
 
 # Chutzpah Test files
 _Chutzpah*
