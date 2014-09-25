@@ -1,47 +1,30 @@
 #include "donkey.hpp"
 #include "tokenizer.hpp"
 #include "errors.hpp"
-#include "types.hpp"
+#include "variables.hpp"
+#include "expressions.hpp"
 #include <string>
 #include <cstring>
 #include <cstdio>
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <algorithm>
 
 namespace donkey{
 
 class scope{
-	typedef std::unique_ptr<type> type_ptr;
 	scope* _parent;
-	std::unordered_map<std::string, type_ptr> _types;
 public:
 	scope():
 		_parent(nullptr){
-		_types["void"] = type_ptr(new type_void());
-		_types["number"] = type_ptr(new type_simple(simple_type::number));
-		_types["string"] = type_ptr(new type_simple(simple_type::string));
 	}
 
 	scope(scope* parent):
 		_parent(parent){
 	}
 
-	type* find_type(const std::string& name) const{
-		auto it = _types.find(name);
-		if(it != _types.end()){
-			return it->second.get();
-		}
-		return _parent ? _parent->find_type(name) : nullptr;
-	}
 
-	type* add_type(const std::string& name){
-		return _types[name].get();
-	}
-
-	type* add_global_type(const std::string& name){
-		return _parent ? _parent->add_global_type(name) : _types[name].get();
-	}
 };
 
 class module: public scope{
@@ -55,26 +38,20 @@ using namespace std::placeholders;
 
 
 const char* keywords[] = {
-	"array",
 	"break",
 	"case",
 	"continue",
-	"class",
 	"default",
 	"do",
 	"elif",
 	"else",
 	"for",
-	"fun",
+	"function",
 	"if",
-	"interface",
-	"map",
-	"number",
+	"null",
 	"return",
-	"string",
 	"switch",
 	"var",
-	"void",
 	"while",
 };
 
@@ -92,10 +69,14 @@ private:
 	compiler_map _statement_compilers;
 
 
-	void check_allowed_name(const std::string& name, scope& target, tokenizer& parser){
-		if(is_keyword(name) || target.find_type(name)){
-			syntax_error(parser.get_line_number(), "name is already keyword or type name");
+	void check_allowed_name(const std::string& name, scope&, tokenizer& parser){
+		if(is_keyword(name)){
+			syntax_error(parser.get_line_number(), (name + "is keyword").c_str());
 		}
+		/*
+		if(target.find_variable(name)){
+			syntax_error(parser.get_line_number(), (name + "is already declared").c_str());
+		}*/
 	}
 
 	//TODO:
@@ -103,29 +84,19 @@ private:
 
 	}
 
-	ref_type fetch_ref_type(tokenizer& tokenizer){
-		if(*tokenizer == "ref"){
-			++tokenizer;
-			return ref_type::ref;
-		}else if(*tokenizer == "cref"){
-			++tokenizer;
-			return ref_type::cref;
-		}
-		return ref_type::value;
-	}
 
 	//TODO:
-	void compile_variable_fun(ref_type, scope& , tokenizer& ){
+	void compile_variable_fun(scope& , tokenizer& ){
 
 	}
 
 	//TODO:
-	void compile_variable_string(ref_type, scope& , tokenizer& ){
+	void compile_variable_string(scope& , tokenizer& ){
 
 	}
 
 	//TODO:
-	void compile_variable_number(ref_type, scope& target, tokenizer& parser){
+	void compile_variable_number(scope& target, tokenizer& parser){
 		++parser;
 
 		if(parser.get_token_type() != tokenizer::tt_word){
@@ -136,53 +107,12 @@ private:
 
 		check_allowed_name(name, target, parser);
 
-		if(*parser == "="){
-
+		if(*parser != ";"){
+			syntax_error(parser.get_line_number(), "; expected");
 		}
 	}
 
-	//TODO:
-	void compile_variable_array(ref_type, scope& , tokenizer& ){
-
-	}
-
-	//TODO:
-	void compile_variable_map(ref_type, scope& , tokenizer&){
-
-	}
-
-	//TODO:
-	void compile_variable_class(ref_type, type*, scope& , tokenizer& ){
-
-	}
-
-	void compile_variable(scope& target, tokenizer& parser){
-		++parser;
-
-		ref_type rt = fetch_ref_type(parser);
-
-		if(parser.get_token_type() != tokenizer::tt_word){
-			syntax_error(parser.get_line_number(), "type expected");
-		}
-
-		if(*parser == "fun"){
-			compile_variable_fun(rt, target, parser);
-		}else if(*parser == "string"){
-			compile_variable_string(rt, target, parser);
-		}else if(*parser == "number"){
-			compile_variable_number(rt, target, parser);
-		}else if(*parser == "array"){
-			compile_variable_array(rt, target, parser);
-		}else if(*parser == "map"){
-			compile_variable_map(rt, target, parser);
-		}else{
-			type* tp = target.find_type(*parser);
-			if(tp == nullptr){
-				syntax_error(parser.get_line_number(), "unknown type");
-			}else{
-				compile_variable_class(rt, tp, target, parser);
-			}
-		}
+	void compile_variable(scope&, tokenizer&){
 	}
 
 	//TODO:
@@ -226,6 +156,11 @@ private:
 	}
 
 	//TODO:
+	void compile_pin(scope& , tokenizer& ){
+
+	}
+
+	//TODO:
 	void compile_expression_statement(scope& , tokenizer&){
 
 	}
@@ -263,6 +198,7 @@ private:
 		ADD_STATEMENT_COMPILER("if", compile_if);
 		ADD_STATEMENT_COMPILER("switch", compile_switch);
 		ADD_STATEMENT_COMPILER("return", compile_return);
+		ADD_STATEMENT_COMPILER("pin", compile_pin);
 	}
 
 #undef ADD_STATEMENT_COMPILER

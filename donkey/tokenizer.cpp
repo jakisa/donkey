@@ -6,6 +6,7 @@
 #include <cstdio>
 
 namespace donkey{
+
 static const char* two_letter_operators[] = {
 	"!=",
 	"%=",
@@ -17,6 +18,7 @@ static const char* two_letter_operators[] = {
 	"--",
 	"-=",
 	"->",
+	".."
 	"/=",
 	"<<",
 	"<=",
@@ -30,6 +32,7 @@ static const char* two_letter_operators[] = {
 };
 
 static const char* three_letter_operators[] = {
+	"..=",
 	"<<=",
 	">>=",
 };

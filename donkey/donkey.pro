@@ -12,8 +12,11 @@ HEADERS += \
     errors.hpp \
     tokenizer.hpp \
     donkey.hpp \
+    expressions.hpp \
+    variables.hpp \
+    runtime_context.hpp \
     types.hpp \
-    expressions.hpp
+    helpers.hpp
 
 OTHER_FILES += \
     examples.txt \

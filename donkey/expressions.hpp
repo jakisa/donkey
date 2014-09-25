@@ -1,5 +1,1181 @@
 #ifndef __expressions_hpp__
 #define __expressions_hpp__
 
+#include "runtime_context.hpp"
+#include "errors.hpp"
+#include "helpers.hpp"
+#include "variables.hpp"
+
+namespace donkey{
+
+enum class expression_type{
+	number,
+	string,
+	lvalue,
+	function,
+};
+
+class expression{
+	expression(const expression&) = delete;
+	void operator=(const expression&) = delete;
+private:
+	expression_type _t;
+protected:
+	expression(expression_type t):
+		_t(t){
+	}
+public:
+	virtual double as_number(runtime_context&){
+		runtime_error("expression is not number");
+		return nan("");
+	}
+	virtual std::string as_string(runtime_context& ctx){
+		return to_string(as_number(ctx));
+	}
+
+	virtual variable_ptr as_param(runtime_context&) = 0;
+
+	virtual void as_void(runtime_context&) = 0;
+
+	expression_type get_type(){
+		return _t;
+	}
+
+	virtual ~expression(){
+	}
+};
+
+typedef std::shared_ptr<expression> expression_ptr;
+
+inline double& get_lnumber(variable_ptr v){
+	if(variable::get_type(v) != type::number){
+		runtime_error("variable is not number");
+		return *((double*)nullptr);
+	}
+	return std::static_pointer_cast<number_variable>(v)->value();
+}
+
+class lvalue_expression: public expression{
+protected:
+	lvalue_expression():
+		expression(expression_type::lvalue){
+	}
+public:
+	virtual variable_ptr as_lvalue(runtime_context&) = 0;
+
+	virtual variable_ptr as_param(runtime_context& ctx) override final{
+		return as_lvalue(ctx)->as_param();
+	}
+
+	virtual double as_number(runtime_context& ctx) override final{
+		variable_ptr v = as_lvalue(ctx);
+		if(variable::get_type(v) != type::number){
+			runtime_error("expression is not number");
+			return nan("");
+		}
+		return std::static_pointer_cast<number_variable>(v)->value();
+	}
+
+	virtual std::string as_string(runtime_context& ctx) override final{
+		variable_ptr v = as_lvalue(ctx);
+		if(variable::get_type(v) != type::string){
+			runtime_error("expression is not string");
+			return "";
+		}
+		return std::static_pointer_cast<string_variable>(v)->value();
+	}
+};
+
+typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
+
+class const_number_expression final: public expression{
+private:
+	double _d;
+public:
+	const_number_expression(double d):
+		expression(expression_type::number),
+		_d(d){
+	}
+	virtual double as_number(runtime_context&) override{
+		return _d;
+	}
+	virtual variable_ptr as_param(runtime_context&) override{
+		return variable_ptr(new number_variable(_d));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class const_string_expression final: public expression{
+private:
+	std::string _s;
+public:
+	const_string_expression(std::string s):
+		expression(expression_type::string),
+		_s(std::move(s)){
+	}
+	virtual std::string as_string(runtime_context&) override{
+		return _s;
+	}
+	virtual variable_ptr as_param(runtime_context&) override{
+		return variable_ptr(new string_variable(_s));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class local_variable_expression final: public lvalue_expression{
+private:
+	int _idx;
+public:
+	local_variable_expression(int idx):
+		_idx(idx){
+	}
+
+	virtual variable_ptr as_lvalue(runtime_context& ctx) override{
+		return ctx.stack[ctx.stack.size() - 1 - _idx];
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class global_variable_expression final: public lvalue_expression{
+private:
+	int _idx;
+public:
+	global_variable_expression(int idx):
+		_idx(idx){
+	}
+	virtual variable_ptr as_lvalue(runtime_context & ctx) override{
+		return ctx.global[_idx];
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+
+class function_call_expression final: public expression{
+private:
+	function _f;
+	variable_ptr _params_count;
+	std::vector<expression_ptr> _params;
+
+	variable_ptr make_call(runtime_context& ctx){
+		for(auto it = _params.rbegin(); it != _params.rend(); ++it){
+			ctx.push((*it)->as_param(ctx));
+		}
+		ctx.push(_params_count);
+
+		auto ret = ctx.retval;
+		ctx.retval.reset();
+		return ret;
+	}
+
+public:
+	function_call_expression(function f, std::vector<expression_ptr> params):
+		expression(expression_type::function),
+		_f(std::move(f)),
+		_params_count(new number_variable(params.size())),
+		_params(params){
+	}
+
+	virtual double as_number(runtime_context& ctx){
+		variable_ptr ret = make_call(ctx);
+		if(variable::get_type(ret) == type::number){
+			return std::static_pointer_cast<number_variable>(ret)->value();
+		}
+		return expression::as_number(ctx);
+	}
+	virtual std::string as_string(runtime_context& ctx){
+		return variable::to_string(make_call(ctx));
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx){
+		return make_call(ctx);
+	}
+
+	virtual void as_void(runtime_context & ctx){
+		make_call(ctx);
+	}
+};
+
+class pre_inc_expression final: public lvalue_expression{
+private:
+	lvalue_expression_ptr _e;
+public:
+	pre_inc_expression(lvalue_expression_ptr e):
+		_e(e){
+	}
+
+	virtual variable_ptr as_lvalue(runtime_context& ctx) override{
+		variable_ptr v = _e->as_lvalue(ctx);
+		++get_lnumber(v);
+		return v;
+	}
+	virtual void as_void(runtime_context& ctx) override{
+		as_lvalue(ctx);
+	}
+};
+
+class post_inc_expression final: public expression{
+private:
+	lvalue_expression_ptr _e;
+public:
+	post_inc_expression(lvalue_expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override final{
+		return get_lnumber(_e->as_lvalue(ctx))++;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override final{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context& ctx) override final{
+		as_number(ctx);
+	}
+};
+
+class pre_dec_expression final: public lvalue_expression{
+private:
+	lvalue_expression_ptr _e;
+public:
+	pre_dec_expression(lvalue_expression_ptr e):
+		_e(e){
+	}
+
+	virtual variable_ptr as_lvalue(runtime_context& ctx) override{
+		variable_ptr v = _e->as_lvalue(ctx);
+		--get_lnumber(v);
+		return v;
+	}
+	virtual void as_void(runtime_context& ctx) override{
+		as_lvalue(ctx);
+	}
+};
+
+class post_dec_expression final: public expression{
+private:
+	lvalue_expression_ptr _e;
+public:
+	post_dec_expression(lvalue_expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override final{
+		return get_lnumber(_e->as_lvalue(ctx))--;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override final{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context& ctx) override final{
+		as_number(ctx);
+	}
+};
+
+class unary_plus_expression final: public expression{
+private:
+	expression_ptr _e;
+public:
+	unary_plus_expression(expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class unary_minus_expression final: public expression{
+private:
+	expression_ptr _e;
+public:
+	unary_minus_expression(expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return -_e->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class bitwise_not_expression final: public expression{
+private:
+	expression_ptr _e;
+public:
+	bitwise_not_expression(expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return ~int(_e->as_number(ctx));
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class logical_not_expression final: public expression{
+private:
+	expression_ptr _e;
+public:
+	logical_not_expression(expression_ptr e):
+		expression(expression_type::number),
+		_e(e){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return !_e->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class mul_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	mul_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e1->as_number(ctx) * _e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class div_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	div_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e1->as_number(ctx) / _e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class idiv_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	idiv_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return (int)_e1->as_number(ctx) / (int)_e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class mod_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	mod_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return fmod(_e1->as_number(ctx),_e2->as_number(ctx));
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class plus_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	plus_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e1->as_number(ctx) + _e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class concat_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	concat_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::string),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual std::string as_string(runtime_context& ctx) override{
+		return _e1->as_string(ctx) + _e2->as_string(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new string_variable(as_string(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class minus_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	minus_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e1->as_number(ctx) - _e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class shiftl_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	shiftl_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return (int)_e1->as_number(ctx) << (int)_e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class shiftr_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	shiftr_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return (int)_e1->as_number(ctx) >> (int)_e2->as_number(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+inline bool is_variable_expression(expression_ptr e){
+	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::function;
+}
+
+inline variable_ptr get_variable(expression_ptr e, runtime_context& ctx){
+	if(e->get_type() == expression_type::lvalue){
+		return std::static_pointer_cast<lvalue_expression>(e)->as_lvalue(ctx);
+	}
+	return e->as_param(ctx);
+}
+
+
+inline bool less_than(expression_ptr e1, expression_ptr e2, runtime_context& ctx){
+	if(is_variable_expression(e1)){
+		if(is_variable_expression(e2)){
+			return variable::less(get_variable(e1, ctx), get_variable(e2, ctx));
+		}
+		if(e2->get_type() == expression_type::number){
+			return variable::less(get_variable(e1, ctx), e2->as_number(ctx));
+		}
+		return variable::less(get_variable(e1, ctx), e2->as_string(ctx));
+	}
+	if(is_variable_expression(e2)){
+		if(e1->get_type() == expression_type::number){
+			return variable::greater(get_variable(e2, ctx), e1->as_number(ctx));
+		}
+		return variable::greater(get_variable(e2, ctx), e1->as_string(ctx));
+	}
+	if(e1->get_type() == expression_type::number){
+		if(e2->get_type() == expression_type::number){
+			return e1->as_number(ctx) < e2->as_number(ctx);
+		}
+
+		runtime_error("cannot compare number and string");
+		return false;
+	}
+
+	if(e2->get_type() == expression_type::string){
+		return e1->as_string(ctx) < e2->as_string(ctx);
+	}
+	runtime_error("cannot compare string and number");
+	return false;
+}
+
+inline bool equal_to(expression_ptr e1, expression_ptr e2, runtime_context& ctx){
+	if(is_variable_expression(e1)){
+		if(is_variable_expression(e2)){
+			return variable::equals(get_variable(e1, ctx), get_variable(e2, ctx));
+		}
+		if(e2->get_type() == expression_type::number){
+			return variable::equals(get_variable(e1, ctx), e2->as_number(ctx));
+		}
+		return variable::equals(get_variable(e1, ctx), e2->as_string(ctx));
+	}
+	if(is_variable_expression(e2)){
+		if(e1->get_type() == expression_type::number){
+			return variable::equals(get_variable(e2, ctx), e1->as_number(ctx));
+		}
+		return variable::equals(get_variable(e2, ctx), e1->as_string(ctx));
+	}
+	if(e1->get_type() == expression_type::number){
+		if(e2->get_type() == expression_type::number){
+			return e1->as_number(ctx) == e2->as_number(ctx);
+		}
+		return false;
+	}
+
+	if(e2->get_type() == expression_type::string){
+		return e1->as_string(ctx) == e2->as_string(ctx);
+	}
+	return false;
+}
+
+
+class less_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	less_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return less_than(_e1, _e2, ctx) ? 1 : 0;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class greater_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	greater_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return less_than(_e2, _e1, ctx) ? 1 : 0;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class less_equal_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	less_equal_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return less_than(_e2, _e1, ctx) ? 0 : 1;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class greater_equal_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	greater_equal_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return less_than(_e1, _e2, ctx) ? 0 : 1;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class equal_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	equal_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return equal_to(_e1, _e2, ctx) ? 1 : 0;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+class unequal_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	unequal_expression(expression_ptr e1, expression_ptr e2):
+		expression(expression_type::number),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return equal_to(_e1, _e2, ctx) ? 0 : 1;
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return variable_ptr(new number_variable(as_number(ctx)));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
+/*
+
+
+inline void bitwise_and(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) & get_int(op2));
+}
+
+inline void bitwise_xor(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) ^ get_int(op2));
+}
+
+inline void bitwise_or(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) | get_int(op2));
+}
+
+inline void logical_and(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) && get_number(op2));
+}
+
+inline void logical_or(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) || get_number(op2));
+}
+
+inline void conditional(context& c){
+	variable_ptr op3 = c.pop();
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+
+	c.push(get_number(op1) ? op2 : op3);
+}
+
+inline void assignment(context& c){
+	variable_ptr op2 = c.pop();
+	c.top()->assign_from(op2);
+}
+
+inline void mul_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) *= get_number(op2);
+}
+
+inline void div_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) /= get_number(op2);
+}
+
+inline void idiv_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = int(d) / get_int(op2);
+}
+
+inline void mod_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = fmod(d, get_number(op2));
+}
+
+inline void plus_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) += get_number(op2);
+}
+
+inline void concat_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_string(c.top()) += get_string(op2);
+}
+
+inline void minus_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) -= get_number(op2);
+}
+
+inline void shiftl_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) << get_int(op2));
+}
+
+inline void shiftr_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) >> get_int(op2));
+}
+
+inline void and_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) & get_int(op2));
+}
+
+inline void xor_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) ^ get_int(op2));
+}
+
+inline void or_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) | get_int(op2));
+}
+
+inline void comma(context& c){
+	variable_ptr op2 = c.pop();
+	c.pop();
+	c.push(op2);
+}
+*/
+
+
+}//namespace donkey;
+
+/*
+#include "variables.hpp"
+#include "types.hpp"
+#include <memory>
+#include <cmath>
+#include <utility>
+
+namespace donkey{
+
+inline void push_number(context& c, double d){
+	c.push(variable_ptr(new number_variable(d)));
+}
+
+inline void push_string(context& c, const char* s){
+	c.push(variable_ptr(new string_variable(s)));
+}
+
+inline void array_index(context& c){
+	variable_ptr idx = c.pop();
+	variable_ptr arr = c.pop();
+	variable_ptr v = get_array(arr)[get_int(idx)];
+	c.push(v);
+}
+
+inline void pre_inc(context& c){
+	++get_number(c.top());
+}
+
+inline void post_inc(context& c){
+	push_number(c, get_number(c.pop()) + 1);
+}
+
+inline void pre_dec(context& c){
+	--get_number(c.top());
+}
+
+inline void post_dec(context& c){
+	push_number(c, get_number(c.pop()) - 1);
+}
+
+inline void unary_plus(context&){
+}
+
+inline void unary_minus(context& c){
+	push_number(c, -get_number(c.pop()));
+}
+
+inline void bitwise_not(context& c){
+	push_number(c, ~get_int(c.pop()));
+}
+
+inline void logical_not(context& c){
+	push_number(c, !get_number(c.pop()));
+}
+
+inline void mul(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) * get_number(op2));
+}
+
+inline void div(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) / get_number(op2));
+}
+
+inline void idiv(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) / get_int(op2));
+}
+
+inline void mod(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, fmod(get_number(op1), get_number(op2)));
+}
+
+inline void plus(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) + get_number(op2));
+}
+
+inline void concat(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_string(c, (get_string(op1) + get_string(op2)).c_str());
+}
+
+inline void minus(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) - get_number(op2));
+}
+
+inline void shiftl(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) << get_int(op2));
+}
+
+inline void shiftr(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) >> get_int(op2));
+}
+
+inline void less(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) < get_number(op2));
+}
+
+inline void greater(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) > get_number(op2));
+}
+
+inline void lesequal(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) <= get_number(op2));
+}
+
+inline void greaterequal(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) >= get_number(op2));
+}
+
+inline void equal(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) == get_number(op2));
+}
+
+inline void unequal(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) != get_number(op2));
+}
+
+inline void bitwise_and(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) & get_int(op2));
+}
+
+inline void bitwise_xor(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) ^ get_int(op2));
+}
+
+inline void bitwise_or(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_int(op1) | get_int(op2));
+}
+
+inline void logical_and(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) && get_number(op2));
+}
+
+inline void logical_or(context& c){
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+	push_number(c, get_number(op1) || get_number(op2));
+}
+
+inline void conditional(context& c){
+	variable_ptr op3 = c.pop();
+	variable_ptr op2 = c.pop();
+	variable_ptr op1 = c.pop();
+
+	c.push(get_number(op1) ? op2 : op3);
+}
+
+inline void assignment(context& c){
+	variable_ptr op2 = c.pop();
+	c.top()->assign_from(op2);
+}
+
+inline void mul_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) *= get_number(op2);
+}
+
+inline void div_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) /= get_number(op2);
+}
+
+inline void idiv_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = int(d) / get_int(op2);
+}
+
+inline void mod_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = fmod(d, get_number(op2));
+}
+
+inline void plus_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) += get_number(op2);
+}
+
+inline void concat_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_string(c.top()) += get_string(op2);
+}
+
+inline void minus_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	get_number(c.top()) -= get_number(op2);
+}
+
+inline void shiftl_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) << get_int(op2));
+}
+
+inline void shiftr_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) >> get_int(op2));
+}
+
+inline void and_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) & get_int(op2));
+}
+
+inline void xor_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) ^ get_int(op2));
+}
+
+inline void or_assignment(context& c){
+	variable_ptr op2 = c.pop();
+	double& d = get_number(c.top());
+	d = (int(d) | get_int(op2));
+}
+
+inline void comma(context& c){
+	variable_ptr op2 = c.pop();
+	c.pop();
+	c.push(op2);
+}
+
+//TODO:
+std::pair<type*, function> compile_expression(type_container&, tokenizer&){
+	return std::pair<type*, function>();
+}
+
+}//namespace donkey
+*/
 #endif /*__expressions_hpp__*/
 
