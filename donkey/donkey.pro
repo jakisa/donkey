@@ -16,7 +16,12 @@ HEADERS += \
     variables.hpp \
     runtime_context.hpp \
     types.hpp \
-    helpers.hpp
+    helpers.hpp \
+    compiletime_context.hpp \
+    identifiers.hpp \
+    statements.hpp \
+    donkey_function.h \
+    expression_builder.hpp
 
 OTHER_FILES += \
     examples.txt \

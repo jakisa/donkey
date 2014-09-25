@@ -161,17 +161,19 @@ public:
 class function_call_expression final: public expression{
 private:
 	function _f;
-	variable_ptr _params_count;
 	std::vector<expression_ptr> _params;
 
 	variable_ptr make_call(runtime_context& ctx){
-		for(auto it = _params.rbegin(); it != _params.rend(); ++it){
+		size_t sz = ctx.stack.size();
+	
+		for(auto it = _params.begin(); it != _params.end(); ++it){
 			ctx.push((*it)->as_param(ctx));
 		}
-		ctx.push(_params_count);
-
-		auto ret = ctx.retval;
-		ctx.retval.reset();
+		
+		variable_ptr ret = _f(ctx, _params.size());
+		
+		ctx.stack.resize(sz);
+		
 		return ret;
 	}
 
@@ -179,7 +181,6 @@ public:
 	function_call_expression(function f, std::vector<expression_ptr> params):
 		expression(expression_type::function),
 		_f(std::move(f)),
-		_params_count(new number_variable(params.size())),
 		_params(params){
 	}
 
@@ -1269,286 +1270,8 @@ public:
 		_e1->as_void(ctx), _e2->as_void(ctx);
 	}
 };
-/*
-
-
-inline void comma(context& c){
-	variable_ptr op2 = c.pop();
-	c.pop();
-	c.push(op2);
-}
-*/
-
-
-}//namespace donkey;
-
-/*
-#include "variables.hpp"
-#include "types.hpp"
-#include <memory>
-#include <cmath>
-#include <utility>
-
-namespace donkey{
-
-inline void push_number(context& c, double d){
-	c.push(variable_ptr(new number_variable(d)));
-}
-
-inline void push_string(context& c, const char* s){
-	c.push(variable_ptr(new string_variable(s)));
-}
-
-inline void array_index(context& c){
-	variable_ptr idx = c.pop();
-	variable_ptr arr = c.pop();
-	variable_ptr v = get_array(arr)[get_int(idx)];
-	c.push(v);
-}
-
-inline void pre_inc(context& c){
-	++get_number(c.top());
-}
-
-inline void post_inc(context& c){
-	push_number(c, get_number(c.pop()) + 1);
-}
-
-inline void pre_dec(context& c){
-	--get_number(c.top());
-}
-
-inline void post_dec(context& c){
-	push_number(c, get_number(c.pop()) - 1);
-}
-
-inline void unary_plus(context&){
-}
-
-inline void unary_minus(context& c){
-	push_number(c, -get_number(c.pop()));
-}
-
-inline void bitwise_not(context& c){
-	push_number(c, ~get_int(c.pop()));
-}
-
-inline void logical_not(context& c){
-	push_number(c, !get_number(c.pop()));
-}
-
-inline void mul(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) * get_number(op2));
-}
-
-inline void div(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) / get_number(op2));
-}
-
-inline void idiv(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) / get_int(op2));
-}
-
-inline void mod(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, fmod(get_number(op1), get_number(op2)));
-}
-
-inline void plus(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) + get_number(op2));
-}
-
-inline void concat(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_string(c, (get_string(op1) + get_string(op2)).c_str());
-}
-
-inline void minus(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) - get_number(op2));
-}
-
-inline void shiftl(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) << get_int(op2));
-}
-
-inline void shiftr(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) >> get_int(op2));
-}
-
-inline void less(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) < get_number(op2));
-}
-
-inline void greater(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) > get_number(op2));
-}
-
-inline void lesequal(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) <= get_number(op2));
-}
-
-inline void greaterequal(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) >= get_number(op2));
-}
-
-inline void equal(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) == get_number(op2));
-}
-
-inline void unequal(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) != get_number(op2));
-}
-
-inline void bitwise_and(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) & get_int(op2));
-}
-
-inline void bitwise_xor(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) ^ get_int(op2));
-}
-
-inline void bitwise_or(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_int(op1) | get_int(op2));
-}
-
-inline void logical_and(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) && get_number(op2));
-}
-
-inline void logical_or(context& c){
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-	push_number(c, get_number(op1) || get_number(op2));
-}
-
-inline void conditional(context& c){
-	variable_ptr op3 = c.pop();
-	variable_ptr op2 = c.pop();
-	variable_ptr op1 = c.pop();
-
-	c.push(get_number(op1) ? op2 : op3);
-}
-
-inline void assignment(context& c){
-	variable_ptr op2 = c.pop();
-	c.top()->assign_from(op2);
-}
-
-inline void mul_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	get_number(c.top()) *= get_number(op2);
-}
-
-inline void div_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	get_number(c.top()) /= get_number(op2);
-}
-
-inline void idiv_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = int(d) / get_int(op2);
-}
-
-inline void mod_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = fmod(d, get_number(op2));
-}
-
-inline void plus_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	get_number(c.top()) += get_number(op2);
-}
-
-inline void concat_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	get_string(c.top()) += get_string(op2);
-}
-
-inline void minus_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	get_number(c.top()) -= get_number(op2);
-}
-
-inline void shiftl_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = (int(d) << get_int(op2));
-}
-
-inline void shiftr_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = (int(d) >> get_int(op2));
-}
-
-inline void and_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = (int(d) & get_int(op2));
-}
-
-inline void xor_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = (int(d) ^ get_int(op2));
-}
-
-inline void or_assignment(context& c){
-	variable_ptr op2 = c.pop();
-	double& d = get_number(c.top());
-	d = (int(d) | get_int(op2));
-}
-
-inline void comma(context& c){
-	variable_ptr op2 = c.pop();
-	c.pop();
-	c.push(op2);
-}
-
-//TODO:
-std::pair<type*, function> compile_expression(type_container&, tokenizer&){
-	return std::pair<type*, function>();
-}
 
 }//namespace donkey
-*/
+
 #endif /*__expressions_hpp__*/
 

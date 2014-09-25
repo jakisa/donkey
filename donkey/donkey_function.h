@@ -1,0 +1,4 @@
+#ifndef DONKEY_FUNCTION_H
+#define DONKEY_FUNCTION_H
+
+#endif // DONKEY_FUNCTION_H

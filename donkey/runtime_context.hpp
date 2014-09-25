@@ -11,9 +11,11 @@ class variable;
 typedef std::shared_ptr<variable> variable_ptr;
 
 struct runtime_context{
+	runtime_context(const runtime_context&) = delete;
+	void operator=(const runtime_context&) = delete;
+	
 	std::vector<variable_ptr> global;
 	std::vector<variable_ptr> stack;
-	variable_ptr retval;
 
 	void push(variable_ptr v){
 		stack.push_back(v);
@@ -24,12 +26,12 @@ struct runtime_context{
 		stack.pop_back();
 		return ret;
 	}
-	variable_ptr top(){
+	variable_ptr& top(){
 		return stack.back();
 	}
 };
 
-typedef std::function<void(runtime_context&)> function;
+typedef std::function<variable_ptr(runtime_context&, size_t)> function;
 
 }//namespace donkey
 

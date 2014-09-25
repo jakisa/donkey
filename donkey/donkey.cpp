@@ -11,6 +11,11 @@
 #include <functional>
 #include <algorithm>
 
+#include "statements.hpp"
+#include "compiletime_context.hpp"
+#include "donkey_function.h"
+#include "expression_builder.hpp"
+
 namespace donkey{
 
 class scope{
