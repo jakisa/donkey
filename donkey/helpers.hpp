@@ -73,10 +73,10 @@ inline double parse_double(std::string str){
 			return nan("");
 		}
 		double h;
-		return parse_hex_number(str, begin, h) ? nan("") : (minus ? -h : h);
+		return parse_hex_number(str, begin, h) ? (minus ? -h : h) : nan("");
 	}else{
 		double d;
-		return parse_dec_number(str, begin, d) ? nan("") : (minus ? -d : d);
+		return parse_dec_number(str, begin, d) ? (minus ? -d : d) : nan("");
 	}
 }
 

@@ -11,8 +11,9 @@ namespace donkey{
 enum class expression_type{
 	number,
 	string,
-	lvalue,
 	function,
+	lvalue,
+	variant,
 };
 
 class expression{
@@ -29,8 +30,14 @@ public:
 		runtime_error("expression is not number");
 		return nan("");
 	}
+	
 	virtual std::string as_string(runtime_context& ctx){
 		return to_string(as_number(ctx));
+	}
+
+	virtual function as_function(runtime_context&){
+		runtime_error("expression is not function");
+		return function();
 	}
 
 	virtual variable_ptr as_param(runtime_context&) = 0;
@@ -84,6 +91,15 @@ public:
 		}
 		return std::static_pointer_cast<string_variable>(v)->value();
 	}
+	
+	virtual function as_function(runtime_context& ctx) override final{
+		variable_ptr v = as_lvalue(ctx);
+		if(variable::get_type(v) != type::function){
+			runtime_error("expression is not function");
+			return function();
+		}
+		return std::static_pointer_cast<function_variable>(v)->value();
+	}
 };
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
@@ -125,6 +141,29 @@ public:
 	virtual void as_void(runtime_context&) override{
 	}
 };
+
+class const_function_expression final: public expression{
+private:
+	function _f;
+public:
+	const_function_expression(function f):
+		expression(expression_type::function),
+		_f(std::move(f)){
+	}
+	virtual function as_function(runtime_context&) override{
+		return _f;
+	}
+	virtual std::string as_string(runtime_context&) override{
+		return "const function";
+	}
+	virtual variable_ptr as_param(runtime_context&) override{
+		return variable_ptr(new function_variable(_f));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
 
 class local_variable_expression final: public lvalue_expression{
 private:
@@ -179,7 +218,7 @@ private:
 
 public:
 	function_call_expression(function f, std::vector<expression_ptr> params):
-		expression(expression_type::function),
+		expression(expression_type::variant),
 		_f(std::move(f)),
 		_params(params){
 	}
@@ -193,6 +232,14 @@ public:
 	}
 	virtual std::string as_string(runtime_context& ctx){
 		return variable::to_string(make_call(ctx));
+	}
+
+	virtual function as_function(runtime_context& ctx){
+		variable_ptr ret = make_call(ctx);
+		if(variable::get_type(ret) == type::function){
+			return std::static_pointer_cast<function_variable>(ret)->value();
+		}
+		return expression::as_function(ctx);
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx){
@@ -588,8 +635,8 @@ public:
 	}
 };
 
-inline bool is_variable_expression(expression_ptr e){
-	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::function;
+inline bool is_variant_expression(expression_ptr e){
+	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::variant;
 }
 
 inline variable_ptr get_variable(expression_ptr e, runtime_context& ctx){
@@ -601,8 +648,11 @@ inline variable_ptr get_variable(expression_ptr e, runtime_context& ctx){
 
 
 inline bool less_than(expression_ptr e1, expression_ptr e2, runtime_context& ctx){
-	if(is_variable_expression(e1)){
-		if(is_variable_expression(e2)){
+	if(e1->get_type() == expression_type::function || e2->get_type() == expression_type::function){
+		runtime_error("cannot compare const functions");
+	}
+	if(is_variant_expression(e1)){
+		if(is_variant_expression(e2)){
 			return variable::less(get_variable(e1, ctx), get_variable(e2, ctx));
 		}
 		if(e2->get_type() == expression_type::number){
@@ -610,7 +660,7 @@ inline bool less_than(expression_ptr e1, expression_ptr e2, runtime_context& ctx
 		}
 		return variable::less(get_variable(e1, ctx), e2->as_string(ctx));
 	}
-	if(is_variable_expression(e2)){
+	if(is_variant_expression(e2)){
 		if(e1->get_type() == expression_type::number){
 			return variable::greater(get_variable(e2, ctx), e1->as_number(ctx));
 		}
@@ -633,8 +683,11 @@ inline bool less_than(expression_ptr e1, expression_ptr e2, runtime_context& ctx
 }
 
 inline bool equal_to(expression_ptr e1, expression_ptr e2, runtime_context& ctx){
-	if(is_variable_expression(e1)){
-		if(is_variable_expression(e2)){
+	if(e1->get_type() == expression_type::function || e2->get_type() == expression_type::function){
+		runtime_error("cannot compare const functions");
+	}
+	if(is_variant_expression(e1)){
+		if(is_variant_expression(e2)){
 			return variable::equals(get_variable(e1, ctx), get_variable(e2, ctx));
 		}
 		if(e2->get_type() == expression_type::number){
@@ -642,7 +695,7 @@ inline bool equal_to(expression_ptr e1, expression_ptr e2, runtime_context& ctx)
 		}
 		return variable::equals(get_variable(e1, ctx), e2->as_string(ctx));
 	}
-	if(is_variable_expression(e2)){
+	if(is_variant_expression(e2)){
 		if(e1->get_type() == expression_type::number){
 			return variable::equals(get_variable(e2, ctx), e1->as_number(ctx));
 		}
@@ -927,13 +980,16 @@ public:
 };
 
 inline expression_type combined_expression_type(expression_ptr e1, expression_ptr e2){
-	if(is_variable_expression(e1) || is_variable_expression(e2)){
+	if(is_variant_expression(e1) || is_variant_expression(e2)){
+		return expression_type::variant;
+	}
+	if(e1->get_type() == expression_type::function && e2->get_type() == expression_type::function){
 		return expression_type::function;
 	}
-	if(e1->get_type() == expression_type::string || e2->get_type() == expression_type::string){
-		return expression_type::string;
+	if(e1->get_type() == expression_type::number && e2->get_type() == expression_type::number){
+		return expression_type::number;
 	}
-	return expression_type::number;
+	return expression_type::string;
 }
 
 class conditional_expression final: public expression{
@@ -955,6 +1011,10 @@ public:
 	
 	virtual std::string as_string(runtime_context &ctx) override{
 		return _e1->as_number(ctx) ? _e2->as_string(ctx) : _e3->as_string(ctx);
+	}
+	
+	virtual function as_function(runtime_context &ctx) override{
+		return _e1->as_number(ctx) ? _e2->as_function(ctx) : _e3->as_function(ctx);
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
@@ -1260,6 +1320,10 @@ public:
 	
 	virtual std::string as_string(runtime_context &ctx) override{
 		return _e1->as_void(ctx), _e2->as_string(ctx);
+	}
+	
+	virtual function as_function(runtime_context &ctx) override{
+		return _e1->as_void(ctx), _e2->as_function(ctx);
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{

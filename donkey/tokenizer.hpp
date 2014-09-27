@@ -50,9 +50,7 @@ public:
 	}
 	
 	tokenizer& operator++(){
-		if(_current < _end){
-			_fetch_next_token();
-		}
+		_fetch_next_token();
 		return *this;
 	}
 	
