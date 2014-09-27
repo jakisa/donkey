@@ -1,4 +1,42 @@
-#ifndef SEQUENTIONAL_EXPRESSIONS_HPP
-#define SEQUENTIONAL_EXPRESSIONS_HPP
+#ifndef __sequentional_expressions_hpp__
+#define __sequentional_expressions_hpp__
 
-#endif // SEQUENTIONAL_EXPRESSIONS_HPP
+#include "expressions.hpp"
+
+namespace donkey{
+
+class comma_expression final: public expression{
+private:
+	expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	comma_expression(expression_ptr e1, expression_ptr e2):
+		expression((e2->get_type() == expression_type::lvalue) ? expression_type::variant : e2->get_type()),
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual double as_number(runtime_context& ctx) override{
+		return _e1->as_void(ctx), _e2->as_number(ctx);
+	}
+	
+	virtual std::string as_string(runtime_context &ctx) override{
+		return _e1->as_void(ctx), _e2->as_string(ctx);
+	}
+	
+	virtual function as_function(runtime_context &ctx) override{
+		return _e1->as_void(ctx), _e2->as_function(ctx);
+	}
+
+	virtual variable_ptr as_param(runtime_context& ctx) override{
+		return _e1->as_void(ctx), _e2->as_param(ctx);
+	}
+
+	virtual void as_void(runtime_context& ctx) override{
+		_e1->as_void(ctx), _e2->as_void(ctx);
+	}
+};
+
+}//donkey
+
+#endif /*__sequentional_expressions_hpp__*/
