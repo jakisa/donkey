@@ -31,6 +31,10 @@ inline void syntax_error(int line_number, std::string message){
 	error(line_number, "Syntax error", message);
 }
 
+inline void semantic_error(int line_number, std::string message){
+	error(line_number, "Semantic error", message);
+}
+
 inline void unexpected_error(int line_number, std::string message){
 	syntax_error(line_number, "unexpected " + (message.empty() ? std::string("end of file") : message));
 }

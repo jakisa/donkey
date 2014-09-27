@@ -5,6 +5,8 @@
 
 #include "expression_builder.hpp"
 
+#include <cstring>
+
 using namespace donkey;
 
 int main(){
@@ -18,7 +20,7 @@ int main(){
 	do{
 		fgets(buff, 1024, stdin);
 		try{
-			testRPN(buff);
+			//testRPN(buff);
 		}catch(donkey::exception& e){
 			printf("EXCEPTION: %s\n", e.what());
 		}

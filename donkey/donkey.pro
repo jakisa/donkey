@@ -6,7 +6,9 @@ QMAKE_CXXFLAGS += -std=c++11
 
 SOURCES += main.cpp \
     tokenizer.cpp \
-    donkey.cpp
+    donkey.cpp \
+    expression_builder.cpp \
+    expressions.cpp
 
 HEADERS += \
     errors.hpp \
@@ -21,7 +23,15 @@ HEADERS += \
     identifiers.hpp \
     statements.hpp \
     donkey_function.h \
-    expression_builder.hpp
+    expression_builder.hpp \
+    unary_expressions.hpp \
+    arithmetic_expressions.hpp \
+    string_expressions.hpp \
+    logical_expressions.hpp \
+    relation_expressions.hpp \
+    ternary_expressions.hpp \
+    sequentional_expressions.hpp \
+    assignment_expressions.hpp
 
 OTHER_FILES += \
     examples.txt \
