@@ -104,6 +104,18 @@ public:
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
 
+class null_expression final: public expression{
+public:
+	null_expression():
+		expression(expression_type::variant){
+	}
+	virtual variable_ptr as_param(runtime_context&) override{
+		return variable_ptr();
+	}
+	virtual void as_void(runtime_context&) override{
+	}
+};
+
 class const_number_expression final: public expression{
 private:
 	double _d;
@@ -199,7 +211,7 @@ public:
 
 class function_call_expression final: public expression{
 private:
-	function _f;
+	expression_ptr _f;
 	std::vector<expression_ptr> _params;
 
 	variable_ptr make_call(runtime_context& ctx){
@@ -209,7 +221,7 @@ private:
 			ctx.push((*it)->as_param(ctx));
 		}
 		
-		variable_ptr ret = _f(ctx, _params.size());
+		variable_ptr ret = _f->as_function(ctx)(ctx, _params.size());
 		
 		ctx.stack.resize(sz);
 		
@@ -217,7 +229,7 @@ private:
 	}
 
 public:
-	function_call_expression(function f, std::vector<expression_ptr> params):
+	function_call_expression(expression_ptr f, std::vector<expression_ptr> params):
 		expression(expression_type::variant),
 		_f(std::move(f)),
 		_params(params){

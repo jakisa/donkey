@@ -12,7 +12,17 @@ int main(){
 
 	//comp.compile_module("test");
 
-	testRPN("a b*");
+	//testRPN("a+b");
+	
+	char buff[1024];
+	do{
+		fgets(buff, 1024, stdin);
+		try{
+			testRPN(buff);
+		}catch(donkey::exception& e){
+			printf("EXCEPTION: %s\n", e.what());
+		}
+	}while(strcmp(buff, "\n"));
 
 	return 0;
 }
