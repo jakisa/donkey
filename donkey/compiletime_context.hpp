@@ -2,14 +2,11 @@
 #define __compiletime_context_hpp__
 
 #include "tokenizer.hpp"
-#include "runtime_context.hpp"
-#include <memory>
-#include <string>
 #include "identifiers.hpp"
 
 namespace donkey{
 
-
+typedef identifier_lookup compiletime_context;
 
 
 }//namespace donkey

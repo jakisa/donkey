@@ -15,7 +15,7 @@ public:
 		_params_count(orig._params_count),
 		_body(std::move(orig._body)){
 	}
-	donkey_function(size_t params_count, statement& body):
+	donkey_function(size_t params_count, size_t locals_count, statement& body):
 		_params_count(params_count),
 		_body(std::move(body)){
 	}
@@ -26,6 +26,10 @@ public:
 		for(; params_count < _params_count; ++params_count){
 			ctx.push(variable_ptr());
 		}
+		
+		runtime_context.function_stack_bottom = ctx.stack.size() - _params_count;
+		runtime_context.retval_stack_index = ctx.stack.size();
+		
 		ctx.push(variable_ptr());
 		
 		_body(ctx);

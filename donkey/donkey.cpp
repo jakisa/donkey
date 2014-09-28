@@ -1,43 +1,135 @@
 #include "donkey.hpp"
 #include "tokenizer.hpp"
+#include "identifiers.hpp"
+#include "runtime_context.hpp"
 #include "errors.hpp"
-#include "variables.hpp"
-#include "expressions.hpp"
-#include <string>
-#include <cstring>
-#include <cstdio>
+#include "statements.hpp"
+
 #include <vector>
 #include <unordered_map>
-#include <functional>
 #include <algorithm>
-
-#include "statements.hpp"
-#include "compiletime_context.hpp"
-#include "donkey_function.h"
-#include "expression_builder.hpp"
+#include <cstring>
 
 namespace donkey{
 
-class scope{
-	scope* _parent;
+class module{
+	module(const module&) = delete;
+	void operator=(const module&) = delete;
+private:
+	statement _s;
+	size_t _globals_count;
 public:
-	scope():
-		_parent(nullptr){
+	module(statement s, int globals_count):
+		_s(std::move(s)),
+		_globals_count(globals_count){
 	}
-
-	scope(scope* parent):
-		_parent(parent){
+	void load(runtime_context& ctx){
+		ctx.global = std::vector<variable_ptr>(_globals_count);
+		_s(ctx);
 	}
-
-
 };
 
-class module: public scope{
+typedef std::shared_ptr<module> module_ptr;
+
+class scope: public identifier_lookup{
+private:
+	std::unordered_map<std::string, identifier_ptr> _variables;
+	std::vector<statement> _statements;
+	scope* _parent;
+	int _var_index;
+	const int _initial_index;
+public:
+	scope(scope* parent, size_t var_index):
+		_parent(parent),
+		_var_index(var_index),
+		_initial_index(var_index){
+	}
+	
+	scope():
+		scope(nullptr, 0){
+	}
+
+	virtual identifier_ptr get_identifier(std::string name) const override{
+		auto it = _variables.find(name);
+		return it != _variables.end() ? it->second : _parent ? _parent->get_identifier(name) : identifier_ptr();
+	}
+	
+	bool is_global() const{
+		return !_parent;
+	}
+	
+	bool add_variable(std::string name){
+		if(_variables.find(name) == _variables.end()){
+			if(is_global()){
+				_variables[name].reset(new global_variable_identifier(_var_index++));
+			}else{
+				_variables[name].reset(new local_variable_identifier(_var_index++));
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	void add_statement(statement s){
+		_statements.push_back(std::move(s));
+	}
+	
+	statement get_block(){
+		if(is_global()){
+			return statement(std::move(block_statement(_statements, 0)));
+		}else{
+			return statement(std::move(block_statement(_statements, _var_index - _initial_index)));
+		}
+	}
+	
+	size_t get_number_of_variables() const{
+		return _var_index - _initial_index;
+	}
+};
+
+class global_scope: public scope{
+private:
+	std::unordered_map<std::string, function_identifier_ptr> _functions;
+public:
+	bool has_function(std::string name) const{
+		auto it = _functions.find(name);
+		return it != _functions.end() &&  !it->second->is_empty();
+	}
+	
+	void declare_function(std::string name){
+		_functions[name].reset(new function_identifier());
+	}
+	
+	void define_function(std::string name, function f){
+		auto& id = _functions[name];
+		
+		if(id){
+			id->set_function(f);
+		}else{
+			id.reset(new function_identifier(f));
+		}
+	}
+	
+	bool has_undefined_functions() const{
+		for(const auto& p: _functions){
+			if(!p.second->is_empty()){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	virtual identifier_ptr get_identifier(std::string name) const override{
+		auto it = _functions.find(name);
+		return it != _functions.end() ? it->second : scope::get_identifier(name);
+	}
 };
 
 typedef std::function<void(scope&, tokenizer&)> compiler_function;
+typedef std::function<void(global_scope&, tokenizer&)> global_compiler_function;
 
 typedef std::unordered_map<std::string, compiler_function > compiler_map;
+typedef std::unordered_map<std::string, global_compiler_function > global_compiler_map;
 
 using namespace std::placeholders;
 
@@ -71,22 +163,24 @@ inline bool is_keyword(const std::string& name){
 class compiler::priv{
 private:
 	std::string _root;
-	compiler_map _statement_compilers;
+	global_compiler_map _global_compilers;
+	compiler_map _local_compilers;
+	
+	std::unordered_map<std::string, module_ptr> _modules;
 
 
-	void check_allowed_name(const std::string& name, scope&, tokenizer& parser){
+	void check_allowed_name(const std::string& name, identifier_lookup& lookup, tokenizer& parser){
 		if(is_keyword(name)){
 			syntax_error(parser.get_line_number(), (name + "is keyword").c_str());
 		}
-		/*
-		if(target.find_variable(name)){
+		
+		if(lookup.get_identifier(name)){
 			syntax_error(parser.get_line_number(), (name + "is already declared").c_str());
-		}*/
+		}
 	}
 
 	//TODO:
-	void compile_function(scope& , tokenizer& ){
-
+	void compile_function(global_scope& , tokenizer& ){
 	}
 
 
@@ -101,33 +195,11 @@ private:
 	}
 
 	//TODO:
-	void compile_variable_number(scope& target, tokenizer& parser){
-		++parser;
-
-		if(parser.get_token_type() != tokenizer::tt_word){
-			syntax_error(parser.get_line_number(), "identifier expected");
-		}
-
-		auto name = *parser++;
-
-		check_allowed_name(name, target, parser);
-
-		if(*parser != ";"){
-			syntax_error(parser.get_line_number(), "; expected");
-		}
+	void compile_variable_number(scope&, tokenizer&){
 	}
-
+	
+	//TODO:
 	void compile_variable(scope&, tokenizer&){
-	}
-
-	//TODO:
-	void compile_class(scope& , tokenizer& ){
-
-	}
-
-	//TODO:
-	void compile_interface(scope& , tokenizer& ){
-
 	}
 
 	//TODO:
@@ -161,52 +233,66 @@ private:
 	}
 
 	//TODO:
-	void compile_pin(scope& , tokenizer& ){
-
-	}
-
-	//TODO:
 	void compile_expression_statement(scope& , tokenizer&){
 
 	}
 
-	void compile_statement(scope& target, tokenizer& parser){
-		auto it = _statement_compilers.find(*parser);
-		if(it == _statement_compilers.end()){
+	template<typename TARGET, class COMPILER_MAP>
+	void compile_statement(TARGET& target, tokenizer& parser, const COMPILER_MAP& compilers){
+		auto it = compilers.find(*parser);
+		if(it == compilers.end()){
+			if(is_keyword(*parser)){
+				unexpected_error(parser.get_line_number(), *parser);
+			}
 			compile_expression_statement(target, parser);
 		}else{
 			it->second(target, parser);
 		}
 	}
 
-	void compile_scope(scope& target, tokenizer& parser){
+	void compile_local_scope(scope& target, tokenizer& parser){
 		for(++parser; parser;){
 			if(*parser == "}"){
 				++parser;
 				return;
-			}else{
-				compile_statement(target, parser);
 			}
+			compile_statement(target, parser, _local_compilers);
 		}
 		syntax_error(parser.get_line_number(), "'}' expected");
 	}
-#define ADD_STATEMENT_COMPILER(n, f) _statement_compilers.emplace(n, std::bind(&compiler::priv:: f, this, _1, _2))
+	
+	module_ptr compile_module(tokenizer& parser){
+		global_scope target;
+		for(++parser; parser;){
+			compile_statement(target, parser, _global_compilers);
+		}
+		
+		return module_ptr(new module(target.get_block(), target.get_number_of_variables()));
+	}
+	
+#define ADD_GLOBAL_COMPILER(n, f) _global_compilers.emplace(n, std::bind(&compiler::priv:: f, this, _1, _2))
+#define ADD_LOCAL_COMPILER(n, f) _local_compilers.emplace(n, std::bind(&compiler::priv:: f, this, _1, _2))
 
 	void populate_compiler_maps(){
-		ADD_STATEMENT_COMPILER("fun", compile_function);
-		ADD_STATEMENT_COMPILER("var", compile_variable);
-		ADD_STATEMENT_COMPILER("class", compile_class);
-		ADD_STATEMENT_COMPILER("interface", compile_interface);
-		ADD_STATEMENT_COMPILER("for", compile_for);
-		ADD_STATEMENT_COMPILER("while", compile_while);
-		ADD_STATEMENT_COMPILER("do", compile_do);
-		ADD_STATEMENT_COMPILER("if", compile_if);
-		ADD_STATEMENT_COMPILER("switch", compile_switch);
-		ADD_STATEMENT_COMPILER("return", compile_return);
-		ADD_STATEMENT_COMPILER("pin", compile_pin);
+		ADD_GLOBAL_COMPILER("function", compile_function);
+		ADD_GLOBAL_COMPILER("var", compile_variable);
+		ADD_GLOBAL_COMPILER("for", compile_for);
+		ADD_GLOBAL_COMPILER("while", compile_while);
+		ADD_GLOBAL_COMPILER("do", compile_do);
+		ADD_GLOBAL_COMPILER("if", compile_if);
+		ADD_GLOBAL_COMPILER("switch", compile_switch);
+		
+		ADD_LOCAL_COMPILER("var", compile_variable);
+		ADD_LOCAL_COMPILER("for", compile_for);
+		ADD_LOCAL_COMPILER("while", compile_while);
+		ADD_LOCAL_COMPILER("do", compile_do);
+		ADD_LOCAL_COMPILER("if", compile_if);
+		ADD_LOCAL_COMPILER("switch", compile_switch);
+		ADD_LOCAL_COMPILER("return", compile_return);
 	}
 
-#undef ADD_STATEMENT_COMPILER
+#undef ADD_LOCAL_COMPILER
+#undef ADD_GLOBAL_COMPILER
 
 public:
 	priv(const char* root):
@@ -223,22 +309,21 @@ public:
 
 		fseek(fp, 0, SEEK_END);
 
-		int len = ftell(fp);
+		size_t len = ftell(fp);
 
 		fseek(fp, 0, SEEK_SET);
 
-		std::vector<char> v(len+2);
-		v.front() = '{';
-		v.back() = '}';
+		std::vector<char> v(len);
 
-		fread(&v[1], 1, len, fp);
+		if(fread(&v[0], 1, len, fp) != len){
+			return false;
+		}
 
 		fclose(fp);
 
-		module m;
 		try{
 			tokenizer parser (&v[0], &v[0] + len);
-			compile_scope(m, parser);
+			_modules[module_name] = compile_module(parser);
 			return true;
 		}catch(const exception&){
 			return false;

@@ -199,7 +199,7 @@ public:
 	}
 
 	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
-		return ctx.stack[ctx.stack.size() - 1 - _idx];
+		return ctx.stack[ctx.function_stack_bottom +_idx];
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -228,17 +228,13 @@ private:
 	std::vector<expression_ptr> _params;
 
 	variable_ptr make_call(runtime_context& ctx){
-		size_t sz = ctx.stack.size();
+		stack_restorer _(ctx);
 	
 		for(auto it = _params.begin(); it != _params.end(); ++it){
 			ctx.push((*it)->as_param(ctx));
 		}
 		
-		variable_ptr ret = _f->as_function(ctx)(ctx, _params.size());
-		
-		ctx.stack.resize(sz);
-		
-		return ret;
+		return _f->as_function(ctx)(ctx, _params.size());
 	}
 
 public:

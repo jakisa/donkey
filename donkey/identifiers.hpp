@@ -60,15 +60,25 @@ public:
 class function_identifier: public identifier{
 	function _f;
 public:
-	function_identifier(function f):
+	function_identifier(function f = function()):
 		identifier(identifier_type::function),
-		_f(f){
+		_f(std::move(f)){
 	}
 	
 	function get_function() const{
 		return _f;
 	}
+	
+	void set_function(function f){
+		_f = std::move(f);
+	}
+	
+	bool is_empty() const{
+		return (bool)_f;
+	}
 };
+
+typedef std::shared_ptr<function_identifier> function_identifier_ptr;
 
 class identifier_lookup{
 	identifier_lookup(const identifier_lookup&) = delete;

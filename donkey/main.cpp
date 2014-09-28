@@ -8,6 +8,8 @@
 #include <cstring>
 #include <cmath>
 
+#include <functional>
+
 using namespace donkey;
 
 class test_lookup: public identifier_lookup{
@@ -46,11 +48,6 @@ public:
 
 
 int main(){
-	//compiler comp("../donkey/");
-
-	//comp.compile_module("test");
-
-	//testRPN("a+b");
 	
 	test_lookup lookup;
 	

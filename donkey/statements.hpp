@@ -15,6 +15,22 @@ enum class statement_retval{
 	ret,
 };
 
+class var_initializer{
+	var_initializer(const var_initializer&) = delete;
+	void operator=(const var_initializer&) = delete;
+private:
+	size_t _sz;
+	runtime_context& _ctx;
+public:
+	var_initializer(size_t sz, runtime_context& ctx):
+		_sz(sz),
+		_ctx(ctx){
+		_ctx.stack.resize(_ctx.stack.size() + _sz);
+	}
+	~var_initializer(){
+		_ctx.stack.resize(_ctx.stack.size() - _sz);
+	}
+};
 
 typedef std::function<statement_retval(runtime_context&)> statement;
 
@@ -35,18 +51,22 @@ public:
 	}
 };
 
-
 class block_statement{
 private:
 	std::vector<statement> _ss;
+	size_t _locals_count;
 public:
-	block_statement(block_statement&& orig):
-		_ss(std::move(orig._ss)){
+	template<class T>
+	block_statement(T&& orig):
+		_ss(std::move(orig._ss)),
+		_locals_count(orig._locals_count){
 	}
-	block_statement(std::vector<statement>& ss):
-		_ss(std::move(ss)){
+	block_statement(std::vector<statement>& ss, int locals_count):
+		_ss(std::move(ss)),
+		_locals_count(locals_count){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
+		var_initializer _(_locals_count, ctx);
 		for(const statement& s: _ss){
 			statement_retval r = s(ctx);
 			if(r != statement_retval::nxt){
@@ -64,7 +84,8 @@ private:
 	expression_ptr _e3;
 	statement _s;
 public:
-	for_statement(for_statement&& orig):
+	template<class T>
+	for_statement(T&& orig):
 		_e1(orig._e1),
 		_e2(orig._e2),
 		_e3(orig._e3),
@@ -95,7 +116,8 @@ private:
 	expression_ptr _e;
 	statement _s;
 public:
-	while_statement(while_statement&& orig):
+	template<class T>
+	while_statement(T&& orig):
 		_e(orig._e),
 		_s(std::move(orig._s)){
 	}
@@ -122,7 +144,8 @@ private:
 	expression_ptr _e;
 	statement _s;
 public:
-	do_statement(do_statement&& orig):
+	template<class T>
+	do_statement(T&& orig):
 		_e(orig._e),
 		_s(std::move(orig._s)){
 	}
@@ -149,7 +172,8 @@ private:
 	std::vector<expression_ptr> _es;
 	std::vector<statement> _ss;
 public:
-	if_statement(if_statement&& orig):
+	template<class T>
+	if_statement(T&& orig):
 		_es(std::move(orig._es)),
 		_ss(std::move(orig._ss)){
 	}
@@ -178,7 +202,8 @@ private:
 	std::unordered_map<double, size_t> _cases;
 	size_t _dflt;
 public:
-	switch_statement(switch_statement&& orig):
+	template<class T>
+	switch_statement(T&& orig):
 		_e(orig._e),
 		_ss(std::move(orig._ss)),
 		_cases(std::move(orig._cases)),
@@ -231,7 +256,7 @@ public:
 	}
 	statement_retval operator()(runtime_context& ctx) const{
 		if(_e){
-			ctx.top() = _e->as_param(ctx);
+			ctx.stack[ctx.retval_stack_index] = _e->as_param(ctx);
 		}
 		return statement_retval::ret;
 	}
