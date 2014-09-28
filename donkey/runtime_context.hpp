@@ -14,6 +14,9 @@ struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
 	
+	runtime_context(){
+	}
+	
 	std::vector<variable_ptr> global;
 	std::vector<variable_ptr> stack;
 

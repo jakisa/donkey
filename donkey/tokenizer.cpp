@@ -103,19 +103,50 @@ static void skip_block_comment(const char* begin, const char* end, const char*& 
 }
 
 static std::string fetch_string(const char* begin, const char* end, const char*& current){
-
-	const char* old = current;
+	std::string ret;
+	bool escape = false;
 	for(++current; current != end; ++current){
-		switch(*current){
-			case '"':
-				++current;
-				return std::string(old, current);	
-			case '\t':
-				PARSE_ERROR("tab character in string literal");
-				break;
-			case '\n':
-				PARSE_ERROR("newline in string literal");
-				break;
+		if(escape){
+			switch(*current){
+				case '\\':
+					ret += '\\';
+					break;
+				case '"':
+					ret += '"';
+					break;
+				case 't':
+					ret += '\t';
+					break;
+				case 'r':
+					ret += '\r';
+					break;
+				case 'n':
+					ret += '\n';
+					break;
+				default:
+					PARSE_ERROR("unknown escape sequence");
+					break;
+			}
+			escape = false;
+		}else{
+			switch(*current){
+				case '\\':
+					escape = true;
+					break;
+				case '"':
+					++current;
+					return ret;
+				case '\t':
+					PARSE_ERROR("tab character in string literal");
+					break;
+				case '\r':
+				case '\n':
+					PARSE_ERROR("newline in string literal");
+					break;
+				default:
+					ret += *current;
+					break;
+			}
 		}
 	}
 	PARSE_ERROR("string literal is not closed");
@@ -125,7 +156,11 @@ static std::string fetch_string(const char* begin, const char* end, const char*&
 static std::string fetch_number(const char*, const char* end, const char*& current){
 	const char* old = current;
 	for(++current; current != end; ++current){
-		if(!is_anu(*current) && *current != '.'){
+		if(*current == '.'){
+			if(current + 1 != end && *(current+1) == '.'){
+				break;
+			}
+		}else if(!is_anu(*current)){
 			break;
 		}
 	}
@@ -133,8 +168,6 @@ static std::string fetch_number(const char*, const char* end, const char*& curre
 }
 
 static std::string fetch_word(const char*, const char* end, const char*& current){
-	//printf("WORD: %c\n", *current);
-	//exit(0);
 	const char* old = current;
 	for(++current; current != end; ++current){
 		if(!is_anu(*current)){

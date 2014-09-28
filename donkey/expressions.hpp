@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include "helpers.hpp"
 #include "variables.hpp"
-#include <stack>
+#include <vector>
 
 namespace donkey{
 
@@ -76,7 +76,7 @@ public:
 	virtual variable_ptr& as_lvalue(runtime_context&) = 0;
 
 	virtual variable_ptr as_param(runtime_context& ctx) override final{
-		return as_lvalue(ctx)->as_param();
+		return variable::as_param(as_lvalue(ctx));
 	}
 
 	virtual double as_number(runtime_context& ctx) override final{
@@ -90,11 +90,7 @@ public:
 
 	virtual std::string as_string(runtime_context& ctx) override final{
 		variable_ptr v = as_lvalue(ctx);
-		if(variable::get_type(v) != type::string){
-			runtime_error("expression is not string");
-			return "";
-		}
-		return std::static_pointer_cast<string_variable>(v)->value();
+		return variable::to_string(v);
 	}
 	
 	virtual function as_function(runtime_context& ctx) override final{
@@ -120,6 +116,9 @@ class null_expression final: public expression{
 public:
 	null_expression():
 		expression(expression_type::variant){
+	}
+	virtual std::string as_string(runtime_context& ctx) override{
+		return variable::to_string(as_param(ctx));
 	}
 	virtual variable_ptr as_param(runtime_context&) override{
 		return variable_ptr();
@@ -332,12 +331,15 @@ enum class oper{
 
 class identifier_lookup;
 
-bool build_null_expression(std::stack<expression_ptr>& stack);
-bool build_number_expression(std::stack<expression_ptr>& stack, double d);
-bool build_string_expression(std::stack<expression_ptr>& stack, std::string str);
-bool build_variable_expression(std::stack<expression_ptr>& stack, const identifier_lookup& lookup, std::string name);
-bool build_function_expression(std::stack<expression_ptr>& stack, const identifier_lookup& lookup, std::string name, int param_count);
-bool build_operator_expression(std::stack<expression_ptr>& stack, oper op);
+expression_ptr build_null_expression();
+expression_ptr build_number_expression(double d);
+expression_ptr build_string_expression(std::string str);
+expression_ptr build_variable_expression(std::string name, const identifier_lookup& lookup);
+expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const identifier_lookup& lookup);
+
+expression_ptr build_unary_expression(oper op, expression_ptr e1);
+expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2);
+expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3);
 
 
 }//namespace donkey

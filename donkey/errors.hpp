@@ -20,7 +20,7 @@ public:
 };
 
 inline void error(int line_number, std::string error_type, std::string message){
-	throw exception(std::string(error_type) + " in " + std::to_string(line_number) + ": " + message);
+	throw exception(std::string(error_type) + " in " + std::to_string(line_number+1) + ": " + message);
 }
 
 inline void parse_error(int line_number, std::string message){
@@ -40,7 +40,7 @@ inline void unexpected_error(int line_number, std::string message){
 }
 
 inline void runtime_error(std::string message){
-	throw exception(message);
+	throw exception("Runtime error: " + message);
 }
 
 

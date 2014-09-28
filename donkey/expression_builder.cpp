@@ -219,11 +219,22 @@ inline bool bigger_precedence(oper next, oper on_stack){
 	return is_right_associative(next_p);
 }
 
-inline bool is_opening(std::string str){
+inline bool is_opening(const tokenizer& parser){
+	if(parser.get_token_type() != tokenizer::tt_operator){
+		return false;
+	}
+	const std::string& str = *parser;
 	return str == "(" || str == "?";
 }
 
-inline bool is_closing(std::string str){
+inline bool is_closing(const tokenizer& parser){
+	if(!parser){
+		return true;
+	}
+	if(parser.get_token_type() != tokenizer::tt_operator){
+		return false;
+	}
+	const std::string& str = *parser;
 	return str == "" || str == ";" || str == ")" || str == ":";
 }
 
@@ -246,17 +257,43 @@ inline double parse_number(tokenizer& parser){
 	return ret;
 }
 
-inline int consume_stack(oper op, std::stack<oper>& stack, std::vector<part>& rpn, bool function_call){
-	int ret = 0;
+inline void consume_stack(oper op, int line_number, std::stack<oper>& stack, std::vector<expression_ptr>& expressions, bool function_call){
 	while(!stack.empty() && !bigger_precedence(op, stack.top())){
-		if(function_call && stack.top() == oper::comma){
-			++ret;
-		}else{
-			rpn.push_back(part{part_type::opr, "", 0, stack.top()});
+		if(!function_call || stack.top() != oper::comma){
+			expression_ptr e;
+			switch(get_number_of_operands(stack.top())){
+				case 3:
+					if(expressions.size() < 3){
+						semantic_error(line_number, "invalid expression");
+					}
+					e = build_ternary_expression(stack.top(), expressions[expressions.size()-3], expressions[expressions.size()-2], expressions[expressions.size()-1]);
+					expressions.resize(expressions.size()-3);
+					break;
+				case 2:
+					if(expressions.size() < 2){
+						semantic_error(line_number, "invalid expression");
+					}
+					e = build_binary_expression(stack.top(), expressions[expressions.size()-2], expressions[expressions.size()-1]);
+					expressions.resize(expressions.size()-2);
+					break;
+				case 1:
+					if(expressions.size() < 1){
+						semantic_error(line_number, "invalid expression");
+					}
+					e = build_unary_expression(stack.top(), expressions[expressions.size()-1]);
+					expressions.resize(expressions.size()-1);
+					break;
+				default:
+					semantic_error(line_number, "invalid expression");
+			}
+			if(e){
+				expressions.push_back(e);
+			}else{
+				semantic_error(line_number, "l-value expected");
+			}
 		}
 		stack.pop();
 	}
-	return ret;
 }
 
 inline void check_left_operand(bool is_left_operand, tokenizer& parser, bool should_be){
@@ -273,41 +310,38 @@ inline void check_right_operand(tokenizer& parser, bool should_be){
 	}
 }
 
-inline int parse_to_rpn(std::vector<part>& rpn, tokenizer& parser, bool function_call){
+inline expression_ptr parse_expression(tokenizer& parser, const identifier_lookup& lookup, std::string function_name = ""){
 	std::stack<oper> stack;
-	
-	int number_of_params = (function_call && !is_closing(*parser)) ? 1 : 0;
+	std::vector<expression_ptr> expressions;
 	
 	bool is_left_operand = false;
 	
 	std::string f;
 	
-	for(; !is_closing(*parser); ++parser){
-		if(is_opening(*parser)){
+	for(; !is_closing(parser); ++parser){
+		if(is_opening(parser)){
 			oper opening = string_to_oper(*parser);
 			
 			if(opening == oper::conditional_question){
 				check_left_operand(is_left_operand, parser, true);
-				number_of_params += consume_stack(oper::conditional_question, stack, rpn, function_call);
+				consume_stack(oper::conditional_question, parser.get_line_number(), stack, expressions, !function_name.empty());
 			}else{
 				check_left_operand(is_left_operand, parser, false);
 			}
 			
 			++parser;
-			size_t sz = rpn.size();
-			int prms = parse_to_rpn(rpn, parser, !f.empty());
+			expression_ptr inner = parse_expression(parser, lookup, f);
+			
+			if(!inner){
+				unexpected_error(parser.get_line_number(), *parser);
+			}
+			
+			expressions.push_back(inner);
 			
 			oper closing = string_to_oper(*parser);
 			
 			if(!matching_brackets(opening, closing)){
 				unexpected_error(parser.get_line_number(), *parser);
-			}
-			if(sz == rpn.size() && f.empty()){
-				unexpected_error(parser.get_line_number(), *parser);
-			}
-			
-			if(!f.empty()){
-				rpn.push_back(part{part_type::fun, f, (double)prms, oper::none});
 			}
 			
 			if(closing == oper::conditional_colon){
@@ -322,12 +356,12 @@ inline int parse_to_rpn(std::vector<part>& rpn, tokenizer& parser, bool function
 			switch(parser.get_token_type()){
 				case tokenizer::tt_number:
 					check_left_operand(is_left_operand, parser, false);
-					rpn.push_back(part{part_type::num, "", parse_number(parser), oper::none});
+					expressions.push_back(build_number_expression(parse_number(parser)));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_string:
 					check_left_operand(is_left_operand, parser, false);
-					rpn.push_back(part{part_type::str, *parser, 0, oper::none});
+					expressions.push_back(build_string_expression(*parser));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_word:
@@ -335,10 +369,14 @@ inline int parse_to_rpn(std::vector<part>& rpn, tokenizer& parser, bool function
 					if(get_next_token(parser).second == "("){
 						f = *parser;
 					}else if(*parser == "null"){
-						rpn.push_back(part{part_type::nul, "", 0, oper::none});
+						expressions.push_back(build_null_expression());
 						is_left_operand = true;
 					}else{
-						rpn.push_back(part{part_type::var, *parser, 0, oper::none});
+						expression_ptr v = build_variable_expression(*parser, lookup);
+						if(!v){
+							semantic_error(parser.get_line_number(), "unknown identifier");
+						}
+						expressions.push_back(v);
 						is_left_operand = true;
 					}
 					break;
@@ -369,7 +407,7 @@ inline int parse_to_rpn(std::vector<part>& rpn, tokenizer& parser, bool function
 								unexpected_error(parser.get_line_number(), *parser);
 						}
 						
-						number_of_params += consume_stack(op, stack, rpn, function_call);
+						consume_stack(op, parser.get_line_number(), stack, expressions, !function_name.empty());
 						stack.push(op);
 						
 						is_left_operand = (ot == operator_type::unary_postfix);
@@ -381,60 +419,33 @@ inline int parse_to_rpn(std::vector<part>& rpn, tokenizer& parser, bool function
 		}
 	}
 	
-	number_of_params += consume_stack(oper::none, stack, rpn, function_call);
+	consume_stack(oper::none, parser.get_line_number(), stack, expressions, !function_name.empty());
 	
-	return number_of_params;
+	if(function_name.empty()){
+		if(expressions.size() > 1){
+			semantic_error(parser.get_line_number(), "invalid expression");
+		}
+		
+		return expressions.empty() ? expression_ptr() : expressions.front();
+	}
+	
+	expression_ptr ret = build_function_expression(function_name, expressions, lookup);
+	if(!ret){
+		semantic_error(parser.get_line_number(), "unknown identifier");
+	}
+	return ret;
 }
 
 expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty){
-	std::vector<part> rpn;
-	parse_to_rpn(rpn, parser, false);
-	if(rpn.empty()){
+	expression_ptr ret = parse_expression(parser, lookup);
+	
+	if(!ret){
 		if(can_be_empty){
 			return expression_ptr(new null_expression());
 		}
 		unexpected_error(parser.get_line_number(), *parser);
 	}
-	std::stack<expression_ptr> expressions;
-	for(const part& part: rpn){
-		switch(part.type){
-			case part_type::nul:
-				if(!build_null_expression(expressions)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-			case part_type::num:
-				if(!build_number_expression(expressions, part.d)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-			case part_type::str:
-				if(!build_string_expression(expressions, part.str)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-			case part_type::var:
-				if(!build_variable_expression(expressions, lookup, part.str)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-			case part_type::fun:
-				if(!build_function_expression(expressions, lookup, part.str, (int)part.d)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-			case part_type::opr:
-				if(!build_operator_expression(expressions, part.op)){
-					semantic_error(parser.get_line_number(), "invalid expression");
-				}
-				break;
-		}
-	}
-	if(expressions.size() == 1){
-		return expressions.top();
-	}
-	syntax_error(parser.get_line_number(), "invalid expression");
-	return expression_ptr();
+	return ret;
 }
 
-}
+}//donkey

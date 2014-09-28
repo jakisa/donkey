@@ -85,9 +85,9 @@ inline std::string to_string(double d){
 	if(minus){
 		d = -d;
 	}
-	//while(d > 1){
-	//
-	//}
+	
+	d += 0.000005;
+	
 	double before_dot = floor(d);
 	double after_dot = d - before_dot;
 
@@ -103,12 +103,17 @@ inline std::string to_string(double d){
 
 			before_dot = floor(before_dot/10);
 		}
-		for(int i = 0; i < 5 && after_dot; ++i){
-			after_dot *= 10;
-			int digit = floor(after_dot);
-			after_dot_str += char('0' + digit);
-			after_dot -= digit;
-		}
+	}
+	
+	for(int i = 0; i < 5 && after_dot; ++i){
+		after_dot *= 10;
+		int digit = floor(after_dot);
+		after_dot_str += char('0' + digit);
+		after_dot -= digit;
+	}
+	
+	while(!after_dot_str.empty() && after_dot_str.back() == '0'){
+		after_dot_str.pop_back();
 	}
 
 	return (minus ? "-" : "") + before_dot_str + (after_dot_str.empty() ? std::string("") : ".") + after_dot_str;

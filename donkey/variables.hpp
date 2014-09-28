@@ -142,6 +142,10 @@ public:
 	static std::string to_string(variable_ptr v){
 		return v ? v->to_string() : "null";
 	}
+	
+	static variable_ptr as_param(variable_ptr v){
+		return v ? v->as_param() : variable_ptr();
+	}
 
 	virtual ~variable(){
 	}
