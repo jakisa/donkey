@@ -65,6 +65,8 @@ public:
     }
     
     int get_line_number() const;
+    
+    std::string unquoted() const;
 };
 
 }//namespace donkey

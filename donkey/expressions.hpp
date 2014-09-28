@@ -36,9 +36,9 @@ public:
 		return to_string(as_number(ctx));
 	}
 
-	virtual function as_function(runtime_context&){
+	virtual code_address as_function(runtime_context&){
 		runtime_error("expression is not function");
-		return function();
+		return -1;
 	}
 
 	virtual variable_ptr as_param(runtime_context&) = 0;
@@ -93,11 +93,11 @@ public:
 		return variable::to_string(v);
 	}
 	
-	virtual function as_function(runtime_context& ctx) override final{
+	virtual code_address as_function(runtime_context& ctx) override final{
 		variable_ptr v = as_lvalue(ctx);
 		if(variable::get_type(v) != type::function){
 			runtime_error("expression is not function");
-			return function();
+			return -1;
 		}
 		return std::static_pointer_cast<function_variable>(v)->value();
 	}
@@ -169,13 +169,13 @@ public:
 
 class const_function_expression final: public expression{
 private:
-	function _f;
+	code_address _f;
 public:
-	const_function_expression(function f):
+	const_function_expression(code_address f):
 		expression(expression_type::function),
-		_f(std::move(f)){
+		_f(f){
 	}
-	virtual function as_function(runtime_context&) override{
+	virtual code_address as_function(runtime_context&) override{
 		return _f;
 	}
 	virtual std::string as_string(runtime_context&) override{
@@ -234,7 +234,7 @@ private:
 			ctx.push((*it)->as_param(ctx));
 		}
 		
-		return _f->as_function(ctx)(ctx, _params.size());
+		return ctx.code->call_function_by_address(_f->as_function(ctx), ctx, _params.size());
 	}
 
 public:
@@ -255,7 +255,7 @@ public:
 		return variable::to_string(make_call(ctx));
 	}
 
-	virtual function as_function(runtime_context& ctx){
+	virtual code_address as_function(runtime_context& ctx){
 		variable_ptr ret = make_call(ctx);
 		if(variable::get_type(ret) == type::function){
 			return std::static_pointer_cast<function_variable>(ret)->value();

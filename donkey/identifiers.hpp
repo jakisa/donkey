@@ -58,23 +58,15 @@ public:
 };
 
 class function_identifier: public identifier{
-	function _f;
+	code_address _f;
 public:
-	function_identifier(function f = function()):
+	function_identifier(code_address f):
 		identifier(identifier_type::function),
-		_f(std::move(f)){
+		_f(f){
 	}
 	
-	function get_function() const{
+	const code_address& get_function() const{
 		return _f;
-	}
-	
-	void set_function(function f){
-		_f = std::move(f);
-	}
-	
-	bool is_empty() const{
-		return (bool)_f;
 	}
 };
 
@@ -88,6 +80,8 @@ protected:
 	}
 public:
 	virtual identifier_ptr get_identifier(std::string name) const = 0;
+	
+	virtual bool is_allowed(std::string name) const = 0;
 	
 	virtual ~identifier_lookup(){
 	}

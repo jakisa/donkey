@@ -255,9 +255,7 @@ public:
 		_e(e){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		if(_e){
-			ctx.stack[ctx.retval_stack_index] = _e->as_param(ctx);
-		}
+		ctx.stack[ctx.retval_stack_index] = _e->as_param(ctx);
 		return statement_retval::ret;
 	}
 };

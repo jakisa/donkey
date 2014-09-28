@@ -270,13 +270,13 @@ public:
 
 class function_variable: public variable{
 private:
-	function _value;
+	code_address _value;
 public:
-	function_variable(function value):
-		_value(std::move(value)){
+	function_variable(code_address value):
+		_value(value){
 	}
 
-	function& value(){
+	code_address value(){
 		return _value;
 	}
 

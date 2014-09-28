@@ -7,7 +7,7 @@
 
 namespace donkey{
 
-expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty);
+expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty, bool declaration = false);
 
 }//namespace donkey
 

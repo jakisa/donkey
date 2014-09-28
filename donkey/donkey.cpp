@@ -4,6 +4,8 @@
 #include "runtime_context.hpp"
 #include "errors.hpp"
 #include "statements.hpp"
+#include "expression_builder.hpp"
+#include "donkey_function.h"
 
 #include <vector>
 #include <unordered_map>
@@ -12,14 +14,18 @@
 
 namespace donkey{
 
+typedef std::function<variable_ptr(runtime_context&, size_t)> function;
+
 class module{
 	module(const module&) = delete;
 	void operator=(const module&) = delete;
 private:
+	std::vector<function> _functions;
 	statement _s;
 	size_t _globals_count;
 public:
-	module(statement s, int globals_count):
+	module(statement&& s, int globals_count, std::vector<function>&& functions):
+		_functions(std::move(functions)),
 		_s(std::move(s)),
 		_globals_count(globals_count){
 	}
@@ -39,19 +45,25 @@ private:
 	int _var_index;
 	const int _initial_index;
 public:
-	scope(scope* parent, size_t var_index):
+	scope(scope* parent):
 		_parent(parent),
-		_var_index(var_index),
-		_initial_index(var_index){
+		_var_index(parent->_var_index),
+		_initial_index(parent->_var_index){
 	}
 	
 	scope():
-		scope(nullptr, 0){
+		_parent(nullptr),
+		_var_index(0),
+		_initial_index(0){
 	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
 		auto it = _variables.find(name);
 		return it != _variables.end() ? it->second : _parent ? _parent->get_identifier(name) : identifier_ptr();
+	}
+	
+	virtual bool is_allowed(std::string name) const override{
+		return _variables.find(name) == _variables.end();
 	}
 	
 	bool is_global() const{
@@ -70,8 +82,9 @@ public:
 		return false;
 	}
 	
-	void add_statement(statement s){
-		_statements.push_back(std::move(s));
+	template<typename T>
+	void add_statement(T&& s){
+		_statements.push_back(statement(s));
 	}
 	
 	statement get_block(){
@@ -90,38 +103,56 @@ public:
 class global_scope: public scope{
 private:
 	std::unordered_map<std::string, function_identifier_ptr> _functions;
+	std::vector<function> _definitions;
 public:
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
-		return it != _functions.end() &&  !it->second->is_empty();
+		if(it == _functions.end()){
+			return false;
+		}
+		code_address idx = it->second->get_function();
+		return bool(_definitions[idx]);
 	}
 	
 	void declare_function(std::string name){
-		_functions[name].reset(new function_identifier());
+		if(_functions.find(name) == _functions.end()){
+			return;
+		}
+		_functions[name].reset(new function_identifier(_definitions.size()));
+		_definitions.push_back(function());
 	}
 	
-	void define_function(std::string name, function f){
-		auto& id = _functions[name];
+	void define_function(std::string name, function&& f){
+		function_identifier_ptr& ptr = _functions[name];
 		
-		if(id){
-			id->set_function(f);
+		if(ptr){
+			_definitions[ptr->get_function()] = std::move(f);
 		}else{
-			id.reset(new function_identifier(f));
+			ptr.reset(new function_identifier(_definitions.size()));
+			_definitions.push_back(std::move(f));
 		}
 	}
 	
-	bool has_undefined_functions() const{
+	std::string get_undefined_function() const{
 		for(const auto& p: _functions){
-			if(!p.second->is_empty()){
-				return true;
+			if(!_definitions[p.second->get_function()]){
+				return p.first;
 			}
 		}
-		return false;
+		return "";
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
 		auto it = _functions.find(name);
 		return it != _functions.end() ? it->second : scope::get_identifier(name);
+	}
+	
+	virtual bool is_allowed(std::string name) const override{
+		return _functions.find(name) == _functions.end() && scope::is_allowed(name);
+	}
+	
+	std::vector<function> get_functions(){
+		return std::move(_definitions);
 	}
 };
 
@@ -168,38 +199,98 @@ private:
 	
 	std::unordered_map<std::string, module_ptr> _modules;
 
+	static void parse(const std::string& token, tokenizer& parser){
+		if(*parser != token){
+			syntax_error(parser.get_line_number(), token + " expected");
+		}
+	}
 
-	void check_allowed_name(const std::string& name, identifier_lookup& lookup, tokenizer& parser){
-		if(is_keyword(name)){
-			syntax_error(parser.get_line_number(), (name + "is keyword").c_str());
+	static std::string parse_allowed_name(tokenizer& parser){
+		if(parser.get_token_type() != tokenizer::tt_word){
+			unexpected_error(parser.get_line_number(), *parser);
+		}
+		if(is_keyword(*parser)){
+			syntax_error(parser.get_line_number(), *parser + "is keyword");
+		}
+		return *(parser++);
+	}
+
+	static std::string parse_allowed_name(identifier_lookup& lookup, tokenizer& parser){
+		if(!lookup.is_allowed(*parser)){
+			syntax_error(parser.get_line_number(), *parser + "is already declared");
+		}
+		return parse_allowed_name(parser);
+	}
+
+	void compile_function(global_scope& target, tokenizer& parser){
+		++parser;
+		std::string name = parse_allowed_name(parser);
+		parse("(", parser);
+		
+		std::vector<std::string> params;
+		if(*parser == ")"){
+			++parser;
+			if(*parser == ";"){
+				target.declare_function(name);
+				++parser;
+				return;
+			}
+		}else{
+			bool first_param = true;
+			do{
+				if(!first_param){
+					parse(",", parser);
+				}
+				params.push_back(parse_allowed_name(parser));
+				
+			}while(*parser != ")");
+			
+			++parser;
 		}
 		
-		if(lookup.get_identifier(name)){
-			syntax_error(parser.get_line_number(), (name + "is already declared").c_str());
+		if(target.has_function(name)){
+			semantic_error(parser.get_line_number(), name + " is already defined");
 		}
+		
+		scope function_scope(&target);
+		
+		for(const std::string& prm: params){
+			if(!function_scope.add_variable(prm)){
+				semantic_error(parser.get_line_number(), prm + " is already defined");
+			}
+		}
+		
+		function_scope.add_variable("%RETVAL%");
+		
+		parse("{", parser);
+		
+		while(parser){
+			if(*parser == "}"){
+				++parser;
+				target.define_function(name, donkey_function(params.size(), function_scope.get_block()));
+				return;
+			}
+			compile_statement(function_scope, parser, _local_compilers);
+		}
+		syntax_error(parser.get_line_number(), "'}' expected");
+		
 	}
 
-	//TODO:
-	void compile_function(global_scope& , tokenizer& ){
-	}
-
-
-	//TODO:
-	void compile_variable_fun(scope& , tokenizer& ){
-
-	}
-
-	//TODO:
-	void compile_variable_string(scope& , tokenizer& ){
-
-	}
-
-	//TODO:
-	void compile_variable_number(scope&, tokenizer&){
-	}
 	
-	//TODO:
-	void compile_variable(scope&, tokenizer&){
+	void compile_variable(scope& target, tokenizer& parser){
+		++parser;
+		
+		while(parser && *parser != ";"){
+			target.add_variable(parse_allowed_name(target, parser));
+			
+			if(*parser == "="){
+				++parser;
+				target.add_statement(expression_statement(build_expression(target, parser, false, true)));
+			}
+			if(*parser == ","){
+				++parser;
+			}
+		}
 	}
 
 	//TODO:
@@ -227,14 +318,13 @@ private:
 
 	}
 
-	//TODO:
-	void compile_return(scope& , tokenizer& ){
-
+	void compile_return(scope& target, tokenizer& parser){
+		++parser;
+		target.add_statement(return_statement(build_expression(target, parser, true)));
 	}
 
-	//TODO:
-	void compile_expression_statement(scope& , tokenizer&){
-
+	void compile_expression_statement(scope& target, tokenizer& parser){
+		target.add_statement(expression_statement(build_expression(target, parser, true)));
 	}
 
 	template<typename TARGET, class COMPILER_MAP>
@@ -245,15 +335,17 @@ private:
 				unexpected_error(parser.get_line_number(), *parser);
 			}
 			compile_expression_statement(target, parser);
-		}else{
-			it->second(target, parser);
+			return;
 		}
+		it->second(target, parser);
 	}
 
 	void compile_local_scope(scope& target, tokenizer& parser){
+		scope s(&target);
 		for(++parser; parser;){
 			if(*parser == "}"){
 				++parser;
+				target.add_statement(s.get_block());
 				return;
 			}
 			compile_statement(target, parser, _local_compilers);
@@ -267,7 +359,12 @@ private:
 			compile_statement(target, parser, _global_compilers);
 		}
 		
-		return module_ptr(new module(target.get_block(), target.get_number_of_variables()));
+		std::string not_defined = target.get_undefined_function();
+		if(not_defined != ""){
+			semantic_error(parser.get_line_number(), not_defined + " is not defined");
+		}
+		
+		return module_ptr(new module(target.get_block(), target.get_number_of_variables(), target.get_functions()));
 	}
 	
 #define ADD_GLOBAL_COMPILER(n, f) _global_compilers.emplace(n, std::bind(&compiler::priv:: f, this, _1, _2))
@@ -281,6 +378,7 @@ private:
 		ADD_GLOBAL_COMPILER("do", compile_do);
 		ADD_GLOBAL_COMPILER("if", compile_if);
 		ADD_GLOBAL_COMPILER("switch", compile_switch);
+		ADD_GLOBAL_COMPILER("{", compile_local_scope);
 		
 		ADD_LOCAL_COMPILER("var", compile_variable);
 		ADD_LOCAL_COMPILER("for", compile_for);
@@ -289,6 +387,7 @@ private:
 		ADD_LOCAL_COMPILER("if", compile_if);
 		ADD_LOCAL_COMPILER("switch", compile_switch);
 		ADD_LOCAL_COMPILER("return", compile_return);
+		ADD_LOCAL_COMPILER("{", compile_local_scope);
 	}
 
 #undef ADD_LOCAL_COMPILER

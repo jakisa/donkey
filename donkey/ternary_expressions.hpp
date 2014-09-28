@@ -39,7 +39,7 @@ public:
 		return _e1->as_number(ctx) ? _e2->as_string(ctx) : _e3->as_string(ctx);
 	}
 	
-	virtual function as_function(runtime_context &ctx) override{
+	virtual code_address as_function(runtime_context &ctx) override{
 		return _e1->as_number(ctx) ? _e2->as_function(ctx) : _e3->as_function(ctx);
 	}
 

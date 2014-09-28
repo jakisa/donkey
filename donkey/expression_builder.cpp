@@ -227,7 +227,7 @@ inline bool is_opening(const tokenizer& parser){
 	return str == "(" || str == "?";
 }
 
-inline bool is_closing(const tokenizer& parser){
+inline bool is_closing(const tokenizer& parser, bool declaration){
 	if(!parser){
 		return true;
 	}
@@ -235,7 +235,7 @@ inline bool is_closing(const tokenizer& parser){
 		return false;
 	}
 	const std::string& str = *parser;
-	return str == "" || str == ";" || str == ")" || str == ":";
+	return str == "" || str == ";" || str == ")" || str == ":" || (declaration && str == ",");
 }
 
 inline bool matching_brackets(oper opening, oper closing){
@@ -310,7 +310,7 @@ inline void check_right_operand(tokenizer& parser, bool should_be){
 	}
 }
 
-inline expression_ptr parse_expression(tokenizer& parser, const identifier_lookup& lookup, std::string function_name = ""){
+inline expression_ptr parse_expression(tokenizer& parser, const identifier_lookup& lookup, bool declaration, std::string function_name = ""){
 	std::stack<oper> stack;
 	std::vector<expression_ptr> expressions;
 	
@@ -318,7 +318,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 	
 	std::string f;
 	
-	for(; !is_closing(parser); ++parser){
+	for(; !is_closing(parser, declaration); ++parser){
 		if(is_opening(parser)){
 			oper opening = string_to_oper(*parser);
 			
@@ -330,7 +330,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 			}
 			
 			++parser;
-			expression_ptr inner = parse_expression(parser, lookup, f);
+			expression_ptr inner = parse_expression(parser, lookup, false, f);
 			
 			if(!inner){
 				unexpected_error(parser.get_line_number(), *parser);
@@ -361,7 +361,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 					break;
 				case tokenizer::tt_string:
 					check_left_operand(is_left_operand, parser, false);
-					expressions.push_back(build_string_expression(*parser));
+					expressions.push_back(build_string_expression(parser.unquoted()));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_word:
@@ -436,8 +436,8 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 	return ret;
 }
 
-expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty){
-	expression_ptr ret = parse_expression(parser, lookup);
+expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty, bool declaration){
+	expression_ptr ret = parse_expression(parser, lookup, declaration);
 	
 	if(!ret){
 		if(can_be_empty){

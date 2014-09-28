@@ -107,7 +107,31 @@ static std::string fetch_string(const char* begin, const char* end, const char*&
 	bool escape = false;
 	for(++current; current != end; ++current){
 		if(escape){
+			ret += *current;
+			escape = false;
+		}else{
 			switch(*current){
+				case '"':
+					++current;
+					return '"' + ret + '"';
+				case '\\':
+					escape = true;
+				default:
+					ret += *current;
+					break;
+			}
+		}
+	}
+	PARSE_ERROR("string literal is not closed");
+	return "";
+}
+
+std::string tokenizer::unquoted() const{
+	std::string ret;
+	bool escape = false;
+	for(size_t i=1; i + 1 < _token.size(); ++i){
+		if(escape){
+			switch(_token[i]){
 				case '\\':
 					ret += '\\';
 					break;
@@ -124,33 +148,29 @@ static std::string fetch_string(const char* begin, const char* end, const char*&
 					ret += '\n';
 					break;
 				default:
-					PARSE_ERROR("unknown escape sequence");
+					parse_error(get_line_number(), "unknown escape sequence");
 					break;
 			}
 			escape = false;
 		}else{
-			switch(*current){
+			switch(_token[i]){
 				case '\\':
 					escape = true;
 					break;
-				case '"':
-					++current;
-					return ret;
 				case '\t':
-					PARSE_ERROR("tab character in string literal");
+					parse_error(get_line_number(), "tab character in string literal");
 					break;
 				case '\r':
 				case '\n':
-					PARSE_ERROR("newline in string literal");
+					parse_error(get_line_number(), "newline in string literal");
 					break;
 				default:
-					ret += *current;
+					ret += _token[i];
 					break;
 			}
 		}
 	}
-	PARSE_ERROR("string literal is not closed");
-	return "";
+	return ret;
 }
 
 static std::string fetch_number(const char*, const char* end, const char*& current){
