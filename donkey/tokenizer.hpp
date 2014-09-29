@@ -56,7 +56,7 @@ public:
 	
 	tokenizer operator++(int){
 		tokenizer ret = *this;
-		(*this)++;
+		++(*this);
 		return ret;
 	}
     

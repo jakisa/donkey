@@ -11,7 +11,7 @@
 
 namespace donkey{
 
-inline expression_ptr identifier_to_expression(std::string str, const identifier_lookup& lookup){
+expression_ptr identifier_to_expression(std::string str, const identifier_lookup& lookup){
 	identifier_ptr id = lookup.get_identifier(str);
 	if(!id){
 		return expression_ptr();

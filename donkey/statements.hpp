@@ -61,8 +61,8 @@ public:
 		_ss(std::move(orig._ss)),
 		_locals_count(orig._locals_count){
 	}
-	block_statement(std::vector<statement>& ss, int locals_count):
-		_ss(std::move(ss)),
+	block_statement(std::vector<statement>&& ss, int locals_count):
+		_ss(ss),
 		_locals_count(locals_count){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
@@ -91,11 +91,11 @@ public:
 		_e3(orig._e3),
 		_s(std::move(orig._s)){
 	}
-	for_statement(expression_ptr e1, expression_ptr e2, expression_ptr e3, statement& s):
+	for_statement(expression_ptr e1, expression_ptr e2, expression_ptr e3, statement&& s):
 		_e1(e1),
 		_e2(e2),
 		_e3(e3),
-		_s(std::move(s)){
+		_s(s){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
 		for(_e1->as_void(ctx); _e2->as_number(ctx); _e3->as_void(ctx)){
@@ -108,6 +108,7 @@ public:
 					break;
 			}
 		}
+		return statement_retval::nxt;
 	}
 };
 
@@ -121,9 +122,9 @@ public:
 		_e(orig._e),
 		_s(std::move(orig._s)){
 	}
-	while_statement(expression_ptr e, statement& s):
+	while_statement(expression_ptr e, statement&& s):
 		_e(e),
-		_s(std::move(s)){
+		_s(s){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
 		while(_e->as_number(ctx)){
@@ -136,6 +137,7 @@ public:
 					break;
 			}
 		}
+		return statement_retval::nxt;
 	}
 };
 
@@ -149,9 +151,9 @@ public:
 		_e(orig._e),
 		_s(std::move(orig._s)){
 	}
-	do_statement(expression_ptr e, statement& s):
+	do_statement(expression_ptr e, statement&& s):
 		_e(e),
-		_s(std::move(s)){
+		_s(s){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
 		do{
@@ -164,6 +166,7 @@ public:
 					break;
 			}
 		}while(_e->as_number(ctx));
+		return statement_retval::nxt;
 	}
 };
 
@@ -177,9 +180,9 @@ public:
 		_es(std::move(orig._es)),
 		_ss(std::move(orig._ss)){
 	}
-	if_statement(std::vector<expression_ptr>& es, std::vector<statement>& ss):
-		_es(std::move(es)),
-		_ss(std::move(ss)){
+	if_statement(std::vector<expression_ptr>&& es, std::vector<statement>&& ss):
+		_es(es),
+		_ss(ss){
 	}
 	
 	statement_retval operator()(runtime_context& ctx) const{
@@ -209,10 +212,10 @@ public:
 		_cases(std::move(orig._cases)),
 		_dflt(orig._dflt){
 	}
-	switch_statement(expression_ptr e, std::vector<statement>& ss, std::unordered_map<double, size_t>& cases, size_t dflt):
+	switch_statement(expression_ptr e, std::vector<statement>&& ss, std::unordered_map<double, size_t>&& cases, size_t dflt):
 		_e(e),
-		_ss(std::move(ss)),
-		_cases(std::move(cases)),
+		_ss(ss),
+		_cases(cases),
 		_dflt(dflt){
 	}
 	

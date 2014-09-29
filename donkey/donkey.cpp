@@ -16,7 +16,7 @@ namespace donkey{
 
 typedef std::function<variable_ptr(runtime_context&, size_t)> function;
 
-class module{
+class module: public code_container{
 	module(const module&) = delete;
 	void operator=(const module&) = delete;
 private:
@@ -33,6 +33,10 @@ public:
 		ctx.global = std::vector<variable_ptr>(_globals_count);
 		_s(ctx);
 	}
+	
+	virtual variable_ptr call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const override{
+		return _functions[address](ctx, prms);
+	}
 };
 
 typedef std::shared_ptr<module> module_ptr;
@@ -44,17 +48,29 @@ private:
 	scope* _parent;
 	int _var_index;
 	const int _initial_index;
+	bool _in_function;
+	bool _is_switch;
+	bool _can_break;
+	bool _can_continue;
 public:
-	scope(scope* parent):
+	scope(scope* parent, bool is_function = false, bool is_switch = false, bool can_break = false, bool can_continue = false):
 		_parent(parent),
-		_var_index(parent->_var_index),
-		_initial_index(parent->_var_index){
+		_var_index(parent->is_global() ? 0 : parent->_var_index),
+		_initial_index(parent->is_global() ? 0 : parent->_var_index),
+		_in_function(is_function || _parent->in_function()),
+		_is_switch(is_switch),
+		_can_break(can_break || parent->can_break()),
+		_can_continue(can_continue || parent->can_continue()){
 	}
 	
 	scope():
 		_parent(nullptr),
 		_var_index(0),
-		_initial_index(0){
+		_initial_index(0),
+		_in_function(false),
+		_is_switch(false),
+		_can_break(false),
+		_can_continue(false){
 	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
@@ -68,6 +84,22 @@ public:
 	
 	bool is_global() const{
 		return !_parent;
+	}
+	
+	bool in_function() const{
+		return _in_function;
+	}
+	
+	bool is_switch() const{
+		return _is_switch;
+	}
+	
+	bool can_break() const{
+		return _can_break;
+	}
+	
+	bool can_continue() const{
+		return _can_continue;
 	}
 	
 	bool add_variable(std::string name){
@@ -87,12 +119,26 @@ public:
 		_statements.push_back(statement(s));
 	}
 	
+	size_t get_number_of_statements() const{
+		return _statements.size();
+	}
+	
 	statement get_block(){
-		if(is_global()){
-			return statement(std::move(block_statement(_statements, 0)));
-		}else{
-			return statement(std::move(block_statement(_statements, _var_index - _initial_index)));
+		if(get_number_of_variables() == 0 && _statements.size() < 2){
+			if(_statements.empty()){
+				return statement(empty_statement);
+			}
+			return std::move(_statements.front());
 		}
+		if(is_global()){
+			return statement(block_statement(std::move(_statements), 0));
+		}
+		
+		return statement(block_statement(std::move(_statements), _var_index - _initial_index));
+	}
+	
+	std::vector<statement> get_statements(){
+		return std::move(_statements);
 	}
 	
 	size_t get_number_of_variables() const{
@@ -203,6 +249,7 @@ private:
 		if(*parser != token){
 			syntax_error(parser.get_line_number(), token + " expected");
 		}
+		++parser;
 	}
 
 	static std::string parse_allowed_name(tokenizer& parser){
@@ -242,6 +289,7 @@ private:
 					parse(",", parser);
 				}
 				params.push_back(parse_allowed_name(parser));
+				first_param = false;
 				
 			}while(*parser != ")");
 			
@@ -252,7 +300,9 @@ private:
 			semantic_error(parser.get_line_number(), name + " is already defined");
 		}
 		
-		scope function_scope(&target);
+		target.declare_function(name);
+		
+		scope function_scope(&target, true);
 		
 		for(const std::string& prm: params){
 			if(!function_scope.add_variable(prm)){
@@ -277,54 +327,213 @@ private:
 	}
 
 	
-	void compile_variable(scope& target, tokenizer& parser){
+	expression_ptr compile_variable(scope& target, tokenizer& parser){
+		if(target.is_switch()){
+			syntax_error(parser.get_line_number(), " declarations in switch are not allowed");
+		}
+	
+		expression_ptr ret;
+		
 		++parser;
 		
 		while(parser && *parser != ";"){
-			target.add_variable(parse_allowed_name(target, parser));
-			
+			std::string name = parse_allowed_name(target, parser);
+			target.add_variable(name);
 			if(*parser == "="){
 				++parser;
-				target.add_statement(expression_statement(build_expression(target, parser, false, true)));
+				ret = build_binary_expression(
+					oper::assignment,
+					identifier_to_expression(name, target),
+					build_expression(target, parser, false, true)
+				);
+				target.add_statement(expression_statement(ret));
+			}else{
+				ret.reset();
 			}
 			if(*parser == ","){
 				++parser;
 			}
 		}
+		++parser;
+		
+		return ret;
 	}
 
-	//TODO:
-	void compile_for(scope& , tokenizer& ){
-
+	void compile_cpp_for(scope& target, tokenizer& parser){
+		scope outer(&target);
+		
+		compile_statement(outer, parser, _local_compilers);
+		
+		expression_ptr e2 = build_expression(outer, parser, false);
+		parse(";", parser);
+		expression_ptr e3 = build_expression(outer, parser, true);
+		
+		parse(")", parser);
+		
+		scope s(&outer, false, false, true, true);
+		compile_statement(s, parser, _local_compilers);
+		
+		outer.add_statement(for_statement(build_null_expression(), e2, e3, s.get_block()));
+		
+		target.add_statement(outer.get_block());
+	}
+	
+	void compile_c_for(scope& target, tokenizer& parser){
+		expression_ptr e1 = build_expression(target, parser, true);
+		parse(";", parser);
+		
+		expression_ptr e2 = build_expression(target, parser, false);
+		parse(";", parser);
+		expression_ptr e3 = build_expression(target, parser, true);
+		
+		parse(")", parser);
+		
+		scope s(&target, false, false, true, true);
+		compile_statement(s, parser, _local_compilers);
+		
+		target.add_statement(for_statement(e1, e2, e3, s.get_block()));
 	}
 
-	//TODO:
-	void compile_while(scope& , tokenizer& ){
-
+	void compile_for(scope& target, tokenizer& parser){
+		++parser;
+		
+		parse("(", parser);
+		
+		if(*parser == "var"){
+			compile_cpp_for(target, parser);
+		}else{
+			compile_c_for(target, parser);
+		}
 	}
 
-	//TODO:
-	void compile_do(scope& , tokenizer& ){
-
+	void compile_while(scope& target, tokenizer& parser){
+		++parser;
+		parse("(", parser);
+		expression_ptr e = build_expression(target, parser, false);
+		parse(")", parser);
+		scope s(&target, false, false, true, true);
+		compile_statement(s, parser, _local_compilers);
+		target.add_statement(while_statement(e, s.get_block()));
 	}
 
-	//TODO:
-	void compile_if(scope& , tokenizer& ){
-
+	void compile_do(scope& target, tokenizer& parser){
+		++parser;
+		scope s(&target, false, false, true, true);
+		compile_statement(s, parser, _local_compilers);
+		parse("while", parser);
+		parse("(", parser);
+		expression_ptr e = build_expression(target, parser, false);
+		parse(")", parser);
+		parse(";", parser);
+		target.add_statement(do_statement(e, s.get_block()));
 	}
 
-	//TODO:
-	void compile_switch(scope& , tokenizer& ){
+	void compile_if(scope& target, tokenizer& parser){
+		std::vector<expression_ptr> es;
+		std::vector<statement> ss;
+		
+		do{
+			++parser;
+			parse("(", parser);
+			es.push_back(build_expression(target, parser, false));
+			parse(")", parser);
+			scope s(&target);
+			compile_statement(s, parser, _local_compilers);
+			ss.push_back(s.get_block());
+		}while(*parser == "elif");
+		
+		if(*parser == "else"){
+			++parser;
+			scope s(&target);
+			compile_statement(s, parser, _local_compilers);
+			ss.push_back(s.get_block());
+		}
+		target.add_statement(if_statement(std::move(es), std::move(ss)));
+	}
 
+	void compile_switch(scope& target, tokenizer& parser){
+		std::unordered_map<double, size_t> cases;
+		size_t dflt = 0;
+		bool has_dflt = false;
+		
+		++parser;
+		
+		parse("(", parser);
+		
+		expression_ptr e = build_expression(target, parser, false);
+		
+		parse(")", parser);
+		
+		parse("{", parser);
+		
+		scope s(&target, false, true, true, false);
+		
+		while(parser){
+			if(*parser == "}"){
+				++parser;
+				if(!has_dflt){
+					dflt = s.get_number_of_statements();
+				}
+				target.add_statement(switch_statement(e, s.get_statements(), std::move(cases), dflt));
+				return;
+			}
+			if(*parser == "case"){
+				++parser;
+				double d = parse_double(*parser);
+				if(isnan(d)){
+					unexpected_error(parser.get_line_number(), *parser);
+				}
+				
+				if(cases.find(d) != cases.end()){
+					semantic_error(parser.get_line_number(), "duplicated case " + *parser);
+				}
+				++parser;
+				parse(":", parser);
+				cases[d] = s.get_number_of_statements();
+			}else if(*parser == "default"){
+				++parser;
+				if(has_dflt){
+					semantic_error(parser.get_line_number(), "duplicated default");
+				}
+				parse(":", parser);
+				dflt = s.get_number_of_statements();
+				has_dflt = true;
+			}
+			compile_statement(s, parser, _local_compilers);
+		}
+		syntax_error(parser.get_line_number(), "'}' expected");
+	}
+
+	void compile_break(scope& target, tokenizer& parser){
+		if(!target.can_break()){
+			semantic_error(parser.get_line_number(), "unexpected break");
+		}
+		++parser;
+		target.add_statement(break_statement);
+		parse(";", parser);
+	}
+	
+	void compile_continue(scope& target, tokenizer& parser){
+		if(!target.can_break()){
+			semantic_error(parser.get_line_number(), "unexpected continue");
+		}
+		++parser;
+		target.add_statement(continue_statement);
+		parse(";", parser);
 	}
 
 	void compile_return(scope& target, tokenizer& parser){
+		if(!target.in_function()){
+			semantic_error(parser.get_line_number(), "unexpected return");
+		}
 		++parser;
 		target.add_statement(return_statement(build_expression(target, parser, true)));
+		parse(";", parser);
 	}
 
 	void compile_expression_statement(scope& target, tokenizer& parser){
 		target.add_statement(expression_statement(build_expression(target, parser, true)));
+		parse(";", parser);
 	}
 
 	template<typename TARGET, class COMPILER_MAP>
@@ -348,14 +557,14 @@ private:
 				target.add_statement(s.get_block());
 				return;
 			}
-			compile_statement(target, parser, _local_compilers);
+			compile_statement(s, parser, _local_compilers);
 		}
 		syntax_error(parser.get_line_number(), "'}' expected");
 	}
 	
 	module_ptr compile_module(tokenizer& parser){
 		global_scope target;
-		for(++parser; parser;){
+		for(; parser;){
 			compile_statement(target, parser, _global_compilers);
 		}
 		
@@ -388,6 +597,8 @@ private:
 		ADD_LOCAL_COMPILER("switch", compile_switch);
 		ADD_LOCAL_COMPILER("return", compile_return);
 		ADD_LOCAL_COMPILER("{", compile_local_scope);
+		ADD_LOCAL_COMPILER("break", compile_break);
+		ADD_LOCAL_COMPILER("continue", compile_continue);
 	}
 
 #undef ADD_LOCAL_COMPILER
@@ -420,13 +631,34 @@ public:
 
 		fclose(fp);
 
-		try{
+		//try{
 			tokenizer parser (&v[0], &v[0] + len);
-			_modules[module_name] = compile_module(parser);
+			module_ptr m = compile_module(parser);
+			_modules[module_name] = m;
 			return true;
-		}catch(const exception&){
-			return false;
-		}
+		//}catch(const exception&){
+		//	return false;
+		//}
+	}
+	
+	bool execute_module(const char* module_name){
+//		try{
+			auto it = _modules.find(module_name);
+			
+			if(it == _modules.end()){
+				return false;
+			}
+			
+			runtime_context ctx(it->second.get());
+			
+			it->second->load(ctx);
+			
+			printf("%s\n", variable::to_string(ctx.global[0]).c_str());
+			
+			return true;
+//		}catch(const exception&){
+//			return false;
+//		}
 	}
 };
 
@@ -436,6 +668,10 @@ compiler::compiler(const char* root):
 
 bool compiler::compile_module(const char* module_name){
 	return _private->compile_module(module_name);
+}
+
+bool compiler::execute_module(const char* module_name){
+	return _private->execute_module(module_name);
 }
 
 compiler::~compiler(){

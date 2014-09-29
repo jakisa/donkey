@@ -1,0 +1,10 @@
+for(int i = 0; i < 42; ++i){
+    INNER
+}
+
+{
+    int i = 0;
+    for(;i < 42; ++i){
+	INNER
+    }
+}

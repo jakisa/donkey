@@ -1,5 +1,19 @@
 #include "donkey.hpp"
+#include <cstdio>
+#include <vector>
 
+int main(){
+	donkey::compiler c("../donkey/");
+	
+	c.compile_module("test");
+	
+	c.execute_module("test");
+	
+	return 0;
+}
+
+
+/*
 #include <cstdio>
 #include <vector>
 
@@ -96,3 +110,4 @@ int main(){
 
 	return 0;
 }
+*/

@@ -327,6 +327,8 @@ enum class oper{
 
 class identifier_lookup;
 
+expression_ptr identifier_to_expression(std::string str, const identifier_lookup& lookup);
+
 expression_ptr build_null_expression();
 expression_ptr build_number_expression(double d);
 expression_ptr build_string_expression(std::string str);
@@ -336,6 +338,7 @@ expression_ptr build_function_expression(std::string name, std::vector<expressio
 expression_ptr build_unary_expression(oper op, expression_ptr e1);
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2);
 expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3);
+
 
 
 }//namespace donkey

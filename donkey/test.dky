@@ -1,11 +1,9 @@
-var number a;
-
-var string s("babetina");
-
-fun number add(number a, number b){
-    return a + b;
+function sum(x, y){
+    return x-y;
 }
 
-fun number main(){
-    return add(5, 4);
-}
+var a;
+var b = 10;
+var c = 20;
+
+a = sum(b, c);
