@@ -30,7 +30,7 @@ public:
 		_globals_count(globals_count){
 	}
 	void load(runtime_context& ctx){
-		ctx.global = std::vector<stack_var>(_globals_count);
+		ctx.global = std::deque<stack_var>(_globals_count);
 		_s(ctx);
 	}
 	

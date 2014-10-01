@@ -28,7 +28,7 @@ public:
 struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
-	std::vector<stack_var> global;
+	std::deque<stack_var> global;
 	std::deque<stack_var> stack;
 	
 	size_t function_stack_bottom;
