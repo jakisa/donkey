@@ -13,9 +13,9 @@ public:
 		_e(e){
 	}
 
-	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
-		variable_ptr& v = _e->as_lvalue(ctx);
-		++get_lnumber(v);
+	virtual stack_var& as_lvalue(runtime_context& ctx) override{
+		stack_var& v = _e->as_lvalue(ctx);
+		++v.as_lnumber();
 		return v;
 	}
 	virtual void as_void(runtime_context& ctx) override{
@@ -33,11 +33,11 @@ public:
 	}
 
 	virtual double as_number(runtime_context& ctx) override final{
-		return get_lnumber(_e->as_lvalue(ctx))++;
+		return _e->as_lvalue(ctx).as_lnumber()++;
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override final{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override final{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override final{
@@ -53,9 +53,9 @@ public:
 		_e(e){
 	}
 
-	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
-		variable_ptr& v = _e->as_lvalue(ctx);
-		--get_lnumber(v);
+	virtual stack_var& as_lvalue(runtime_context& ctx) override{
+		stack_var& v = _e->as_lvalue(ctx);
+		--v.as_lnumber();
 		return v;
 	}
 	virtual void as_void(runtime_context& ctx) override{
@@ -73,11 +73,11 @@ public:
 	}
 
 	virtual double as_number(runtime_context& ctx) override final{
-		return get_lnumber(_e->as_lvalue(ctx))--;
+		return _e->as_lvalue(ctx).as_lnumber()--;
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override final{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override final{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override final{
@@ -98,8 +98,8 @@ public:
 		return _e->as_number(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -120,8 +120,8 @@ public:
 		return -_e->as_number(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -142,8 +142,8 @@ public:
 		return ~int(_e->as_number(ctx));
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -164,8 +164,8 @@ public:
 		return !_e->as_number(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return std::make_shared<number_variable>(as_number(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override{
+		return stack_var(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{

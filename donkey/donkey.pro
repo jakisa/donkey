@@ -34,8 +34,7 @@ HEADERS += \
     relation_expressions.hpp \
     ternary_expressions.hpp \
     sequentional_expressions.hpp \
-    assignment_expressions.hpp \
-    heap.hpp
+    assignment_expressions.hpp
 
 OTHER_FILES += \
     examples.txt \

@@ -20,8 +20,8 @@ public:
 		return _e1->as_string(ctx) + _e2->as_string(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return std::make_shared<string_variable>(as_string(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override{
+		return stack_var(as_string(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -38,12 +38,13 @@ public:
 		_e1(e1),
 		_e2(e2){
 	}
-
-	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
-		variable_ptr& v = _e1->as_lvalue(ctx);
-		v = std::make_shared<string_variable>(v->to_string() + _e2->as_string(ctx));
+	
+	virtual stack_var& as_lvalue(runtime_context& ctx) override{
+		stack_var& v = _e1->as_lvalue(ctx);
+		v = stack_var(v.to_string() + _e2->as_string(ctx));
 		return v;
 	}
+	
 	virtual void as_void(runtime_context& ctx) override{
 		as_lvalue(ctx);
 	}

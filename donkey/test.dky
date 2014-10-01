@@ -6,4 +6,4 @@ function fib(n){
 }
 
 
-var a = fib(30);
+var a = fib(0);

@@ -6,12 +6,9 @@
 #include <functional>
 #include <cstdint>
 
+#include "variables.hpp"
+
 namespace donkey{
-
-typedef u_int64_t code_address;
-
-class variable;
-typedef std::shared_ptr<variable> variable_ptr;
 
 class runtime_context;
 
@@ -21,7 +18,7 @@ class code_container{
 public:	
 	code_container(){
 	}
-	virtual variable_ptr call_function_by_address(code_address, runtime_context&, size_t) const = 0;
+	virtual stack_var call_function_by_address(code_address, runtime_context&, size_t) const = 0;
 	virtual ~code_container(){
 	}
 };
@@ -30,8 +27,8 @@ public:
 struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
-	std::vector<variable_ptr> global;
-	std::vector<variable_ptr> stack;
+	std::vector<stack_var> global;
+	std::vector<stack_var> stack;
 	
 	size_t function_stack_bottom;
 	size_t retval_stack_index;
@@ -44,16 +41,14 @@ struct runtime_context{
 		code(code){
 	}
 
-	void push(variable_ptr v){
+	void push(stack_var v){
 		stack.push_back(v);
 	}
 
-	variable_ptr pop(){
-		variable_ptr ret = stack.back();
+	void pop(){
 		stack.pop_back();
-		return ret;
 	}
-	variable_ptr& top(){
+	stack_var& top(){
 		return stack.back();
 	}
 };

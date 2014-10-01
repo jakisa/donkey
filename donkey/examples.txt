@@ -9,49 +9,7 @@ function fib(n){
 var a = fib(30);
 
 
-//first: 0.757
-//make_shared: 0.650
+//first: 0.75
+//make_shared: 0.65
 
-
-
-
-
-
-/*
-
-enum struct stack_type{
-    number,
-    stack_pointer,
-    shared_pointer,
-    weak_pointer
-};
-
-struct heap_header{
-    size_t s_count;
-    size_t w_count;
-    variable* data;
-};
-
-class stack_var{
-private:
-    union{
-	double n;
-	stack_var* s_ptr;
-	heap_header* h_ptr;
-    };
-    stack_type t;
-public:
-    stack_var(){
-	s_ptr = nullptr;
-	t = stack_type::shared_pointer;
-    }
-    stack_var(const stack_var& orig){
-	
-    }
-};
-
-
-
-
-
-*/
+//stack_var: 0.26

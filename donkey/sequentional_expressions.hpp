@@ -28,7 +28,7 @@ public:
 		return _e1->as_void(ctx), _e2->as_function(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
+	virtual stack_var as_param(runtime_context& ctx) override{
 		return _e1->as_void(ctx), _e2->as_param(ctx);
 	}
 

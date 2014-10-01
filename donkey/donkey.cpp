@@ -14,7 +14,7 @@
 
 namespace donkey{
 
-typedef std::function<variable_ptr(runtime_context&, size_t)> function;
+typedef std::function<stack_var(runtime_context&, size_t)> function;
 
 class module: public code_container{
 	module(const module&) = delete;
@@ -30,11 +30,11 @@ public:
 		_globals_count(globals_count){
 	}
 	void load(runtime_context& ctx){
-		ctx.global = std::vector<variable_ptr>(_globals_count);
+		ctx.global = std::vector<stack_var>(_globals_count);
 		_s(ctx);
 	}
 	
-	virtual variable_ptr call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const override{
+	virtual stack_var call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const override{
 		return _functions[address](ctx, prms);
 	}
 };
@@ -655,7 +655,7 @@ public:
 			
 			it->second->load(ctx);
 			
-			printf("%s\n", variable::to_string(ctx.global[0]).c_str());
+			printf("%s\n", ctx.global[0].to_string().c_str());
 			
 			return true;
 //		}catch(const exception&){

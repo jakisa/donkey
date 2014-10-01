@@ -1,12 +1,15 @@
 #ifndef __variables_hpp__
 #define __variables_hpp__
 
-#include "runtime_context.hpp"
 #include "errors.hpp"
 #include "helpers.hpp"
 
+#include <cstring>
+
 
 namespace donkey{
+
+typedef u_int64_t code_address;
 
 enum struct data_type: char{
 	nothing  = 0x00,
@@ -277,24 +280,16 @@ public:
 				return "function";
 			case data_type::string:
 				return "string";
-			case data_type::nothing:
+			default:
 				return "null";
 		}
 	}
 	
-	double as_number_unsafe() const{
-		switch(_mt){
-			case mem_type::shared_pointer:
-			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<double>();
-			case mem_type::stack_pointer:
-				return _s_ptr->as_number_unsafe();
-			default:
-				return _n;
-		}
+	double as_stack_number_unsafe() const{
+		return _n;
 	}
 	
-	double& as_number_unsafe(){
+	double as_number_unsafe() const{
 		switch(_mt){
 			case mem_type::shared_pointer:
 			case mem_type::weak_pointer:
@@ -311,6 +306,25 @@ public:
 			runtime_error("number expected");
 		}
 		return as_number_unsafe();
+	}
+	
+	double& as_lnumber_unsafe(){
+		switch(_mt){
+			case mem_type::shared_pointer:
+			case mem_type::weak_pointer:
+				return *_h_ptr->as_t<double>();
+			case mem_type::stack_pointer:
+				return _s_ptr->as_lnumber_unsafe();
+			default:
+				return _n;
+		}
+	}
+	
+	double& as_lnumber(){
+		if(get_data_type() != data_type::number){
+			runtime_error("number expected");
+		}
+		return as_lnumber_unsafe();
 	}
 	
 	code_address as_function_unsafe() const{

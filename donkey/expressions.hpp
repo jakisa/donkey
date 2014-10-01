@@ -41,7 +41,7 @@ public:
 		return -1;
 	}
 
-	virtual variable_ptr as_param(runtime_context&) = 0;
+	virtual stack_var as_param(runtime_context&) = 0;
 
 	virtual void as_void(runtime_context&) = 0;
 
@@ -55,14 +55,6 @@ public:
 
 typedef std::shared_ptr<expression> expression_ptr;
 
-inline double& get_lnumber(variable_ptr v){
-	if(variable::get_type(v) != type::number){
-		runtime_error("variable is not number");
-		return *((double*)nullptr);
-	}
-	return std::static_pointer_cast<number_variable>(v)->value();
-}
-
 inline bool is_variant_expression(expression_ptr e){
 	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::variant;
 }
@@ -73,44 +65,26 @@ protected:
 		expression(expression_type::lvalue){
 	}
 public:
-	virtual variable_ptr& as_lvalue(runtime_context&) = 0;
+	virtual stack_var& as_lvalue(runtime_context&) = 0;
 
-	virtual variable_ptr as_param(runtime_context& ctx) override final{
-		return variable::as_param(as_lvalue(ctx));
+	virtual stack_var as_param(runtime_context& ctx) override final{
+		return as_lvalue(ctx);
 	}
 
 	virtual double as_number(runtime_context& ctx) override final{
-		variable_ptr v = as_lvalue(ctx);
-		if(variable::get_type(v) != type::number){
-			runtime_error("expression is not number");
-			return nan("");
-		}
-		return std::static_pointer_cast<number_variable>(v)->value();
+		return as_lvalue(ctx).as_number();
 	}
 
 	virtual std::string as_string(runtime_context& ctx) override final{
-		variable_ptr v = as_lvalue(ctx);
-		return variable::to_string(v);
+		return as_lvalue(ctx).to_string();
 	}
 	
 	virtual code_address as_function(runtime_context& ctx) override final{
-		variable_ptr v = as_lvalue(ctx);
-		if(variable::get_type(v) != type::function){
-			runtime_error("expression is not function");
-			return -1;
-		}
-		return std::static_pointer_cast<function_variable>(v)->value();
+		return as_lvalue(ctx).as_function();
 	}
 };
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
-
-inline variable_ptr get_variable(expression_ptr e, runtime_context& ctx){
-	if(e->get_type() == expression_type::lvalue){
-		return std::static_pointer_cast<lvalue_expression>(e)->as_lvalue(ctx);
-	}
-	return e->as_param(ctx);
-}
 
 class null_expression final: public expression{
 public:
@@ -118,10 +92,10 @@ public:
 		expression(expression_type::variant){
 	}
 	virtual std::string as_string(runtime_context& ctx) override{
-		return variable::to_string(as_param(ctx));
+		return as_param(ctx).to_string();
 	}
-	virtual variable_ptr as_param(runtime_context&) override{
-		return variable_ptr();
+	virtual stack_var as_param(runtime_context&) override{
+		return stack_var();
 	}
 	virtual void as_void(runtime_context&) override{
 	}
@@ -131,17 +105,17 @@ public:
 
 class const_number_expression final: public expression{
 private:
-	double _d;
+	stack_var _d;
 public:
 	const_number_expression(double d):
 		expression(expression_type::number),
 		_d(d){
 	}
 	virtual double as_number(runtime_context&) override{
-		return _d;
+		return _d.as_stack_number_unsafe();
 	}
-	virtual variable_ptr as_param(runtime_context&) override{
-		return std::make_shared<number_variable>(_d);
+	virtual stack_var as_param(runtime_context&) override{
+		return _d;
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -150,17 +124,17 @@ public:
 
 class const_string_expression final: public expression{
 private:
-	std::string _s;
+	stack_var _s;
 public:
 	const_string_expression(std::string s):
 		expression(expression_type::string),
-		_s(std::move(s)){
+		_s(s){
 	}
 	virtual std::string as_string(runtime_context&) override{
-		return _s;
+		return _s.to_string();
 	}
-	virtual variable_ptr as_param(runtime_context&) override{
-		return std::make_shared<string_variable>(_s);
+	virtual stack_var as_param(runtime_context&) override{
+		return _s;
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -179,10 +153,10 @@ public:
 		return _f;
 	}
 	virtual std::string as_string(runtime_context&) override{
-		return "const function";
+		return "function";
 	}
-	virtual variable_ptr as_param(runtime_context&) override{
-		return std::make_shared<function_variable>(_f);
+	virtual stack_var as_param(runtime_context&) override{
+		return stack_var(_f);
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -198,7 +172,7 @@ public:
 		_idx(idx){
 	}
 
-	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
+	virtual stack_var& as_lvalue(runtime_context& ctx) override{
 		return ctx.stack[ctx.function_stack_bottom +_idx];
 	}
 
@@ -213,7 +187,7 @@ public:
 	global_variable_expression(int idx):
 		_idx(idx){
 	}
-	virtual variable_ptr& as_lvalue(runtime_context & ctx) override{
+	virtual stack_var& as_lvalue(runtime_context & ctx) override{
 		return ctx.global[_idx];
 	}
 
@@ -227,7 +201,7 @@ private:
 	expression_ptr _f;
 	std::vector<expression_ptr> _params;
 
-	variable_ptr make_call(runtime_context& ctx){
+	stack_var make_call(runtime_context& ctx){
 		stack_restorer _(ctx);
 	
 		for(auto it = _params.begin(); it != _params.end(); ++it){
@@ -245,25 +219,17 @@ public:
 	}
 
 	virtual double as_number(runtime_context& ctx){
-		variable_ptr ret = make_call(ctx);
-		if(variable::get_type(ret) == type::number){
-			return std::static_pointer_cast<number_variable>(ret)->value();
-		}
-		return expression::as_number(ctx);
+		return make_call(ctx).as_number();
 	}
 	virtual std::string as_string(runtime_context& ctx){
-		return variable::to_string(make_call(ctx));
+		return make_call(ctx).to_string();
 	}
 
 	virtual code_address as_function(runtime_context& ctx){
-		variable_ptr ret = make_call(ctx);
-		if(variable::get_type(ret) == type::function){
-			return std::static_pointer_cast<function_variable>(ret)->value();
-		}
-		return expression::as_function(ctx);
+		return make_call(ctx).as_function();
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx){
+	virtual stack_var as_param(runtime_context& ctx){
 		return make_call(ctx);
 	}
 

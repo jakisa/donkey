@@ -43,7 +43,7 @@ public:
 		return _e1->as_number(ctx) ? _e2->as_function(ctx) : _e3->as_function(ctx);
 	}
 
-	virtual variable_ptr as_param(runtime_context& ctx) override{
+	virtual stack_var as_param(runtime_context& ctx) override{
 		return _e1->as_number(ctx) ? _e2->as_param(ctx) : _e3->as_param(ctx);
 	}
 
