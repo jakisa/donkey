@@ -195,27 +195,32 @@ public:
 	}
 };
 
-
 class function_call_expression final: public expression{
 private:
 	expression_ptr _f;
 	std::vector<expression_ptr> _params;
+	std::vector<bool> _byref;
 
 	stack_var make_call(runtime_context& ctx){
 		stack_restorer _(ctx);
 	
-		for(auto it = _params.begin(); it != _params.end(); ++it){
-			ctx.push((*it)->as_param(ctx));
+		for(size_t i = 0; i < _params.size(); ++i){
+			if(_byref[i]){
+				ctx.push(std::static_pointer_cast<lvalue_expression>(_params[i])->as_lvalue(ctx).by_ref());
+			}else{
+				ctx.push(_params[i]->as_param(ctx).by_val());
+			}
 		}
 		
 		return ctx.code->call_function_by_address(_f->as_function(ctx), ctx, _params.size());
 	}
 
 public:
-	function_call_expression(expression_ptr f, std::vector<expression_ptr> params):
+	function_call_expression(expression_ptr f, std::vector<expression_ptr> params, const std::vector<bool> byref):
 		expression(expression_type::variant),
 		_f(std::move(f)),
-		_params(params){
+		_params(params),
+		_byref(byref){
 	}
 
 	virtual double as_number(runtime_context& ctx){
@@ -299,7 +304,7 @@ expression_ptr build_null_expression();
 expression_ptr build_number_expression(double d);
 expression_ptr build_string_expression(std::string str);
 expression_ptr build_variable_expression(std::string name, const identifier_lookup& lookup);
-expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const identifier_lookup& lookup);
+expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const std::vector<bool>& byref, const identifier_lookup& lookup);
 
 expression_ptr build_unary_expression(oper op, expression_ptr e1);
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2);

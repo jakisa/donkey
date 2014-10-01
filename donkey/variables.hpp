@@ -46,10 +46,12 @@ public:
 		++_s_count;
 		++_u_count;
 	}
+	
+	template<class T>
 	void remove_shared(){
 		--_s_count;
 		if(!_s_count){
-			free(_p);
+			delete static_cast<T*>(_p);
 			_p = nullptr;
 		}
 		--_u_count;
@@ -57,6 +59,20 @@ public:
 			delete this;
 		}
 	}
+	
+	template<class T>
+	void remove_shared_array(){
+		--_s_count;
+		if(!_s_count){
+			delete[] static_cast<T*>(_p);
+			_p = nullptr;
+		}
+		--_u_count;
+		if(!_u_count){
+			delete this;
+		}
+	}
+	
 	void add_weak(){
 		++_u_count;
 	}
@@ -110,7 +126,19 @@ private:
 	void _dec_counts() const{
 		switch(_mt){
 			case mem_type::shared_pointer:
-				_h_ptr->remove_shared();
+				switch(_dt){
+					case data_type::string:
+						_h_ptr->remove_shared_array<char>();
+						break;
+					case data_type::number:
+						_h_ptr->remove_shared<double>();
+						break;
+					case data_type::function:
+						_h_ptr->remove_shared<code_address>();
+						break;
+					default:
+						break;
+				}
 				break;
 			case mem_type::weak_pointer:
 				_h_ptr->remove_weak();
@@ -123,6 +151,13 @@ private:
 	struct by_ref_wrapper{
 		stack_var& var;
 		by_ref_wrapper(stack_var& var):
+			var(var){
+		}
+	};
+	
+	struct by_val_wrapper{
+		stack_var& var;
+		by_val_wrapper(stack_var& var):
 			var(var){
 		}
 	};
@@ -140,37 +175,20 @@ public:
 		return *this;
 	}
 	
-	stack_var(double n):
+	explicit stack_var(double n):
 		_n(n),
 		_dt(data_type::number),
 		_mt(mem_type::value){
 	}
 	
-	stack_var& operator=(double n){
-		_dec_counts();
-		_n = n;
-		_dt = data_type::number;
-		_mt = mem_type::value;
-		
-		return *this;
-	}
-	
-	stack_var(code_address f):
+	explicit stack_var(code_address f):
 		_f(f),
 		_dt(data_type::function),
 		_mt(mem_type::value){
 	}
 	
-	stack_var&  operator=(code_address f){
-		_dec_counts();
-		_f = f;
-		_dt = data_type::function;
-		_mt = mem_type::value;
-		return *this;
-	}
-	
-	stack_var(const std::string& s){
-		void* p = malloc(s.size() + 1);
+	explicit stack_var(const std::string& s){
+		char* p = new char[s.size() + 1];
 		if(!p){
 			runtime_error("out of memory");
 		}
@@ -178,7 +196,7 @@ public:
 		if(!_h_ptr){
 			runtime_error("out of memory");
 		}
-		memcpy(_h_ptr->_p, s.c_str(), s.size() + 1);
+		memcpy(p, s.c_str(), s.size() + 1);
 		_dt = data_type::string;
 		_mt = mem_type::shared_pointer;
 	}
@@ -192,6 +210,17 @@ public:
 		_dt(w.var._dt),
 		_mt(mem_type::stack_pointer){
 	}
+	
+	by_val_wrapper by_val(){
+		return by_val_wrapper(*this);
+	}
+	
+	stack_var(by_val_wrapper w):
+		_(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_ : w.var._),
+		_dt(w.var._dt),
+		_mt(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_mt : w.var._mt){
+		_inc_counts();
+	}
 		
 	
 	stack_var(const stack_var& orig):
@@ -202,6 +231,15 @@ public:
 	}
 	
 	stack_var& operator=(const stack_var& orig){
+		if(&orig == this){
+			return *this;
+		}
+		if(orig._mt == mem_type::stack_pointer){
+			return *this = *(orig._s_ptr);
+		}
+		if(_mt == mem_type::stack_pointer){
+			return *(_s_ptr) = orig;
+		}	
 		orig._inc_counts();
 		_dec_counts();
 		
@@ -223,6 +261,12 @@ public:
 	stack_var& operator=(stack_var&& orig){
 		if(&orig == this){
 			return *this;
+		}
+		if(orig._mt == mem_type::stack_pointer){
+			return *this = *(orig._s_ptr);
+		}
+		if(_mt == mem_type::stack_pointer){
+			return *(_s_ptr) = orig;
 		}
 		orig._inc_counts();
 		_dec_counts();

@@ -226,6 +226,7 @@ const char* keywords[] = {
 	"function",
 	"if",
 	"null",
+	"ref",
 	"return",
 	"switch",
 	"var",
@@ -260,14 +261,14 @@ private:
 			unexpected_error(parser.get_line_number(), *parser);
 		}
 		if(is_keyword(*parser)){
-			syntax_error(parser.get_line_number(), *parser + "is keyword");
+			syntax_error(parser.get_line_number(), *parser + " is keyword");
 		}
 		return *(parser++);
 	}
 
 	static std::string parse_allowed_name(identifier_lookup& lookup, tokenizer& parser){
 		if(!lookup.is_allowed(*parser)){
-			syntax_error(parser.get_line_number(), *parser + "is already declared");
+			syntax_error(parser.get_line_number(), *parser + " is already declared");
 		}
 		return parse_allowed_name(parser);
 	}
@@ -286,14 +287,15 @@ private:
 		
 		std::vector<std::string> params;
 		bool first_param = true;
-		do{
+		
+		while(*parser != ")"){
 			if(!first_param){
 				parse(",", parser);
 			}
 			params.push_back(parse_allowed_name(parser));
 			first_param = false;
 			
-		}while(*parser != ")");
+		}
 		
 		++parser;
 		
@@ -314,15 +316,18 @@ private:
 		
 		function_scope.add_variable("%RETVAL%");
 		
+		scope inner_scope(&function_scope);
+		
 		parse("{", parser);
 		
 		while(parser){
 			if(*parser == "}"){
 				++parser;
+				function_scope.add_statement(inner_scope.get_block());
 				target.define_function(name, donkey_function(params.size(), function_scope.get_block()));
 				return;
 			}
-			compile_statement(function_scope, parser, _local_compilers);
+			compile_statement(inner_scope, parser, _local_compilers);
 		}
 		syntax_error(parser.get_line_number(), "'}' expected");
 		

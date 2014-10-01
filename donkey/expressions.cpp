@@ -79,10 +79,15 @@ expression_ptr build_variable_expression(std::string name, const identifier_look
 	return identifier_to_expression(name, lookup);
 }
 
-expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const identifier_lookup& lookup){
+expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const std::vector<bool>& byref, const identifier_lookup& lookup){
+	for(size_t i = 0; i < params.size(); ++i){
+		if(byref[i] && params[i]->get_type() != expression_type::lvalue){
+			return expression_ptr();
+		}
+	}
 	expression_ptr e = identifier_to_expression(name, lookup);
 	if(e){
-		return expression_ptr(new function_call_expression(e, params));
+		return expression_ptr(new function_call_expression(e, params, byref));
 	}
 	return expression_ptr();
 }

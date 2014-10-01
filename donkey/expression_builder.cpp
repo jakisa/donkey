@@ -80,6 +80,18 @@ inline int get_number_of_operands(oper op){
 	}
 }
 
+inline bool has_bin_post_variant(oper op){
+	switch(op){
+		case oper::pre_inc:
+		case oper::pre_dec:
+		case oper::unary_plus:
+		case oper::unary_minus:
+			return true;
+		default:
+			return false;
+	}
+}
+
 inline oper bin_post_variant(oper op){
 	switch(op){
 		case oper::pre_inc:
@@ -90,6 +102,7 @@ inline oper bin_post_variant(oper op){
 			return oper::plus;
 		case oper::unary_minus:
 			return oper::minus;
+			return oper::bitwise_and;
 		default:
 			return op;
 	}
@@ -194,7 +207,7 @@ inline bool is_right_operand(tokenizer parser, bool should_be){
 		case tokenizer::tt_operator:
 			{
 				oper op = string_to_oper(next.second);
-				if(!should_be && (op == oper::pre_inc || op == oper::pre_dec || op == oper::unary_plus || op == oper::unary_minus)){
+				if(!should_be && has_bin_post_variant(op)){
 					return false;
 				}
 				operator_type ot = get_operator_type(op);
@@ -314,9 +327,20 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 	std::stack<oper> stack;
 	std::vector<expression_ptr> expressions;
 	
+	std::vector<bool> byref;
+	
 	bool is_left_operand = false;
 	
 	std::string f;
+	
+	if(!function_name.empty()){
+		if(*parser == "ref"){
+			++parser;
+			byref.push_back(true);
+		}else{
+			byref.push_back(false);
+		}
+	}
 	
 	for(; !is_closing(parser, declaration); ++parser){
 		if(is_opening(parser)){
@@ -352,6 +376,8 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 				check_right_operand(parser, false);
 				is_left_operand = true;
 			}
+			
+			f.clear();
 		}else{
 			switch(parser.get_token_type()){
 				case tokenizer::tt_number:
@@ -411,6 +437,15 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 						stack.push(op);
 						
 						is_left_operand = (ot == operator_type::unary_postfix);
+						
+						if(op == oper::comma && !function_name.empty()){
+							if(get_next_token(parser).second == "ref"){
+								++parser;
+								byref.push_back(true);
+							}else{
+								byref.push_back(false);
+							}
+						}
 					}
 					break;
 				default:
@@ -429,9 +464,13 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 		return expressions.empty() ? expression_ptr() : expressions.front();
 	}
 	
-	expression_ptr ret = build_function_expression(function_name, expressions, lookup);
+	expression_ptr ret = build_function_expression(function_name, expressions, byref, lookup);
 	if(!ret){
-		semantic_error(parser.get_line_number(), "unknown identifier");
+		if(lookup.get_identifier(function_name)){
+			semantic_error(parser.get_line_number(), "l-value expected");
+		}else{
+			semantic_error(parser.get_line_number(), "unknown identifier");
+		}
 	}
 	return ret;
 }
