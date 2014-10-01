@@ -20,10 +20,14 @@ enum struct data_type: char{
 
 enum struct mem_type: char{
 	nothing        = 0x00,
-	value          = 0x10,
-	stack_pointer  = 0x20,
-	shared_pointer = 0x30,
-	weak_pointer   = 0x40,
+	shared_pointer = 0x10,
+	value          = 0x20,
+	weak_pointer   = 0x30,
+	stack_pointer  = 0x40,
+};
+
+enum{
+	mem_type_smartptr_mask = 0x10
 };
 
 class stack_var;
@@ -111,6 +115,9 @@ private:
 	mem_type _mt;
 	
 	void _inc_counts() const{
+		if(!(char(_mt) & mem_type_smartptr_mask)){
+			return;
+		}
 		switch(_mt){
 			case mem_type::shared_pointer:
 				_h_ptr->add_shared();
@@ -124,6 +131,9 @@ private:
 	}
 	
 	void _dec_counts() const{
+		if(!(char(_mt) & mem_type_smartptr_mask)){
+			return;
+		}
 		switch(_mt){
 			case mem_type::shared_pointer:
 				switch(_dt){
