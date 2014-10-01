@@ -2,6 +2,7 @@
 #define __context_hpp__
 
 #include <vector>
+#include <deque>
 #include <memory>
 #include <functional>
 #include <cstdint>
@@ -28,7 +29,7 @@ struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
 	std::vector<stack_var> global;
-	std::vector<stack_var> stack;
+	std::deque<stack_var> stack;
 	
 	size_t function_stack_bottom;
 	size_t retval_stack_index;

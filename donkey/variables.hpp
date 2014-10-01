@@ -101,6 +101,7 @@ inline constexpr size_t stack_var_union_size(){
 	);
 }
 
+
 class stack_var{
 private:
 	union{

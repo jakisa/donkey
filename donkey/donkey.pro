@@ -5,6 +5,7 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11
 
 QMAKE_CXXFLAGS_DEBUG += -pg
+
 QMAKE_LFLAGS_DEBUG += -pg
 
 SOURCES += main.cpp \
