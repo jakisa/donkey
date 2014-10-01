@@ -1,9 +1,9 @@
-function sum(x, y){
-    return x-y;
+function fib(n){
+    if(n < 2){
+	return n;
+    }
+    return fib(n-2) + fib(n-1);
 }
 
-var a;
-var b = 10;
-var c = 20;
 
-a = sum(b, c);
+var a = fib(30);

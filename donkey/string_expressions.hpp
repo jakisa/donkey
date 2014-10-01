@@ -21,7 +21,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new string_variable(as_string(ctx)));
+		return std::make_shared<string_variable>(as_string(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -41,7 +41,7 @@ public:
 
 	virtual variable_ptr& as_lvalue(runtime_context& ctx) override{
 		variable_ptr& v = _e1->as_lvalue(ctx);
-		v.reset(new string_variable(v->to_string() + _e2->as_string(ctx)));
+		v = std::make_shared<string_variable>(v->to_string() + _e2->as_string(ctx));
 		return v;
 	}
 	virtual void as_void(runtime_context& ctx) override{

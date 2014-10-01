@@ -1,10 +1,57 @@
-for(int i = 0; i < 42; ++i){
-    INNER
+function fib(n){
+    if(n < 2){
+	return n;
+    }
+    return fib(n-2) + fib(n-1);
 }
 
-{
-    int i = 0;
-    for(;i < 42; ++i){
-	INNER
+
+var a = fib(30);
+
+
+//first: 0.757
+//make_shared: 0.650
+
+
+
+
+
+
+/*
+
+enum struct stack_type{
+    number,
+    stack_pointer,
+    shared_pointer,
+    weak_pointer
+};
+
+struct heap_header{
+    size_t s_count;
+    size_t w_count;
+    variable* data;
+};
+
+class stack_var{
+private:
+    union{
+	double n;
+	stack_var* s_ptr;
+	heap_header* h_ptr;
+    };
+    stack_type t;
+public:
+    stack_var(){
+	s_ptr = nullptr;
+	t = stack_type::shared_pointer;
     }
-}
+    stack_var(const stack_var& orig){
+	
+    }
+};
+
+
+
+
+
+*/

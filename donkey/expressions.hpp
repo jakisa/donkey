@@ -141,7 +141,7 @@ public:
 		return _d;
 	}
 	virtual variable_ptr as_param(runtime_context&) override{
-		return variable_ptr(new number_variable(_d));
+		return std::make_shared<number_variable>(_d);
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -160,7 +160,7 @@ public:
 		return _s;
 	}
 	virtual variable_ptr as_param(runtime_context&) override{
-		return variable_ptr(new string_variable(_s));
+		return std::make_shared<string_variable>(_s);
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -182,7 +182,7 @@ public:
 		return "const function";
 	}
 	virtual variable_ptr as_param(runtime_context&) override{
-		return variable_ptr(new function_variable(_f));
+		return std::make_shared<function_variable>(_f);
 	}
 
 	virtual void as_void(runtime_context&) override{

@@ -48,6 +48,7 @@ private:
 	scope* _parent;
 	int _var_index;
 	const int _initial_index;
+	bool _is_function;
 	bool _in_function;
 	bool _is_switch;
 	bool _can_break;
@@ -57,6 +58,7 @@ public:
 		_parent(parent),
 		_var_index(parent->is_global() ? 0 : parent->_var_index),
 		_initial_index(parent->is_global() ? 0 : parent->_var_index),
+		_is_function(is_function),
 		_in_function(is_function || _parent->in_function()),
 		_is_switch(is_switch),
 		_can_break(can_break || parent->can_break()),
@@ -67,6 +69,7 @@ public:
 		_parent(nullptr),
 		_var_index(0),
 		_initial_index(0),
+		_is_function(false),
 		_in_function(false),
 		_is_switch(false),
 		_can_break(false),
@@ -124,13 +127,13 @@ public:
 	}
 	
 	statement get_block(){
-		if(get_number_of_variables() == 0 && _statements.size() < 2){
+		if((get_number_of_variables() == 0 || _is_function || is_global()) && _statements.size() < 2){
 			if(_statements.empty()){
 				return statement(empty_statement);
 			}
 			return std::move(_statements.front());
 		}
-		if(is_global()){
+		if(is_global() || _is_function){
 			return statement(block_statement(std::move(_statements), 0));
 		}
 		
@@ -161,7 +164,7 @@ public:
 	}
 	
 	void declare_function(std::string name){
-		if(_functions.find(name) == _functions.end()){
+		if(_functions.find(name) != _functions.end()){
 			return;
 		}
 		_functions[name].reset(new function_identifier(_definitions.size()));
@@ -272,29 +275,28 @@ private:
 	void compile_function(global_scope& target, tokenizer& parser){
 		++parser;
 		std::string name = parse_allowed_name(parser);
+		
+		if(*parser == ";"){
+			target.declare_function(name);
+			++parser;
+			return;
+		}
+		
 		parse("(", parser);
 		
 		std::vector<std::string> params;
-		if(*parser == ")"){
-			++parser;
-			if(*parser == ";"){
-				target.declare_function(name);
-				++parser;
-				return;
+		bool first_param = true;
+		do{
+			if(!first_param){
+				parse(",", parser);
 			}
-		}else{
-			bool first_param = true;
-			do{
-				if(!first_param){
-					parse(",", parser);
-				}
-				params.push_back(parse_allowed_name(parser));
-				first_param = false;
-				
-			}while(*parser != ")");
+			params.push_back(parse_allowed_name(parser));
+			first_param = false;
 			
-			++parser;
-		}
+		}while(*parser != ")");
+		
+		++parser;
+		
 		
 		if(target.has_function(name)){
 			semantic_error(parser.get_line_number(), name + " is already defined");

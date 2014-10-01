@@ -21,7 +21,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -45,7 +45,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -69,7 +69,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -93,7 +93,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -117,7 +117,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -141,7 +141,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -165,7 +165,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -189,7 +189,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -213,7 +213,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -237,7 +237,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -261,7 +261,7 @@ public:
 	}
 
 	virtual variable_ptr as_param(runtime_context& ctx) override{
-		return variable_ptr(new number_variable(as_number(ctx)));
+		return std::make_shared<number_variable>(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
