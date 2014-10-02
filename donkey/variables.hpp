@@ -6,6 +6,8 @@
 
 #include <cstring>
 
+#include <vector>
+
 
 namespace donkey{
 
@@ -94,10 +96,24 @@ inline constexpr size_t max(size_t x, size_t y){
 	return x > y ? x : y;
 }
 
+
+struct stack_var_ptr{
+	std::vector<stack_var>* v;
+	size_t i;
+	
+	stack_var& operator*() const{
+		return (*v)[i];
+	}
+	
+	stack_var* operator->() const{
+		return &((*v)[i]);
+	}
+};
+
 inline constexpr size_t stack_var_union_size(){
 	return max(
 		max(sizeof(double), sizeof(code_address)),
-		max(sizeof(stack_var*), sizeof(heap_header*))
+		max(sizeof(stack_var_ptr), sizeof(heap_header*))
 	);
 }
 
@@ -107,7 +123,7 @@ private:
 	union{
 		double _n;
 		code_address _f;
-		stack_var* _s_ptr;
+		stack_var_ptr _s_ptr;
 		heap_header* _h_ptr;
 		std::array<char, stack_var_union_size()> _;
 	};
@@ -159,13 +175,6 @@ private:
 		}
 	}
 	
-	struct by_ref_wrapper{
-		stack_var& var;
-		by_ref_wrapper(stack_var& var):
-			var(var){
-		}
-	};
-	
 	struct by_val_wrapper{
 		stack_var& var;
 		by_val_wrapper(stack_var& var):
@@ -212,13 +221,13 @@ public:
 		_mt = mem_type::shared_pointer;
 	}
 	
-	by_ref_wrapper by_ref(){
-		return by_ref_wrapper(*this);
+	stack_var_ptr by_ref(std::vector<stack_var>& v){
+		return stack_var_ptr{&v, size_t(this - &v[0])};
 	}
 	
-	stack_var(by_ref_wrapper w):
-		_s_ptr(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr : &w.var),
-		_dt(w.var._dt),
+	stack_var(stack_var_ptr p):
+		_s_ptr(p->_mt == mem_type::stack_pointer ? p->_s_ptr : p),
+		_dt(p->_dt),
 		_mt(mem_type::stack_pointer){
 	}
 	
@@ -249,6 +258,7 @@ public:
 			return *this = *(orig._s_ptr);
 		}
 		if(_mt == mem_type::stack_pointer){
+			_dt = orig._dt;
 			return *(_s_ptr) = orig;
 		}	
 		orig._inc_counts();
@@ -277,7 +287,8 @@ public:
 			return *this = *(orig._s_ptr);
 		}
 		if(_mt == mem_type::stack_pointer){
-			return *(_s_ptr) = orig;
+			_dt = orig._dt;
+			return *(_s_ptr) = std::move(orig);
 		}
 		orig._inc_counts();
 		_dec_counts();

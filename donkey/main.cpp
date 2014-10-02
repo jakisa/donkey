@@ -8,6 +8,13 @@
 #include "helpers.hpp"
 
 
+struct S{
+	int i = 0;
+	void f(){
+		this[-1].i = 3;
+	}
+};
+
 
 int main(){
 

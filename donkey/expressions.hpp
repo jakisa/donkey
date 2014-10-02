@@ -188,7 +188,7 @@ public:
 		_idx(idx){
 	}
 	virtual stack_var& as_lvalue(runtime_context & ctx) override{
-		return ctx.global[_idx];
+		return ctx.stack[_idx];
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -206,7 +206,7 @@ private:
 	
 		for(size_t i = 0; i < _params.size(); ++i){
 			if(_byref[i]){
-				ctx.push(std::static_pointer_cast<lvalue_expression>(_params[i])->as_lvalue(ctx).by_ref());
+				ctx.push(std::static_pointer_cast<lvalue_expression>(_params[i])->as_lvalue(ctx).by_ref(ctx.stack));
 			}else{
 				ctx.push(_params[i]->as_param(ctx).by_val());
 			}

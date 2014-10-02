@@ -1,4 +1,4 @@
-function fib(n){
+/*function fib(n){
     if(n < 2){
 	return n;
     }
@@ -6,4 +6,17 @@ function fib(n){
 }
 
 
-var a = fib(30);
+var a = fib(30);*/
+
+
+function f(n, i){
+    n ..= i;
+    if(i < 9){
+	f(ref n, i+1);
+    }
+}
+
+
+var a = "";
+
+f(ref a, 1);

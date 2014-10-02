@@ -30,7 +30,8 @@ public:
 		_globals_count(globals_count){
 	}
 	void load(runtime_context& ctx){
-		ctx.global = std::deque<stack_var>(_globals_count);
+		ctx.stack = std::vector<stack_var>(_globals_count);
+		ctx.function_stack_bottom = ctx.stack.size();
 		_s(ctx);
 	}
 	
@@ -660,7 +661,7 @@ public:
 			
 			it->second->load(ctx);
 			
-			printf("%s\n", ctx.global[0].to_string().c_str());
+			printf("%s\n", ctx.stack[0].to_string().c_str());
 			
 			return true;
 //		}catch(const exception&){
