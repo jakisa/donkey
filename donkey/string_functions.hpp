@@ -1,4 +1,6 @@
-#ifndef STRING_FUNCTIONS_HPP
-#define STRING_FUNCTIONS_HPP
+#ifndef __string_functions_hpp__
+#define __string_functions_hpp__
 
-#endif // STRING_FUNCTIONS_HPP
+
+
+#endif /*__string_functions_hpp__*/
