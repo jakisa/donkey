@@ -24,6 +24,7 @@ enum class precedence{
 	multiplicative         = 10,
 	unary_prefix           = 11,
 	unary_postfix          = 12,
+	member_access          = 13,
 };
 
 enum class operator_type{
@@ -134,6 +135,7 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{"-", oper::unary_minus},
 	{"--", oper::pre_dec},
 	{"-=", oper::minus_assignment},
+	{".", oper::dot},
 	{"..", oper::concat},
 	{"..=", oper::concat_assignment},
 	{"/", oper::div},
@@ -270,7 +272,7 @@ inline double parse_number(tokenizer& parser){
 	return ret;
 }
 
-inline void consume_stack(oper op, int line_number, std::stack<oper>& stack, std::vector<expression_ptr>& expressions, bool function_call){
+inline void consume_stack(oper op, int line_number, std::stack<oper>& stack, std::vector<expression_ptr>& expressions, bool function_call, const identifier_lookup& lookup){
 	while(!stack.empty() && !bigger_precedence(op, stack.top())){
 		if(!function_call || stack.top() != oper::comma){
 			expression_ptr e;
@@ -279,21 +281,21 @@ inline void consume_stack(oper op, int line_number, std::stack<oper>& stack, std
 					if(expressions.size() < 3){
 						semantic_error(line_number, "invalid expression");
 					}
-					e = build_ternary_expression(stack.top(), expressions[expressions.size()-3], expressions[expressions.size()-2], expressions[expressions.size()-1]);
+					e = build_ternary_expression(stack.top(), expressions[expressions.size()-3], expressions[expressions.size()-2], expressions[expressions.size()-1], lookup);
 					expressions.resize(expressions.size()-3);
 					break;
 				case 2:
 					if(expressions.size() < 2){
 						semantic_error(line_number, "invalid expression");
 					}
-					e = build_binary_expression(stack.top(), expressions[expressions.size()-2], expressions[expressions.size()-1]);
+					e = build_binary_expression(stack.top(), expressions[expressions.size()-2], expressions[expressions.size()-1], lookup);
 					expressions.resize(expressions.size()-2);
 					break;
 				case 1:
 					if(expressions.size() < 1){
 						semantic_error(line_number, "invalid expression");
 					}
-					e = build_unary_expression(stack.top(), expressions[expressions.size()-1]);
+					e = build_unary_expression(stack.top(), expressions[expressions.size()-1], lookup);
 					expressions.resize(expressions.size()-1);
 					break;
 				default:
@@ -323,15 +325,16 @@ inline void check_right_operand(tokenizer& parser, bool should_be){
 	}
 }
 
-inline expression_ptr parse_expression(tokenizer& parser, const identifier_lookup& lookup, bool declaration, std::string function_name = ""){
+inline expression_ptr parse_expression(tokenizer& parser, const identifier_lookup& lookup, bool declaration, std::string function_name = "", expression_ptr that = expression_ptr()){
 	std::stack<oper> stack;
 	std::vector<expression_ptr> expressions;
 	
-	std::vector<bool> byref;
+	std::vector<char> byref;
 	
 	bool is_left_operand = false;
 	
 	std::string f;
+	bool method = false;
 	
 	if(!function_name.empty()){
 		if(*parser == "ref"){
@@ -343,18 +346,30 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 	}
 	
 	for(; !is_closing(parser, declaration); ++parser){
+		if(*parser == "."){
+			if(get_next_token(parser).first != tokenizer::tt_word){
+				unexpected_error(parser.get_line_number(), *parser);
+			}
+		}
 		if(is_opening(parser)){
 			oper opening = string_to_oper(*parser);
 			
 			if(opening == oper::conditional_question){
 				check_left_operand(is_left_operand, parser, true);
-				consume_stack(oper::conditional_question, parser.get_line_number(), stack, expressions, !function_name.empty());
+				consume_stack(oper::conditional_question, parser.get_line_number(), stack, expressions, !function_name.empty(), lookup);
 			}else{
 				check_left_operand(is_left_operand, parser, false);
 			}
 			
 			++parser;
-			expression_ptr inner = parse_expression(parser, lookup, false, f);
+			
+			expression_ptr inner_that;
+			if(method){
+				inner_that = expressions.back();
+				expressions.pop_back();
+			}
+			
+			expression_ptr inner = parse_expression(parser, lookup, false, f, inner_that);
 			
 			if(!inner){
 				unexpected_error(parser.get_line_number(), *parser);
@@ -378,26 +393,50 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 			}
 			
 			f.clear();
+			method = false;
 		}else{
 			switch(parser.get_token_type()){
 				case tokenizer::tt_number:
 					check_left_operand(is_left_operand, parser, false);
-					expressions.push_back(build_number_expression(parse_number(parser)));
+					expressions.push_back(build_number_expression(parse_number(parser), lookup));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_string:
 					check_left_operand(is_left_operand, parser, false);
-					expressions.push_back(build_string_expression(parser.unquoted()));
+					expressions.push_back(build_string_expression(parser.unquoted(), lookup));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_word:
+					if(!stack.empty() && stack.top() == oper::dot){
+						stack.pop();
+						if(expressions.empty()){
+							semantic_error(parser.get_line_number(), "invalid expression");
+						}
+						if(get_next_token(parser).second == "("){
+							f = *parser;
+							method = true;
+							break;
+						}
+						{
+							expression_ptr that = expressions.back();
+							expressions.pop_back();
+							expressions.push_back(build_field_expression(that, *parser, lookup));
+							is_left_operand = true;
+						}
+						break;
+					}
 					check_left_operand(is_left_operand, parser, false);
 					if(get_next_token(parser).second == "("){
 						f = *parser;
-					}else if(*parser == "null"){
-						expressions.push_back(build_null_expression());
+						method = false;
+						break;
+					}
+					if(*parser == "null"){
+						expressions.push_back(build_null_expression(lookup));
 						is_left_operand = true;
-					}else{
+						break;
+					}
+					{
 						expression_ptr v = build_variable_expression(*parser, lookup);
 						if(!v){
 							semantic_error(parser.get_line_number(), "unknown identifier");
@@ -433,7 +472,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 								unexpected_error(parser.get_line_number(), *parser);
 						}
 						
-						consume_stack(op, parser.get_line_number(), stack, expressions, !function_name.empty());
+						consume_stack(op, parser.get_line_number(), stack, expressions, !function_name.empty(), lookup);
 						stack.push(op);
 						
 						is_left_operand = (ot == operator_type::unary_postfix);
@@ -454,7 +493,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 		}
 	}
 	
-	consume_stack(oper::none, parser.get_line_number(), stack, expressions, !function_name.empty());
+	consume_stack(oper::none, parser.get_line_number(), stack, expressions, !function_name.empty(), lookup);
 	
 	if(function_name.empty()){
 		if(expressions.size() > 1){
@@ -462,6 +501,14 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 		}
 		
 		return expressions.empty() ? expression_ptr() : expressions.front();
+	}
+	
+	if(that){
+		expression_ptr ret = build_method_expression(that, function_name, expressions, byref, lookup);
+		if(!ret){
+			semantic_error(parser.get_line_number(), "l-value expected");
+		}
+		return ret;
 	}
 	
 	expression_ptr ret = build_function_expression(function_name, expressions, byref, lookup);
@@ -480,7 +527,7 @@ expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& pars
 	
 	if(!ret){
 		if(can_be_empty){
-			return expression_ptr(new null_expression());
+			return build_null_expression(lookup);
 		}
 		unexpected_error(parser.get_line_number(), *parser);
 	}

@@ -56,11 +56,16 @@ private:
 	std::vector<statement> _ss;
 	size_t _locals_count;
 public:
-	template<class T>
-	block_statement(T&& orig):
+	block_statement(block_statement&& orig):
 		_ss(std::move(orig._ss)),
 		_locals_count(orig._locals_count){
 	}
+	
+	block_statement(const block_statement& orig):
+		_ss(orig._ss),
+		_locals_count(orig._locals_count){
+	}
+	
 	block_statement(std::vector<statement>&& ss, int locals_count):
 		_ss(ss),
 		_locals_count(locals_count){
@@ -84,12 +89,17 @@ private:
 	expression_ptr _e3;
 	statement _s;
 public:
-	template<class T>
-	for_statement(T&& orig):
+	for_statement(for_statement&& orig):
 		_e1(orig._e1),
 		_e2(orig._e2),
 		_e3(orig._e3),
 		_s(std::move(orig._s)){
+	}
+	for_statement(const for_statement& orig):
+		_e1(orig._e1),
+		_e2(orig._e2),
+		_e3(orig._e3),
+		_s(orig._s){
 	}
 	for_statement(expression_ptr e1, expression_ptr e2, expression_ptr e3, statement&& s):
 		_e1(e1),
@@ -117,10 +127,13 @@ private:
 	expression_ptr _e;
 	statement _s;
 public:
-	template<class T>
-	while_statement(T&& orig):
+	while_statement(while_statement&& orig):
 		_e(orig._e),
 		_s(std::move(orig._s)){
+	}
+	while_statement(const while_statement& orig):
+		_e(orig._e),
+		_s(orig._s){
 	}
 	while_statement(expression_ptr e, statement&& s):
 		_e(e),
@@ -146,10 +159,13 @@ private:
 	expression_ptr _e;
 	statement _s;
 public:
-	template<class T>
-	do_statement(T&& orig):
+	do_statement(do_statement&& orig):
 		_e(orig._e),
 		_s(std::move(orig._s)){
+	}
+	do_statement(const do_statement& orig):
+		_e(orig._e),
+		_s(orig._s){
 	}
 	do_statement(expression_ptr e, statement&& s):
 		_e(e),
@@ -175,10 +191,13 @@ private:
 	std::vector<expression_ptr> _es;
 	std::vector<statement> _ss;
 public:
-	template<class T>
-	if_statement(T&& orig):
+	if_statement(if_statement&& orig):
 		_es(std::move(orig._es)),
 		_ss(std::move(orig._ss)){
+	}
+	if_statement(const if_statement& orig):
+		_es(orig._es),
+		_ss(orig._ss){
 	}
 	if_statement(std::vector<expression_ptr>&& es, std::vector<statement>&& ss):
 		_es(es),
@@ -205,11 +224,16 @@ private:
 	std::unordered_map<double, size_t> _cases;
 	size_t _dflt;
 public:
-	template<class T>
-	switch_statement(T&& orig):
+	switch_statement(switch_statement&& orig):
 		_e(orig._e),
 		_ss(std::move(orig._ss)),
 		_cases(std::move(orig._cases)),
+		_dflt(orig._dflt){
+	}
+	switch_statement(const switch_statement& orig):
+		_e(orig._e),
+		_ss(orig._ss),
+		_cases(orig._cases),
 		_dflt(orig._dflt){
 	}
 	switch_statement(expression_ptr e, std::vector<statement>&& ss, std::unordered_map<double, size_t>&& cases, size_t dflt):

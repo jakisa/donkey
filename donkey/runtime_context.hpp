@@ -18,7 +18,11 @@ class code_container{
 public:	
 	code_container(){
 	}
-	virtual stack_var call_function_by_address(code_address, runtime_context&, size_t) const = 0;
+	
+	virtual variable call_function_by_address(code_address, runtime_context&, size_t) const = 0;
+	
+	virtual vtable* get_vtable(std::string name) const = 0;
+	
 	virtual ~code_container(){
 	}
 };
@@ -28,7 +32,7 @@ struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
 	
-	std::vector<stack_var> stack;
+	std::vector<variable> stack;
 	
 	size_t function_stack_bottom;
 	size_t retval_stack_index;
@@ -41,14 +45,14 @@ struct runtime_context{
 		code(code){
 	}
 
-	void push(stack_var v){
+	void push(variable v){
 		stack.push_back(v);
 	}
 
 	void pop(){
 		stack.pop_back();
 	}
-	stack_var& top(){
+	variable& top(){
 		return stack.back();
 	}
 };

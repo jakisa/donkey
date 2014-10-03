@@ -1,4 +1,5 @@
 #include "expressions.hpp"
+#include "core_expressions.hpp"
 #include "unary_expressions.hpp"
 #include "arithmetic_expressions.hpp"
 #include "string_expressions.hpp"
@@ -7,6 +8,7 @@
 #include "assignment_expressions.hpp"
 #include "sequentional_expressions.hpp"
 #include "ternary_expressions.hpp"
+#include "functional_expressions.hpp"
 #include "identifiers.hpp"
 
 namespace donkey{
@@ -63,15 +65,15 @@ inline expression_ptr build_ternary(expression_ptr e1, expression_ptr e2, expres
 	return expression_ptr(new E(e1, e2, e3));
 }
 
-expression_ptr build_null_expression(){
+expression_ptr build_null_expression(const identifier_lookup&){
 	return expression_ptr(new null_expression());
 }
 
-expression_ptr build_number_expression(double d){
+expression_ptr build_number_expression(double d, const identifier_lookup&){
 	return expression_ptr(new const_number_expression(d));
 }
 
-expression_ptr build_string_expression(std::string str){
+expression_ptr build_string_expression(std::string str, const identifier_lookup&){
 	return expression_ptr(new const_string_expression(str));
 }
 
@@ -79,11 +81,22 @@ expression_ptr build_variable_expression(std::string name, const identifier_look
 	return identifier_to_expression(name, lookup);
 }
 
-expression_ptr build_function_expression(std::string name, std::vector<expression_ptr>& params, const std::vector<bool>& byref, const identifier_lookup& lookup){
+expression_ptr build_field_expression(expression_ptr that, std::string name, const identifier_lookup &){
+	return expression_ptr(new field_expression(that, name));
+}
+
+inline bool check_byref(const std::vector<expression_ptr>& params, const std::vector<char>& byref){
 	for(size_t i = 0; i < params.size(); ++i){
 		if(byref[i] && params[i]->get_type() != expression_type::lvalue){
-			return expression_ptr();
+			return false;
 		}
+	}
+	return true;
+}
+
+expression_ptr build_function_expression(std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup){
+	if(!check_byref(params, byref)){
+		return expression_ptr();
 	}
 	expression_ptr e = identifier_to_expression(name, lookup);
 	if(e){
@@ -92,7 +105,14 @@ expression_ptr build_function_expression(std::string name, std::vector<expressio
 	return expression_ptr();
 }
 
-expression_ptr build_unary_expression(oper op, expression_ptr e){
+expression_ptr build_method_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup&){
+	if(!check_byref(params, byref)){
+		return expression_ptr();
+	}
+	return expression_ptr(new method_call_expression(that, name, params, byref));
+}
+
+expression_ptr build_unary_expression(oper op, expression_ptr e, const identifier_lookup&){
 	switch(op){
 		case oper::logical_not:
 			return build_unary<logical_not_expression>(e);
@@ -115,7 +135,7 @@ expression_ptr build_unary_expression(oper op, expression_ptr e){
 	}
 }
 
-expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2){
+expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, const identifier_lookup&){
 	switch(op){
 		case oper::comma:
 			return build_binary<comma_expression>(e1, e2);
@@ -190,7 +210,7 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 	}
 }
 
-expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3){
+expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, const identifier_lookup&){
 	switch(op){
 		case oper::conditional_question:
 			return build_ternary<conditional_expression>(e1, e2, e3);

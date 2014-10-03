@@ -15,7 +15,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
+	virtual variable& as_lvalue(runtime_context& ctx) override{
 		return _e1->as_lvalue(ctx) = _e2->as_param(ctx);
 	}
 	virtual void as_void(runtime_context& ctx) override{
@@ -33,8 +33,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		v.as_lnumber() *= _e2->as_number(ctx);
 		return v;
 	}
@@ -53,8 +53,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		v.as_lnumber() /= _e2->as_number(ctx);
 		return v;
 	}
@@ -73,8 +73,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) / int(_e2->as_number(ctx));
 		return v;
@@ -95,8 +95,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = fmod(n, _e2->as_number(ctx));
 		return v;
@@ -116,8 +116,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		v.as_lnumber() += _e2->as_number(ctx);
 		return v;
 	}
@@ -137,8 +137,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		v.as_lnumber() -= _e2->as_number(ctx);
 		return v;
 	}
@@ -159,8 +159,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) << int(_e2->as_number(ctx));
 		return v;
@@ -181,8 +181,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) >> int(_e2->as_number(ctx));
 		return v;
@@ -203,8 +203,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) & int(_e2->as_number(ctx));
 		return v;
@@ -225,8 +225,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) ^ int(_e2->as_number(ctx));
 		return v;
@@ -247,8 +247,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
 		double& n = v.as_lnumber();
 		n = int(n) | int(_e2->as_number(ctx));
 		return v;

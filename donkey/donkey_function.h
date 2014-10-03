@@ -21,22 +21,22 @@ public:
 		_params_count(params_count),
 		_body(std::move(body)){
 	}
-	stack_var operator()(runtime_context& ctx, size_t params_count) const{
+	variable operator()(runtime_context& ctx, size_t params_count) const{
 		for(; params_count > _params_count; --params_count){
 			ctx.pop();
 		}
 		for(; params_count < _params_count; ++params_count){
-			ctx.push(stack_var());
+			ctx.push(variable());
 		}
 		
 		ctx.function_stack_bottom = ctx.stack.size() - _params_count;
 		ctx.retval_stack_index = ctx.stack.size();
 		
-		ctx.push(stack_var());
+		ctx.push(variable());
 		
 		_body(ctx);
 		
-		stack_var ret = ctx.top();
+		variable ret = ctx.top();
 		ctx.pop();
 		return ret;
 	}

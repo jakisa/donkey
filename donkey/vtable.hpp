@@ -1,0 +1,4 @@
+#ifndef DONKEY_VTABLE_H
+#define DONKEY_VTABLE_H
+
+#endif // DONKEY_VTABLE_H

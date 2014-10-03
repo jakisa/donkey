@@ -13,8 +13,8 @@ public:
 		_e(e){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e->as_lvalue(ctx);
 		++v.as_lnumber();
 		return v;
 	}
@@ -36,8 +36,8 @@ public:
 		return _e->as_lvalue(ctx).as_lnumber()++;
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override final{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override final{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override final{
@@ -53,8 +53,8 @@ public:
 		_e(e){
 	}
 
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e->as_lvalue(ctx);
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e->as_lvalue(ctx);
 		--v.as_lnumber();
 		return v;
 	}
@@ -76,8 +76,8 @@ public:
 		return _e->as_lvalue(ctx).as_lnumber()--;
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override final{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override final{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override final{
@@ -98,8 +98,8 @@ public:
 		return _e->as_number(ctx);
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -120,8 +120,8 @@ public:
 		return -_e->as_number(ctx);
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -142,8 +142,8 @@ public:
 		return ~int(_e->as_number(ctx));
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -164,8 +164,8 @@ public:
 		return !_e->as_number(ctx);
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override{
-		return stack_var(as_number(ctx));
+	virtual variable as_param(runtime_context& ctx) override{
+		return variable(as_number(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{

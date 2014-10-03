@@ -177,7 +177,7 @@ static std::string fetch_number(const char*, const char* end, const char*& curre
 	const char* old = current;
 	for(++current; current != end; ++current){
 		if(*current == '.'){
-			if(current + 1 != end && *(current+1) == '.'){
+			if(current + 1 != end && !isdigit(*(current+1))){
 				break;
 			}
 		}else if(!is_anu(*current)){

@@ -20,8 +20,8 @@ public:
 		return _e1->as_string(ctx) + _e2->as_string(ctx);
 	}
 
-	virtual stack_var as_param(runtime_context& ctx) override{
-		return stack_var(as_string(ctx));
+	virtual variable as_param(runtime_context& ctx) override{
+		return variable(as_string(ctx));
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
@@ -39,9 +39,9 @@ public:
 		_e2(e2){
 	}
 	
-	virtual stack_var& as_lvalue(runtime_context& ctx) override{
-		stack_var& v = _e1->as_lvalue(ctx);
-		v = stack_var(v.to_string() + _e2->as_string(ctx));
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable& v = _e1->as_lvalue(ctx);
+		v = variable(v.to_string() + _e2->as_string(ctx));
 		return v;
 	}
 	

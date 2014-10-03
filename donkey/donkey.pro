@@ -12,7 +12,8 @@ SOURCES += main.cpp \
     tokenizer.cpp \
     donkey.cpp \
     expression_builder.cpp \
-    expressions.cpp
+    expressions.cpp \
+    core_vtables.cpp
 
 HEADERS += \
     errors.hpp \
@@ -23,7 +24,6 @@ HEADERS += \
     runtime_context.hpp \
     types.hpp \
     helpers.hpp \
-    compiletime_context.hpp \
     identifiers.hpp \
     statements.hpp \
     donkey_function.h \
@@ -35,7 +35,15 @@ HEADERS += \
     relation_expressions.hpp \
     ternary_expressions.hpp \
     sequentional_expressions.hpp \
-    assignment_expressions.hpp
+    assignment_expressions.hpp \
+    functional_expressions.hpp \
+    scope.hpp \
+    module.hpp \
+    function.hpp \
+    string_functions.hpp \
+    vtable.hpp \
+    core_expressions.hpp \
+    native_function.hpp
 
 OTHER_FILES += \
     examples.txt \

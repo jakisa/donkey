@@ -11,7 +11,13 @@
 
 namespace donkey{
 
-typedef u_int64_t code_address;
+struct code_address{
+	u_int64_t value;
+	
+	bool operator==(const code_address& oth) const{
+		return value == oth.value;
+	}
+};
 
 enum struct data_type: char{
 	nothing  = 0x00,
@@ -32,12 +38,14 @@ enum{
 	mem_type_smartptr_mask = 0x10
 };
 
-class stack_var;
+class variable;
+
+class vtable;
 
 class heap_header{
 	heap_header(const heap_header&) = delete;
 	void operator=(const heap_header&) = delete;
-	friend class stack_var;
+	friend class variable;
 private:
 	size_t _s_count;
 	size_t _u_count;
@@ -88,6 +96,9 @@ public:
 	
 	template<class T>
 	T* as_t(){
+		if(_p == nullptr){
+			runtime_error("null reference exception");
+		}
 		return static_cast<T*>(_p);
 	}
 };
@@ -98,14 +109,14 @@ inline constexpr size_t max(size_t x, size_t y){
 
 
 struct stack_var_ptr{
-	std::vector<stack_var>* v;
+	std::vector<variable>* v;
 	size_t i;
 	
-	stack_var& operator*() const{
+	variable& operator*() const{
 		return (*v)[i];
 	}
 	
-	stack_var* operator->() const{
+	variable* operator->() const{
 		return &((*v)[i]);
 	}
 };
@@ -118,7 +129,7 @@ inline constexpr size_t stack_var_union_size(){
 }
 
 
-class stack_var{
+class variable{
 private:
 	union{
 		double _n;
@@ -176,18 +187,18 @@ private:
 	}
 	
 	struct by_val_wrapper{
-		stack_var& var;
-		by_val_wrapper(stack_var& var):
+		variable& var;
+		by_val_wrapper(variable& var):
 			var(var){
 		}
 	};
 public:
-	stack_var():
+	variable():
 		_dt(data_type::nothing),
 		_mt(mem_type::nothing){
 	}
 	
-	stack_var& reset(){
+	variable& reset(){
 		_dec_counts();
 		_dt = data_type::nothing;
 		_mt = mem_type::nothing;
@@ -195,19 +206,19 @@ public:
 		return *this;
 	}
 	
-	explicit stack_var(double n):
+	explicit variable(double n):
 		_n(n),
 		_dt(data_type::number),
 		_mt(mem_type::value){
 	}
 	
-	explicit stack_var(code_address f):
+	explicit variable(code_address f):
 		_f(f),
 		_dt(data_type::function),
 		_mt(mem_type::value){
 	}
 	
-	explicit stack_var(const std::string& s){
+	explicit variable(const std::string& s){
 		char* p = new char[s.size() + 1];
 		if(!p){
 			runtime_error("out of memory");
@@ -221,11 +232,11 @@ public:
 		_mt = mem_type::shared_pointer;
 	}
 	
-	stack_var_ptr by_ref(std::vector<stack_var>& v){
+	stack_var_ptr by_ref(std::vector<variable>& v){
 		return stack_var_ptr{&v, size_t(this - &v[0])};
 	}
 	
-	stack_var(stack_var_ptr p):
+	variable(stack_var_ptr p):
 		_s_ptr(p->_mt == mem_type::stack_pointer ? p->_s_ptr : p),
 		_dt(p->_dt),
 		_mt(mem_type::stack_pointer){
@@ -235,7 +246,7 @@ public:
 		return by_val_wrapper(*this);
 	}
 	
-	stack_var(by_val_wrapper w):
+	variable(by_val_wrapper w):
 		_(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_ : w.var._),
 		_dt(w.var._dt),
 		_mt(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_mt : w.var._mt){
@@ -243,14 +254,14 @@ public:
 	}
 		
 	
-	stack_var(const stack_var& orig):
+	variable(const variable& orig):
 		_(orig._),
 		_dt(orig._dt),
 		_mt(orig._mt){
 		_inc_counts();
 	}
 	
-	stack_var& operator=(const stack_var& orig){
+	variable& operator=(const variable& orig){
 		if(&orig == this){
 			return *this;
 		}
@@ -271,7 +282,7 @@ public:
 		return *this;
 	}
 	
-	stack_var(stack_var&& orig):
+	variable(variable&& orig):
 		_(orig._),
 		_dt(orig._dt),
 		_mt(orig._mt){
@@ -279,7 +290,7 @@ public:
 		orig._mt = mem_type::nothing;
 	}
 	
-	stack_var& operator=(stack_var&& orig){
+	variable& operator=(variable&& orig){
 		if(&orig == this){
 			return *this;
 		}
@@ -305,9 +316,9 @@ public:
 		return *this;
 	}
 	
-	stack_var non_shared() const{
+	variable non_shared() const{
 		if(_mt == mem_type::shared_pointer){
-			stack_var ret;
+			variable ret;
 			ret._mt = mem_type::weak_pointer;
 			ret._h_ptr = _h_ptr;
 			ret._inc_counts();
@@ -316,12 +327,12 @@ public:
 		return *this;
 	}
 	
-	stack_var non_weak() const{
+	variable non_weak() const{
 		if(_mt == mem_type::weak_pointer){
 			if(_h_ptr->_s_count == 0){
-				return stack_var();
+				return variable();
 			}
-			stack_var ret;
+			variable ret;
 			ret._mt = mem_type::shared_pointer;
 			ret._h_ptr = _h_ptr;
 			ret._inc_counts();
@@ -330,7 +341,7 @@ public:
 		return *this;
 	}
 	
-	~stack_var(){
+	~variable(){
 		_dec_counts();
 	}
 	
@@ -372,6 +383,10 @@ public:
 			runtime_error("number expected");
 		}
 		return as_number_unsafe();
+	}
+	
+	int as_int() const{
+		return (int)as_number();
 	}
 	
 	double& as_lnumber_unsafe(){
@@ -421,6 +436,13 @@ public:
 		}
 	}
 	
+	const char* as_string() const{
+		if(get_data_type() != data_type::string){
+			runtime_error("string expected");
+		}
+		return as_string_unsafe();
+	}
+	
 	std::string to_string() const{
 		switch(_dt){
 			case data_type::string:
@@ -443,7 +465,7 @@ public:
 		}
 	}
 	
-	bool operator==(const stack_var& oth) const{
+	bool operator==(const variable& oth) const{
 		data_type dt = get_data_type();
 		
 		if(dt != oth.get_data_type()){
@@ -464,11 +486,11 @@ public:
 		}
 	}
 	
-	bool operator!=(const stack_var& oth) const{
+	bool operator!=(const variable& oth) const{
 		return !(*this == oth);
 	}
 	
-	bool operator<(const stack_var& oth) const{
+	bool operator<(const variable& oth) const{
 		data_type dt = get_data_type();
 		if(dt != oth.get_data_type()){
 			runtime_error("cannot compare " + get_type_name() + " and " + oth.get_type_name());
@@ -484,16 +506,34 @@ public:
 		}
 	}
 	
-	bool operator>(const stack_var& oth) const{
+	bool operator>(const variable& oth) const{
 		return oth < *this;
 	}
 	
-	bool operator<=(const stack_var& oth) const{
+	bool operator<=(const variable& oth) const{
 		return !(oth < *this);
 	}
 	
-	bool operator>=(const stack_var& oth) const{
+	bool operator>=(const variable& oth) const{
 		return !(*this < oth);
+	}
+	
+	variable& nth_field(size_t n) const{
+		runtime_error("variable doesn't have " + std::to_string(n) + " fields");
+		return *static_cast<variable*>(nullptr);
+	}
+	
+	std::string get_vtable_name() const{
+		switch(get_data_type()){
+			case data_type::string:
+				return "%STRING%";
+			case data_type::number:
+				return "%NUMBER%";
+			case data_type::function:
+				return "%FUNCTION%";
+			default:
+				return "%NULL%";
+		}
 	}
 };
 

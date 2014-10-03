@@ -72,6 +72,8 @@ public:
 
 typedef std::shared_ptr<function_identifier> function_identifier_ptr;
 
+class vtable;
+
 class identifier_lookup{
 	identifier_lookup(const identifier_lookup&) = delete;
 	void operator=(const identifier_lookup&) = delete;

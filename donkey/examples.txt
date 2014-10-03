@@ -12,4 +12,4 @@ var a = fib(30);
 //first: 0.75
 //make_shared: 0.65
 
-//stack_var: 0.26
+//variable: 0.26
