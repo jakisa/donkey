@@ -16,7 +16,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) < _e2->as_param(ctx);
 	}
 
@@ -40,7 +40,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) > _e2->as_param(ctx);
 	}
 
@@ -64,7 +64,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) <= _e2->as_param(ctx);
 	}
 
@@ -88,7 +88,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) >= _e2->as_param(ctx);
 	}
 
@@ -112,7 +112,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) == _e2->as_param(ctx);
 	}
 
@@ -136,7 +136,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_param(ctx) != _e2->as_param(ctx);
 	}
 

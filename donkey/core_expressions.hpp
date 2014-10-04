@@ -26,11 +26,11 @@ class const_number_expression final: public expression{
 private:
 	variable _d;
 public:
-	const_number_expression(double d):
+	const_number_expression(number d):
 		expression(expression_type::number),
 		_d(d){
 	}
-	virtual double as_number(runtime_context&) override{
+	virtual number as_number(runtime_context&) override{
 		return _d.as_stack_number_unsafe();
 	}
 	virtual variable as_param(runtime_context&) override{

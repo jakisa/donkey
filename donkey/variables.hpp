@@ -1,18 +1,20 @@
 #ifndef __variables_hpp__
 #define __variables_hpp__
 
+
+#include "config.hpp"
 #include "errors.hpp"
 #include "helpers.hpp"
 
 #include <cstring>
-
+#include <cstdint>
 #include <vector>
 
 
 namespace donkey{
 
 struct code_address{
-	u_int64_t value;
+	uint64_t value;
 	
 	bool operator==(const code_address& oth) const{
 		return value == oth.value;
@@ -123,7 +125,7 @@ struct stack_var_ptr{
 
 inline constexpr size_t stack_var_union_size(){
 	return max(
-		max(sizeof(double), sizeof(code_address)),
+		max(sizeof(number), sizeof(code_address)),
 		max(sizeof(stack_var_ptr), sizeof(heap_header*))
 	);
 }
@@ -132,7 +134,7 @@ inline constexpr size_t stack_var_union_size(){
 class variable{
 private:
 	union{
-		double _n;
+		number _n;
 		code_address _f;
 		stack_var_ptr _s_ptr;
 		heap_header* _h_ptr;
@@ -169,7 +171,7 @@ private:
 						_h_ptr->remove_shared_array<char>();
 						break;
 					case data_type::number:
-						_h_ptr->remove_shared<double>();
+						_h_ptr->remove_shared<number>();
 						break;
 					case data_type::function:
 						_h_ptr->remove_shared<code_address>();
@@ -206,7 +208,7 @@ public:
 		return *this;
 	}
 	
-	explicit variable(double n):
+	explicit variable(number n):
 		_n(n),
 		_dt(data_type::number),
 		_mt(mem_type::value){
@@ -227,7 +229,25 @@ public:
 		if(!_h_ptr){
 			runtime_error("out of memory");
 		}
-		memcpy(p, s.c_str(), s.size() + 1);
+		memcpy(p, s.c_str(), s.size()+1);
+		_dt = data_type::string;
+		_mt = mem_type::shared_pointer;
+	}
+	
+	explicit variable(const char* s){
+		if(!s){
+			s = "";
+		}
+		size_t sz = strlen(s);
+		char* p = new char[sz + 1];
+		if(!p){
+			runtime_error("out of memory");
+		}
+		_h_ptr = new heap_header(p);
+		if(!_h_ptr){
+			runtime_error("out of memory");
+		}
+		memcpy(p, s, sz + 1);
 		_dt = data_type::string;
 		_mt = mem_type::shared_pointer;
 	}
@@ -362,15 +382,15 @@ public:
 		}
 	}
 	
-	double as_stack_number_unsafe() const{
+	number as_stack_number_unsafe() const{
 		return _n;
 	}
 	
-	double as_number_unsafe() const{
+	number as_number_unsafe() const{
 		switch(_mt){
 			case mem_type::shared_pointer:
 			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<double>();
+				return *_h_ptr->as_t<number>();
 			case mem_type::stack_pointer:
 				return _s_ptr->as_number_unsafe();
 			default:
@@ -378,22 +398,22 @@ public:
 		}
 	}
 	
-	double as_number() const{
+	number as_number() const{
 		if(get_data_type() != data_type::number){
 			runtime_error("number expected");
 		}
 		return as_number_unsafe();
 	}
 	
-	int as_int() const{
-		return (int)as_number();
+	integer as_integer() const{
+		return (integer)as_number();
 	}
 	
-	double& as_lnumber_unsafe(){
+	number& as_lnumber_unsafe(){
 		switch(_mt){
 			case mem_type::shared_pointer:
 			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<double>();
+				return *_h_ptr->as_t<number>();
 			case mem_type::stack_pointer:
 				return _s_ptr->as_lnumber_unsafe();
 			default:
@@ -401,7 +421,7 @@ public:
 		}
 	}
 	
-	double& as_lnumber(){
+	number& as_lnumber(){
 		if(get_data_type() != data_type::number){
 			runtime_error("number expected");
 		}

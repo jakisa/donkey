@@ -69,7 +69,7 @@ expression_ptr build_null_expression(const identifier_lookup&){
 	return expression_ptr(new null_expression());
 }
 
-expression_ptr build_number_expression(double d, const identifier_lookup&){
+expression_ptr build_number_expression(number d, const identifier_lookup&){
 	return expression_ptr(new const_number_expression(d));
 }
 

@@ -264,7 +264,7 @@ private:
 	}
 
 	void compile_switch(scope& target, tokenizer& parser){
-		std::unordered_map<double, size_t> cases;
+		std::unordered_map<number, size_t> cases;
 		size_t dflt = 0;
 		bool has_dflt = false;
 		
@@ -291,7 +291,7 @@ private:
 			}
 			if(*parser == "case"){
 				++parser;
-				double d = parse_double(*parser);
+				number d = parse_number(*parser);
 				if(isnan(d)){
 					unexpected_error(parser.get_line_number(), *parser);
 				}

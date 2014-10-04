@@ -7,6 +7,4 @@ function fib(n){
 }
 
 
-var a = fib(20);
-
-a = "stvarno?".length();
+var a = "babetina".substr();

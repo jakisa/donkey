@@ -221,7 +221,7 @@ class switch_statement{
 private:
 	expression_ptr _e;
 	std::vector<statement> _ss;
-	std::unordered_map<double, size_t> _cases;
+	std::unordered_map<number, size_t> _cases;
 	size_t _dflt;
 public:
 	switch_statement(switch_statement&& orig):
@@ -236,7 +236,7 @@ public:
 		_cases(orig._cases),
 		_dflt(orig._dflt){
 	}
-	switch_statement(expression_ptr e, std::vector<statement>&& ss, std::unordered_map<double, size_t>&& cases, size_t dflt):
+	switch_statement(expression_ptr e, std::vector<statement>&& ss, std::unordered_map<number, size_t>&& cases, size_t dflt):
 		_e(e),
 		_ss(ss),
 		_cases(cases),

@@ -9,9 +9,8 @@ static int string_length(std::string that){
 	return that.size();
 }
 
-static int test_f(std::string, std::string s, double d, int i){
-	printf("%s %f %d\n", s.c_str(), d, i);
-	return 42;
+static std::string string_substr(std::string that, int pos, int len){
+	return that.substr(pos, len);
 }
 
 static variable string_to_string(variable& that, runtime_context&, size_t){
@@ -28,7 +27,7 @@ vtable_ptr create_string_vtable(){
 	
 	methods.emplace("length", method(native_method<int(std::string)>(&string_length)));
 	
-	methods.emplace("testF", method(native_method<int(std::string, std::string, double, int)>(&test_f)));
+	methods.emplace("substr", method(native_method<std::string(std::string, int, int)>(&string_substr, std::make_tuple(0, std::string::npos))));
 	
 	methods.emplace("toString", &string_to_string);
 	

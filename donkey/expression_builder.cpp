@@ -178,21 +178,6 @@ inline oper string_to_oper(std::string s){
 	return it->second;
 }
 
-enum class part_type{
-	nul,
-	num,
-	str,
-	var,
-	fun,
-	opr,
-};
-
-struct part{
-	part_type type;
-	std::string str;
-	double d;
-	oper op;
-};
 
 inline std::pair<tokenizer::token_type, std::string> get_next_token(tokenizer parser){
 	++parser;
@@ -264,8 +249,8 @@ inline bool matching_brackets(oper opening, oper closing){
 	}
 }
 
-inline double parse_number(tokenizer& parser){
-	double ret = parse_double(*parser);
+inline number parse_number_not_nan(tokenizer& parser){
+	number ret = parse_number(*parser);
 	if(isnan(ret)){
 		syntax_error(parser.get_line_number(), "invalid number constant");
 	}
@@ -398,7 +383,7 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 			switch(parser.get_token_type()){
 				case tokenizer::tt_number:
 					check_left_operand(is_left_operand, parser, false);
-					expressions.push_back(build_number_expression(parse_number(parser), lookup));
+					expressions.push_back(build_number_expression(parse_number_not_nan(parser), lookup));
 					is_left_operand = true;
 					break;
 				case tokenizer::tt_string:

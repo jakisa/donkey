@@ -31,7 +31,7 @@ public:
 		_e3(e3){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_number(ctx) ? _e2->as_number(ctx) : _e3->as_number(ctx);
 	}
 	

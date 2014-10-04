@@ -32,7 +32,7 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override final{
+	virtual number as_number(runtime_context& ctx) override final{
 		return _e->as_lvalue(ctx).as_lnumber()++;
 	}
 
@@ -72,7 +72,7 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override final{
+	virtual number as_number(runtime_context& ctx) override final{
 		return _e->as_lvalue(ctx).as_lnumber()--;
 	}
 
@@ -94,7 +94,7 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e->as_number(ctx);
 	}
 
@@ -116,7 +116,7 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return -_e->as_number(ctx);
 	}
 
@@ -138,8 +138,8 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return ~int(_e->as_number(ctx));
+	virtual number as_number(runtime_context& ctx) override{
+		return ~integer(_e->as_number(ctx));
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -160,7 +160,7 @@ public:
 		_e(e){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return !_e->as_number(ctx);
 	}
 

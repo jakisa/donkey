@@ -28,7 +28,7 @@ protected:
 		_t(t){
 	}
 public:
-	virtual double as_number(runtime_context&){
+	virtual number as_number(runtime_context&){
 		runtime_error("expression is not number");
 		return nan("");
 	}
@@ -72,7 +72,7 @@ public:
 		return as_lvalue(ctx);
 	}
 
-	virtual double as_number(runtime_context& ctx) override final{
+	virtual number as_number(runtime_context& ctx) override final{
 		return as_lvalue(ctx).as_number();
 	}
 
@@ -145,7 +145,7 @@ class identifier_lookup;
 expression_ptr identifier_to_expression(std::string str, const identifier_lookup& lookup);
 
 expression_ptr build_null_expression(const identifier_lookup& lookup);
-expression_ptr build_number_expression(double d, const identifier_lookup& lookup);
+expression_ptr build_number_expression(number d, const identifier_lookup& lookup);
 expression_ptr build_string_expression(std::string str, const identifier_lookup& lookup);
 
 expression_ptr build_variable_expression(std::string name, const identifier_lookup& lookup);

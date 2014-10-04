@@ -16,7 +16,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_number(ctx) * _e2->as_number(ctx);
 	}
 
@@ -40,7 +40,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_number(ctx) / _e2->as_number(ctx);
 	}
 
@@ -64,8 +64,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) / (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) / (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -88,7 +88,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return fmod(_e1->as_number(ctx),_e2->as_number(ctx));
 	}
 
@@ -112,7 +112,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_number(ctx) + _e2->as_number(ctx);
 	}
 
@@ -136,7 +136,7 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
+	virtual number as_number(runtime_context& ctx) override{
 		return _e1->as_number(ctx) - _e2->as_number(ctx);
 	}
 
@@ -160,8 +160,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) << (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) << (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -184,8 +184,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) >> (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) >> (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -208,8 +208,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) & (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) & (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -232,8 +232,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) ^ (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) ^ (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -256,8 +256,8 @@ public:
 		_e2(e2){
 	}
 
-	virtual double as_number(runtime_context& ctx) override{
-		return (int)_e1->as_number(ctx) | (int)_e2->as_number(ctx);
+	virtual number as_number(runtime_context& ctx) override{
+		return (integer)_e1->as_number(ctx) | (integer)_e2->as_number(ctx);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{

@@ -43,7 +43,9 @@ HEADERS += \
     string_functions.hpp \
     vtable.hpp \
     core_expressions.hpp \
-    native_function.hpp
+    native_function.hpp \
+    config.hpp \
+    native_converter.hpp
 
 OTHER_FILES += \
     examples.txt \

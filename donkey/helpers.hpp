@@ -6,7 +6,7 @@
 
 namespace donkey{
 
-inline bool parse_hex_number(std::string str, size_t from, double& ret){
+inline bool parse_hex_number(std::string str, size_t from, number& ret){
 	int iret = 0;
 	for(size_t i = from; i < str.size(); ++i){
 		iret <<= 4;
@@ -31,9 +31,9 @@ inline bool parse_hex_number(std::string str, size_t from, double& ret){
 	return true;
 }
 
-inline bool parse_dec_number(std::string str, size_t from, double& ret){
+inline bool parse_dec_number(std::string str, size_t from, number& ret){
 	ret = 0;
-	double div_by = 1;
+	number div_by = 1;
 	bool after_dot = false;
 	for(size_t i = from; i < str.size(); ++i){
 		wchar_t ch = str[i];
@@ -55,7 +55,7 @@ inline bool parse_dec_number(std::string str, size_t from, double& ret){
 	return true;
 }
 
-inline double parse_double(std::string str){
+inline number parse_number(std::string str){
 	if(str.empty()){
 		return nan("");
 	}
@@ -72,15 +72,15 @@ inline double parse_double(std::string str){
 		if(begin == str.length()){
 			return nan("");
 		}
-		double h;
+		number h;
 		return parse_hex_number(str, begin, h) ? (minus ? -h : h) : nan("");
 	}else{
-		double d;
+		number d;
 		return parse_dec_number(str, begin, d) ? (minus ? -d : d) : nan("");
 	}
 }
 
-inline std::string to_string(double d){
+inline std::string to_string(number d){
 	bool minus = (d < 0);
 	if(minus){
 		d = -d;
@@ -88,8 +88,8 @@ inline std::string to_string(double d){
 	
 	d += 0.000005;
 	
-	double before_dot = floor(d);
-	double after_dot = d - before_dot;
+	number before_dot = floor(d);
+	number after_dot = d - before_dot;
 
 	std::string before_dot_str;
 	std::string after_dot_str;

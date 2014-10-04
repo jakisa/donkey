@@ -75,8 +75,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) / int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) / integer(_e2->as_number(ctx));
 		return v;
 	}
 	
@@ -97,7 +97,7 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
+		number& n = v.as_lnumber();
 		n = fmod(n, _e2->as_number(ctx));
 		return v;
 	}
@@ -161,8 +161,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) << int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) << integer(_e2->as_number(ctx));
 		return v;
 	}
 	
@@ -183,8 +183,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) >> int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) >> integer(_e2->as_number(ctx));
 		return v;
 	}
 	
@@ -205,8 +205,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) & int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) & integer(_e2->as_number(ctx));
 		return v;
 	}
 	
@@ -227,8 +227,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) ^ int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) ^ integer(_e2->as_number(ctx));
 		return v;
 	}
 	
@@ -249,8 +249,8 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable& v = _e1->as_lvalue(ctx);
-		double& n = v.as_lnumber();
-		n = int(n) | int(_e2->as_number(ctx));
+		number& n = v.as_lnumber();
+		n = integer(n) | integer(_e2->as_number(ctx));
 		return v;
 	}
 	

@@ -15,7 +15,7 @@ public:
 		expression(expression_type::variant){
 	}
 	
-	virtual double as_number(runtime_context& ctx) final override{
+	virtual number as_number(runtime_context& ctx) final override{
 		return make_call(ctx).as_number();
 	}
 	
