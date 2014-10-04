@@ -1,4 +1,13 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#ifndef __config_hpp__
+#define __config_hpp__
 
-#endif // CONFIG_HPP
+#include <cstdint>
+
+namespace donkey{
+
+typedef double number;
+typedef int32_t integer;
+
+}//donkey
+
+#endif /*__config_hpp__*/
