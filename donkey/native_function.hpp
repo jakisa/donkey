@@ -9,45 +9,37 @@
 
 namespace donkey{
 
-template<typename F, typename D = std::tuple<> >
-class native_method;
-
-template<typename R, typename T, typename... Args>
-class native_method<R(T, Args...)>{
-private:
-	typedef std::function<R(T,Args...)> F;
-	F _f;
-	std::vector<variable> _dflts;
+namespace detail{
+	template<typename F, typename R, typename LT, typename RT>
+	struct caller;
 	
-	template<typename RR, typename LT, typename RT>
-	struct _caller;
-	
-	template<typename RR, typename... ArgsL>
-	struct _caller<RR, std::tuple<ArgsL...>, std::tuple<> >{
-		static variable call(size_t, const F& f, runtime_context&, T t, ArgsL... argsl){
-			return param_converter<R>::from_native(f(t, argsl...));
+	template<typename F, typename R, typename... ArgsL>
+	struct caller<F, R, std::tuple<ArgsL...>, std::tuple<> >{
+		static variable call(size_t, const F& f, runtime_context&, ArgsL... argsl){
+			return detail::param_converter<R>::from_native(f(argsl...));
 		}
 	};
 	
-	template<typename... ArgsL>
-	struct _caller<void, std::tuple<ArgsL...>, std::tuple<> >{
-		static variable call(size_t, const F& f, runtime_context&, T t, ArgsL... argsl){
-			f(t, argsl...);
+	template<typename F, typename... ArgsL>
+	struct caller<F, void, std::tuple<ArgsL...>, std::tuple<> >{
+		static variable call(size_t, const F& f, runtime_context&, ArgsL... argsl){
+			f(argsl...);
 			return variable();
 		}
 	};
 	
-	template<typename RR, typename... ArgsL, typename M, typename... ArgsR>
-	struct _caller<RR, std::tuple<ArgsL...>, std::tuple<M, ArgsR...> >{
+	template<typename F, typename R, typename... ArgsL, typename M, typename... ArgsR>
+	struct caller<F, R, std::tuple<ArgsL...>, std::tuple<M, ArgsR...> >{
 	
-		static variable call(size_t idx, const F& f, runtime_context& ctx, T t, ArgsL... argsl){
+		static variable call(size_t idx, const F& f, runtime_context& ctx, ArgsL... argsl){
 			variable m = idx == 0 ? variable() : ctx.stack[ctx.stack.size()-idx];
-			return _caller<
-				RR,
+			return caller<
+				F,
+				R,
 				std::tuple<ArgsL...,M>,
 				std::tuple<ArgsR...>
 			>::call(
-				idx == 0 ? 0 : idx-1, f, ctx, t, argsl..., param_converter<M>::to_native(std::move(m), ctx)
+				idx == 0 ? 0 : idx-1, f, ctx, argsl..., detail::param_converter<M>::to_native(std::move(m), ctx)
 			);
 		}
 	};
@@ -55,26 +47,64 @@ private:
 	
 	
 	template<class Tupple, bool HasDflt, int Idx = 0>
-	struct _unpacker{
+	struct unpacker{
 		static void unpack(Tupple, std::vector<variable>&){
 		}
 	};
 	
 	template<typename... TArgs, int Idx>
-	struct _unpacker<std::tuple<TArgs...>, true, Idx>{
-		typedef std::tuple<Args...> Tupple;
+	struct unpacker<std::tuple<TArgs...>, true, Idx>{
+		typedef std::tuple<TArgs...> Tupple;
 		static void unpack(Tupple t, std::vector<variable>& dflts){
-			dflts.push_back(param_converter<typename std::tuple_element<Idx, Tupple>::type>::from_native(std::get<Idx>(t)));
-			_unpacker<Tupple, Idx+1 < sizeof...(TArgs), Idx+1>::unpack(t, dflts);
+			dflts.push_back(detail::param_converter<typename std::tuple_element<Idx, Tupple>::type>::from_native(std::get<Idx>(t)));
+			unpacker<Tupple, Idx+1 < sizeof...(TArgs), Idx+1>::unpack(t, dflts);
 		}
 	};
+}//detail
+
+template<typename R, typename... Args>
+class native_function{
+private:
+	typedef std::function<R(Args...)> F;
+	F _f;
+	std::vector<variable> _dflts;
 	
 public:
-	template<typename Any, class D = std::tuple<> >
-	native_method(Any f, D d = D()):
-		_f(f){
+	template<class D = std::tuple<> >
+	native_function(F&& f, D d = D()):
+		_f(std::move(f)){
 		_dflts.reserve(std::tuple_size<D>::value);
-		_unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
+		detail::unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
+	}
+
+	variable operator()(runtime_context& ctx, size_t sz){
+		if(sz < sizeof...(Args)){
+			size_t missing = sizeof...(Args) - sz;
+			if(missing > _dflts.size()){
+				runtime_error("not enough function parameters provided");
+				return variable();
+			}
+			ctx.stack.insert(ctx.stack.end(), _dflts.end() - missing, _dflts.end());
+			sz = sizeof...(Args);
+		}
+	
+		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz, _f, ctx);
+	}
+};
+
+template<typename R, typename T, typename... Args>
+class native_method{
+private:
+	typedef std::function<R(T,Args...)> F;
+	F _f;
+	std::vector<variable> _dflts;
+	
+public:
+	template<class D = std::tuple<> >
+	native_method(F&& f, D d = D()):
+		_f(std::move(f)){
+		_dflts.reserve(std::tuple_size<D>::value);
+		detail::unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
 	}
 
 	variable operator()(variable& that, runtime_context& ctx, size_t sz){
@@ -88,11 +118,93 @@ public:
 			sz = sizeof...(Args);
 		}
 	
-		return _caller<R, std::tuple<>, std::tuple<Args...> >::call(sz, _f, ctx, this_converter<T>::to_native(that, ctx));
+		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
 	}
 };
 
+template<typename R, typename... Args>
+function create_native_functions(R(*f)(Args...)){
+	return native_function<R, Args...>(f);
+}
 
+template<class D, typename R, typename... Args>
+function create_native_function(R(*f)(Args...), D d){
+	return native_function<R, Args...>(f, d);
+}
+
+namespace detail{
+	template<class F, typename R, typename... Args>
+	function create_native_function(F f, R(F::*)(Args...)){
+		return native_method<R, Args...>(f);
+	}
+	
+	template<class F, typename R, typename... Args>
+	function create_native_function(F f, R(F::*)(Args...) const){
+		return native_function<R, Args...>(f);
+	}
+	
+	template<class D, class F, typename R, typename... Args>
+	function create_native_function(F f, D d, R(F::*)(Args...)){
+		return native_function<R, Args...>(f, d);
+	}
+	
+	template<class D, class F, typename R, typename... Args>
+	function create_native_function(F f, D d, R(F::*)(Args...) const){
+		return native_function<R, Args...>(f, d);
+	}
+}
+
+template<class F>
+function create_native_function(F f){
+	return detail::create_native_function(f, &F::operator());
+}
+
+template<class F, class D>
+function create_native_function(F f, D d){
+	return detail::create_native_function(f, d, &F::operator());
+}
+
+template<typename R, typename T, typename... Args>
+method create_native_method(R(*f)(T, Args...)){
+	return native_method<R, T, Args...>(f);
+}
+
+template<class D, typename R, typename T, typename... Args>
+method create_native_method(R(*f)(T, Args...), D d){
+	return native_method<R, T, Args...>(f, d);
+}
+
+namespace detail{
+	template<class F, typename R, typename T, typename... Args>
+	method create_native_method(F f, R(F::*)(T, Args...)){
+		return native_method<R, T, Args...>(f);
+	}
+	
+	template<class F, typename R, typename T, typename... Args>
+	method create_native_method(F f, R(F::*)(T, Args...) const){
+		return native_method<R, T, Args...>(f);
+	}
+	
+	template<class D, class F, typename R, typename T, typename... Args>
+	method create_native_method(F f, D d, R(F::*)(T, Args...)){
+		return native_method<R, T, Args...>(f, d);
+	}
+	
+	template<class D, class F, typename R, typename T, typename... Args>
+	method create_native_method(F f, D d, R(F::*)(T, Args...) const){
+		return native_method<R, T, Args...>(f, d);
+	}
+}
+
+template<class F>
+method create_native_method(F f){
+	return detail::create_native_method(f, &F::operator());
+}
+
+template<class F, class D>
+method create_native_method(F f, D d){
+	return detail::create_native_method(f, d, &F::operator());
+}
 
 
 }//donkey

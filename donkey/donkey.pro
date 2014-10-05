@@ -22,7 +22,6 @@ HEADERS += \
     expressions.hpp \
     variables.hpp \
     runtime_context.hpp \
-    types.hpp \
     helpers.hpp \
     identifiers.hpp \
     statements.hpp \

@@ -79,7 +79,7 @@ private:
 
 	void compile_function(global_scope& target, tokenizer& parser){
 		++parser;
-		std::string name = parse_allowed_name(parser);
+		std::string name = parse_allowed_name(target, parser);
 		
 		if(*parser == ";"){
 			target.declare_function(name);

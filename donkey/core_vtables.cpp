@@ -5,11 +5,14 @@
 
 namespace donkey{
 
-static int string_length(std::string that){
+static integer string_length(std::string that){
 	return that.size();
 }
 
-static std::string string_substr(std::string that, int pos, int len){
+static std::string string_substr(std::string that, integer pos, integer len){
+	if((size_t)pos >= that.size()){
+		return "";
+	}
 	return that.substr(pos, len);
 }
 
@@ -25,9 +28,9 @@ vtable_ptr create_string_vtable(){
 	std::unordered_map<std::string, method> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	methods.emplace("length", method(native_method<int(std::string)>(&string_length)));
+	methods.emplace("length", create_native_method(&string_length));
 	
-	methods.emplace("substr", method(native_method<std::string(std::string, int, int)>(&string_substr, std::make_tuple(0, std::string::npos))));
+	methods.emplace("substr", create_native_method(&string_substr, std::make_tuple(0, integer(std::string::npos))));
 	
 	methods.emplace("toString", &string_to_string);
 	

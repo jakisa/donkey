@@ -182,7 +182,8 @@ public:
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
-		return _functions.find(name) == _functions.end() && scope::is_allowed(name);
+		auto it = _functions.find(name);
+		return (it == _functions.end() || !_definitions[it->second->get_function().value] ) && scope::is_allowed(name);
 	}
 
 	bool add_vtable(std::string name, vtable_ptr vt){

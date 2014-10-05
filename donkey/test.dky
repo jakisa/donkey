@@ -1,3 +1,4 @@
+function fib;
 
 function fib(n){
     if(n < 2){
@@ -7,4 +8,4 @@ function fib(n){
 }
 
 
-var a = "babetina".substr();
+var a = "babetina".substr(3);
