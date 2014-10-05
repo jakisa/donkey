@@ -1,4 +1,4 @@
-#ifndef DONKEY_CALLBACK_HPP
-#define DONKEY_CALLBACK_HPP
+#ifndef __donkey_callback_hpp__
+#define __donkey_callback_hpp__
 
-#endif // DONKEY_CALLBACK_HPP
+#endif /* __donkey_callback_hpp__ */
