@@ -12,6 +12,9 @@
 
 
 int main(){
+	int x = sizeof(donkey::variable);
+
+
 	donkey::compiler c("../donkey/");
 	
 	c.compile_module("test");

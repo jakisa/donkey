@@ -40,11 +40,11 @@ public:
 	}
 	
 	static variable& get_field(variable &that, runtime_context& ctx, const std::string &name){
-		return ctx.code->get_vtable(that.get_vtable_name())->_get_field(that, name);
+		return get_vtable(ctx, that.get_vtable_name())->_get_field(that, name);
 	}
 	
 	static variable call_method(variable that, runtime_context &ctx, size_t params_count, const std::string &name){
-		return ctx.code->get_vtable(that.get_vtable_name())->_call_method(that, ctx, params_count, name);
+		return get_vtable(ctx, that.get_vtable_name())->_call_method(that, ctx, params_count, name);
 	}
 };
 

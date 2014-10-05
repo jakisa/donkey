@@ -23,8 +23,8 @@ public:
 		return make_call(ctx).to_string();
 	}
 
-	virtual code_address as_function(runtime_context& ctx) final override{
-		return make_call(ctx).as_function();
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return call_function_by_address(make_call(ctx).as_function(), ctx, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
@@ -53,7 +53,7 @@ private:
 			}
 		}
 		
-		return ctx.code->call_function_by_address(_f->as_function(ctx), ctx, _params.size());
+		return _f->call(ctx, _params.size());
 	}
 
 public:

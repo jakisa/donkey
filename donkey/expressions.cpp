@@ -94,18 +94,14 @@ inline bool check_byref(const std::vector<expression_ptr>& params, const std::ve
 	return true;
 }
 
-expression_ptr build_function_expression(std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup){
+expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup&){
 	if(!check_byref(params, byref)){
 		return expression_ptr();
 	}
-	expression_ptr e = identifier_to_expression(name, lookup);
-	if(e){
-		return expression_ptr(new function_call_expression(e, params, byref));
-	}
-	return expression_ptr();
+	return expression_ptr(new function_call_expression(f, params, byref));
 }
 
-expression_ptr build_method_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup&){
+expression_ptr build_method_call_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup&){
 	if(!check_byref(params, byref)){
 		return expression_ptr();
 	}

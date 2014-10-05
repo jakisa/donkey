@@ -37,9 +37,9 @@ public:
 		return to_string(as_number(ctx));
 	}
 
-	virtual code_address as_function(runtime_context&){
+	virtual variable call(runtime_context&, size_t){
 		runtime_error("expression is not function");
-		return code_address{0xFFFFFFFF};
+		return variable();
 	}
 
 	virtual variable as_param(runtime_context&) = 0;
@@ -80,8 +80,8 @@ public:
 		return as_lvalue(ctx).to_string();
 	}
 	
-	virtual code_address as_function(runtime_context& ctx) override final{
-		return as_lvalue(ctx).as_function();
+	virtual variable call(runtime_context& ctx, size_t params_size) override final{
+		return call_function_by_address(as_lvalue(ctx).as_function(), ctx, params_size);
 	}
 };
 
@@ -151,8 +151,8 @@ expression_ptr build_string_expression(std::string str, const identifier_lookup&
 expression_ptr build_variable_expression(std::string name, const identifier_lookup& lookup);
 expression_ptr build_field_expression(expression_ptr that, std::string name, const identifier_lookup& lookup);
 
-expression_ptr build_function_expression(std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
-expression_ptr build_method_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
+expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
+expression_ptr build_method_call_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
 
 expression_ptr build_unary_expression(oper op, expression_ptr e1, const identifier_lookup& lookup);
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, const identifier_lookup& lookup);

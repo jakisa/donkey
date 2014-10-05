@@ -489,20 +489,21 @@ inline expression_ptr parse_expression(tokenizer& parser, const identifier_looku
 	}
 	
 	if(that){
-		expression_ptr ret = build_method_expression(that, function_name, expressions, byref, lookup);
+		expression_ptr ret = build_method_call_expression(that, function_name, expressions, byref, lookup);
 		if(!ret){
 			semantic_error(parser.get_line_number(), "l-value expected");
 		}
 		return ret;
 	}
 	
-	expression_ptr ret = build_function_expression(function_name, expressions, byref, lookup);
+	expression_ptr function_var = build_variable_expression(function_name, lookup);
+	if(!function_var){
+		semantic_error(parser.get_line_number(), "unknown identifier");
+	}
+	
+	expression_ptr ret = build_function_call_expression(function_var, expressions, byref, lookup);
 	if(!ret){
-		if(lookup.get_identifier(function_name)){
-			semantic_error(parser.get_line_number(), "l-value expected");
-		}else{
-			semantic_error(parser.get_line_number(), "unknown identifier");
-		}
+		semantic_error(parser.get_line_number(), "l-value expected");
 	}
 	return ret;
 }

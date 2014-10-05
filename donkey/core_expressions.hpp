@@ -68,8 +68,8 @@ public:
 		expression(expression_type::function),
 		_f(f){
 	}
-	virtual code_address as_function(runtime_context&) override{
-		return _f;
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return call_function_by_address(_f, ctx, params_size);
 	}
 	virtual std::string as_string(runtime_context&) override{
 		return "function";

@@ -7,7 +7,7 @@
 
 namespace donkey{
 
-class module final: public code_container{
+class module final{
 	module(const module&) = delete;
 	void operator=(const module&) = delete;
 private:
@@ -28,11 +28,11 @@ public:
 		_s(ctx);
 	}
 	
-	virtual variable call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const override{
+	variable call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const{
 		return _functions[address.value](ctx, prms);
 	}
 	
-	virtual vtable* get_vtable(std::string name) const override{
+	vtable* get_vtable(std::string name) const{
 		auto it = _vtables.find(name);
 		return it == _vtables.end() ? nullptr : it->second.get();
 	}

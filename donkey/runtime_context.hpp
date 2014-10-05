@@ -10,23 +10,7 @@
 
 namespace donkey{
 
-class runtime_context;
-
-class code_container{
-	code_container(const code_container&) = delete;
-	void operator=(const code_container&) = delete;
-public:	
-	code_container(){
-	}
-	
-	virtual variable call_function_by_address(code_address, runtime_context&, size_t) const = 0;
-	
-	virtual vtable* get_vtable(std::string name) const = 0;
-	
-	virtual ~code_container(){
-	}
-};
-
+class module;
 
 struct runtime_context{
 	runtime_context(const runtime_context&) = delete;
@@ -37,9 +21,9 @@ struct runtime_context{
 	size_t function_stack_bottom;
 	size_t retval_stack_index;
 	
-	const code_container* code;
+	const module* code;
 
-	runtime_context(const code_container* code):
+	runtime_context(const module* code):
 		function_stack_bottom(0),
 		retval_stack_index(-1),
 		code(code){
@@ -56,6 +40,10 @@ struct runtime_context{
 		return stack.back();
 	}
 };
+
+variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
+	
+vtable* get_vtable(runtime_context& ctx, std::string name);
 
 
 

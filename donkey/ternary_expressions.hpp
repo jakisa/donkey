@@ -39,8 +39,8 @@ public:
 		return _e1->as_number(ctx) ? _e2->as_string(ctx) : _e3->as_string(ctx);
 	}
 	
-	virtual code_address as_function(runtime_context &ctx) override{
-		return _e1->as_number(ctx) ? _e2->as_function(ctx) : _e3->as_function(ctx);
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return _e1->as_number(ctx) ? _e2->call(ctx, params_size) : _e3->call(ctx, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
