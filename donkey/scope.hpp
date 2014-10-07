@@ -135,6 +135,10 @@ public:
 	virtual bool has_class(std::string name) const override{
 		return _parent ? _parent->has_class(name) : false;
 	}
+	
+	virtual vtable* get_vtable(std::string name) const override{
+		return _parent ? _parent->get_vtable(name) : nullptr;
+	}
 };
 
 class global_scope: public scope{
@@ -144,10 +148,10 @@ private:
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 public:
 	global_scope(){
-		add_vtable("string", create_string_vtable());
-		add_vtable("number", create_number_vtable());
-		add_vtable("null", create_null_vtable());
-		add_vtable("function", create_function_vtable());
+		add_vtable("string", create_string_vtable(), std::vector<std::string>());
+		add_vtable("number", create_number_vtable(), std::vector<std::string>());
+		add_vtable("null", create_null_vtable(), std::vector<std::string>());
+		add_vtable("function", create_function_vtable(), std::vector<std::string>());
 	}
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
@@ -211,8 +215,18 @@ public:
 		return _vtables.find(name) == _vtables.end() && scope::is_allowed(name);
 	}
 
-	bool add_vtable(std::string name, vtable_ptr vt){
+	bool add_vtable(std::string name, vtable_ptr vt, const std::vector<std::string>& bases){
+		
+		for(const std::string& base: bases){
+			get_vtable(base)->add_to_derived(*vt);
+		}		
+		
 		return _vtables.emplace(name, vt).second;
+	}
+	
+	virtual vtable* get_vtable(std::string name) const override{
+		auto it = _vtables.find(name);
+		return it != _vtables.end() ? it->second.get() : scope::get_vtable(name);
 	}
 	
 	virtual bool has_class(std::string name) const override{

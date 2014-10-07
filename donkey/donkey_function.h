@@ -11,13 +11,17 @@ private:
 	size_t _params_count;
 	statement _body;
 public:
-	template<typename T>
-	donkey_function(T&& orig):
+	donkey_function(const donkey_function& orig):
+		_params_count(orig._params_count),
+		_body(orig._body){
+	}
+
+	donkey_function(donkey_function&& orig):
 		_params_count(orig._params_count),
 		_body(std::move(orig._body)){
 	}
-	template<typename T>
-	donkey_function(size_t params_count, T&& body):
+	
+	donkey_function(size_t params_count, statement&& body):
 		_params_count(params_count),
 		_body(std::move(body)){
 	}
@@ -48,13 +52,17 @@ private:
 	size_t _params_count;
 	statement _body;
 public:
-	template<typename T>
-	donkey_method(T&& orig):
+	donkey_method(const donkey_method& orig):
+		_params_count(orig._params_count),
+		_body(orig._body){
+	}
+
+	donkey_method(donkey_method&& orig):
 		_params_count(orig._params_count),
 		_body(std::move(orig._body)){
 	}
-	template<typename T>
-	donkey_method(size_t params_count, T&& body):
+	
+	donkey_method(size_t params_count, statement&& body):
 		_params_count(params_count),
 		_body(std::move(body)){
 	}

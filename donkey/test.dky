@@ -9,7 +9,17 @@ class C{
     }
 }
 
+class D: C{
+    var k;
+}
+
 
 var a = new C(9);
 //a.v = 2;
 a = a.f(3);
+
+var b = new D();
+
+b.k = "aaa";
+
+b.v = 42;

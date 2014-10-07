@@ -12,16 +12,6 @@
 
 #include <iostream>
 
-/*
-int test(){
-	return 0;
-}
-
-struct S{
-	void operator()(){
-	}
-};*/
-
 int main(){
 	donkey::compiler c("../donkey/");
 	

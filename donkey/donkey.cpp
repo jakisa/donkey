@@ -91,6 +91,26 @@ private:
 		
 		class_scope ctarget(name, &target);
 		
+		std::vector<std::string> bases;
+		
+		if(*parser == ":"){
+			++parser;
+			do{
+				if(parser.get_token_type() != tokenizer::tt_word){
+					unexpected_error(parser.get_line_number(), *parser);
+				}
+				std::string base = *parser;
+				if(!target.has_class(base)){
+					semantic_error(parser.get_line_number(), "class " + base + " is undefined");
+				}
+				bases.push_back(base);
+				++parser;
+				if(*parser == ","){
+					++parser;
+				}
+			}while(*parser != "{");
+		}
+		
 		parse("{", parser);
 		
 		while(*parser != "}"){
@@ -103,7 +123,7 @@ private:
 		
 		++parser;
 		
-		static_cast<global_scope&>(target).add_vtable(name, ctarget.get_vtable());
+		static_cast<global_scope&>(target).add_vtable(name, ctarget.get_vtable(), bases);
 	}
 	
 	void compile_function_helper(std::string name, scope& target, tokenizer& parser,

@@ -123,6 +123,8 @@ public:
 	
 	virtual bool has_class(std::string name) const = 0;
 	
+	virtual vtable* get_vtable(std::string name) const = 0;
+	
 	virtual ~identifier_lookup(){
 	}
 };

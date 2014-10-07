@@ -50,12 +50,42 @@ public:
 		return that.nth_field(it->second);
 	}
 	
+	bool has_member(const std::string* name) const{
+		return has_method(name) || has_field(name);
+	}
+	
 	bool has_method(const std::string& name) const{
 		return _methods.find(name) != _methods.end();
 	}
 	
+	bool has_field(const std::string& name) const{
+		return _fields.find(name) != _field.end();
+	}
+	
 	size_t get_fields_size() const{
 		return _fields.size();
+	}
+	
+	void add_to_derived(vtable& derived) const{
+		for(const auto& it: _methods){
+			if(derived._methods.find(it.first) != derived._methods.end()){
+				continue;
+			}
+			if(derived._fields.find(it.first) != derived._fields.end()){
+				continue;
+			}
+			derived._methods[it.first] = it.second;
+		}
+		
+		for(const auto& it: _fields){
+			if(derived._methods.find(it.first) != derived._methods.end()){
+				continue;
+			}
+			if(derived._fields.find(it.first) != derived._fields.end()){
+				continue;
+			}
+			derived._fields.insert(it);
+		}
 	}
 };
 
