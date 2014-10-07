@@ -294,8 +294,8 @@ public:
 		_mt = mem_type::shared_pointer;
 	}
 	
-	explicit variable(std::string type_name, size_t fields_size){
-		donkey_object* p = new donkey_object(type_name, fields_size);
+	explicit variable(std::string type_name, size_t fields_size, vtable* vt){
+		donkey_object* p = new donkey_object(type_name, fields_size, vt);
 		if(!p){
 			runtime_error("out of memory");
 		}
@@ -635,6 +635,17 @@ public:
 	
 		_runtime_error("variable doesn't have " + std::to_string(n) + " fields");
 		return *static_cast<variable*>(nullptr);
+	}
+	
+	vtable* get_vtable() const{
+		if(get_data_type() == data_type::object){
+			if(_mt == mem_type::stack_pointer){
+				return _s_ptr->get_vtable();
+			}
+			return _h_ptr->as_t<donkey_object>()->get_vtable();
+		}
+	
+		return nullptr;
 	}
 	
 };

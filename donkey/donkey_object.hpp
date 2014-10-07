@@ -7,6 +7,8 @@ namespace donkey{
 
 class variable;
 
+class vtable;
+
 class donkey_object{
 	struct data;
 	donkey_object(const donkey_object&) = delete;
@@ -14,7 +16,8 @@ class donkey_object{
 private:
 	data* _data;
 public:
-	donkey_object(std::string type_name, size_t fields_size);
+	donkey_object(std::string type_name, size_t fields_size, vtable* vt);
+	vtable* get_vtable();
 	variable& get_field(size_t i);
 	const std::string& get_type_name() const;
 	std::string to_string() const;

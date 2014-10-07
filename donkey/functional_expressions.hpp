@@ -70,7 +70,7 @@ public:
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		vtable* vt = get_vtable(ctx, _type_name);
-		return variable(_type_name, vt->get_fields_size());
+		return variable(_type_name, vt->get_fields_size(), vt);
 	}
 	virtual number as_number(runtime_context& ctx) final override{
 		return as_param(ctx).as_number();

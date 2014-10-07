@@ -140,12 +140,12 @@ public:
 	
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that.get_type_name())->get_field(that, _name);
+		return get_vtable(ctx, that)->get_field(that, _name);
 	}
 	
 	virtual variable call(runtime_context &ctx, size_t params_size) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that.get_type_name())->call_member(that, ctx, params_size, _name);
+		return get_vtable(ctx, that)->call_member(that, ctx, params_size, _name);
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{

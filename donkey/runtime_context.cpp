@@ -10,5 +10,10 @@ variable call_function_by_address(code_address addr, runtime_context& ctx, size_
 vtable* get_vtable(runtime_context& ctx, std::string name){
 	return ctx.code->get_vtable(name);
 }
+
+vtable* get_vtable(runtime_context& ctx, const variable& v){
+	vtable* vt = v.get_vtable();
+	return vt ? vt : get_vtable(ctx, v.get_type_name());
+}
 	
 }//donkey;

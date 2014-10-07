@@ -47,6 +47,7 @@ struct runtime_context{
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
 	
 vtable* get_vtable(runtime_context& ctx, std::string name);
+vtable* get_vtable(runtime_context& ctx, const variable& v);
 
 
 
