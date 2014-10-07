@@ -31,7 +31,7 @@ public:
 		_end(end){
 		reset();
 	}
-
+	
 	void reset(){
 		_current = _begin;
 		_fetch_next_token();
@@ -59,14 +59,14 @@ public:
 		++(*this);
 		return ret;
 	}
-    
-    token_type get_token_type() const{
-    	return _tt;
-    }
-    
-    int get_line_number() const;
-    
-    std::string unquoted() const;
+	
+	token_type get_token_type() const{
+		return _tt;
+	}
+	
+	int get_line_number() const;
+	
+	static std::string unquoted_string(const std::string& token, int line_number);
 };
 
 }//namespace donkey

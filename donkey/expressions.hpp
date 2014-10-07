@@ -18,6 +18,19 @@ enum class expression_type{
 	variant,
 };
 
+inline expression_type string_to_type(std::string name){
+	if(name == "number"){
+		return expression_type::number;
+	}
+	if(name == "string"){
+		return expression_type::string;
+	}
+	if(name == "function"){
+		return expression_type::function;
+	}
+	return expression_type::variant;
+}
+
 class expression{
 	expression(const expression&) = delete;
 	void operator=(const expression&) = delete;
@@ -68,20 +81,20 @@ protected:
 public:
 	virtual variable& as_lvalue(runtime_context&) = 0;
 
-	virtual variable as_param(runtime_context& ctx) override final{
+	virtual variable as_param(runtime_context& ctx) override{
 		return as_lvalue(ctx);
 	}
 
-	virtual number as_number(runtime_context& ctx) override final{
+	virtual number as_number(runtime_context& ctx) override{
 		return as_lvalue(ctx).as_number();
 	}
 
-	virtual std::string as_string(runtime_context& ctx) override final{
+	virtual std::string as_string(runtime_context& ctx) override{
 		return as_lvalue(ctx).to_string();
 	}
 	
-	virtual variable call(runtime_context& ctx, size_t params_size) override final{
-		return call_function_by_address(as_lvalue(ctx).as_function(), ctx, params_size);
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return as_lvalue(ctx).call(ctx, params_size);
 	}
 };
 
@@ -92,6 +105,7 @@ enum class oper{
 	operand              =   1,
 	bracket_open         =   2,
 	bracket_close        =   3,
+	ref                  =   4,
 
 	comma                =  20,
 	or_assignment        =  40,
@@ -135,30 +149,39 @@ enum class oper{
 	unary_plus           = 223,
 	pre_dec              = 224,
 	pre_inc              = 225,
+	construct            = 226,
 	post_dec             = 240,
 	post_inc             = 241,
-	dot                  = 260,
+	dot                  = 242,
+	call                 = 243,
 };
 
-class identifier_lookup;
 
-expression_ptr identifier_to_expression(std::string str, const identifier_lookup& lookup);
+expression_ptr build_null_expression();
 
-expression_ptr build_null_expression(const identifier_lookup& lookup);
-expression_ptr build_number_expression(number d, const identifier_lookup& lookup);
-expression_ptr build_string_expression(std::string str, const identifier_lookup& lookup);
+expression_ptr build_this_expression();
 
-expression_ptr build_variable_expression(std::string name, const identifier_lookup& lookup);
-expression_ptr build_field_expression(expression_ptr that, std::string name, const identifier_lookup& lookup);
+expression_ptr build_const_number_expression(double n);
 
-expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
-expression_ptr build_method_call_expression(expression_ptr that, std::string name, const std::vector<expression_ptr>& params, const std::vector<char>& byref, const identifier_lookup& lookup);
+expression_ptr build_const_string_expression(const std::string& str);
 
-expression_ptr build_unary_expression(oper op, expression_ptr e1, const identifier_lookup& lookup);
-expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, const identifier_lookup& lookup);
-expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, const identifier_lookup& lookup);
+expression_ptr build_const_function_expression(code_address addr);
 
+expression_ptr build_local_variable_expression(size_t idx);
 
+expression_ptr build_global_variable_expression(size_t idx);
+
+expression_ptr build_unary_expression(oper op, expression_ptr e1, int line_number);
+
+expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, int line_number);
+
+expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, int line_number);
+
+expression_ptr build_member_expression(expression_ptr that, const std::string& member);
+
+expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
+
+expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
 
 }//namespace donkey
 

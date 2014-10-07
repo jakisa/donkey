@@ -13,6 +13,13 @@ namespace detail{
 	struct param_converter;
 	
 	template<>
+	struct param_converter<void>{
+		static void to_native(const variable&, runtime_context&){
+		}
+	};
+	
+	
+	template<>
 	struct param_converter<number>{
 		static number to_native(const variable& v, runtime_context&){
 			return v.as_number();
@@ -58,7 +65,6 @@ namespace detail{
 			return variable(s);
 		}
 	};
-	
 	
 	template<class T>
 	struct this_converter;

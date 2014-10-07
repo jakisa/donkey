@@ -1,20 +1,11 @@
-function fib;
-
-function fib(n){
-    if(n < 2){
-	return n;
+class C{
+    var v;
+    function f(x){
+	return x + this.v;
     }
-    return fib(n-2) + fib(n-1);
 }
 
-function g(z){
-    return z;
-}
 
-function f(x, y){
-    return g;
-}
-
-//var a = f(3,4)(42);
-
-var a = g(42);
+var a = new C();
+a.v = 2;
+a = a.f(3);

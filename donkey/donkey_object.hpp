@@ -1,0 +1,4 @@
+#ifndef DONKEY_CLASS_HPP
+#define DONKEY_CLASS_HPP
+
+#endif // DONKEY_CLASS_HPP

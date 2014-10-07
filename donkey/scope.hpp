@@ -23,16 +23,20 @@ private:
 	bool _is_switch;
 	bool _can_break;
 	bool _can_continue;
+	bool _is_class;
+	bool _in_class;
 public:
-	scope(scope* parent, bool is_function = false, bool is_switch = false, bool can_break = false, bool can_continue = false):
+	scope(scope* parent, bool is_function = false, bool is_switch = false, bool can_break = false, bool can_continue = false, bool is_class = false):
 		_parent(parent),
 		_var_index(parent->is_global() ? 0 : parent->_var_index),
 		_initial_index(parent->is_global() ? 0 : parent->_var_index),
 		_is_function(is_function),
-		_in_function(is_function || _parent->in_function()),
+		_in_function(is_function || (_parent->in_function() && !is_class)),
 		_is_switch(is_switch),
-		_can_break(can_break || parent->can_break()),
-		_can_continue(can_continue || parent->can_continue()){
+		_can_break(can_break || (parent->can_break() && !is_class)),
+		_can_continue(can_continue || (parent->can_continue() && !is_class)),
+		_is_class(is_class),
+		_in_class(is_class || _parent->in_class()){
 	}
 	
 	scope():
@@ -43,7 +47,9 @@ public:
 		_in_function(false),
 		_is_switch(false),
 		_can_break(false),
-		_can_continue(false){
+		_can_continue(false),
+		_is_class(false),
+		_in_class(false){
 	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
@@ -65,6 +71,14 @@ public:
 	
 	bool is_switch() const{
 		return _is_switch;
+	}
+	
+	bool is_class() const{
+		return _is_class;
+	}
+	
+	virtual bool in_class() const override{
+		return _in_class;
 	}
 	
 	bool can_break() const{
@@ -117,6 +131,10 @@ public:
 	size_t get_number_of_variables() const{
 		return _var_index - _initial_index;
 	}
+	
+	virtual bool has_class(std::string name) const override{
+		return _parent ? _parent->has_class(name) : false;
+	}
 };
 
 class global_scope: public scope{
@@ -126,10 +144,10 @@ private:
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 public:
 	global_scope(){
-		add_vtable("%STRING%", create_string_vtable());
-		add_vtable("%NUMBER%", create_number_vtable());
-		add_vtable("%NULL%", create_null_vtable());
-		add_vtable("%FUNCTION%", create_function_vtable());
+		add_vtable("string", create_string_vtable());
+		add_vtable("number", create_number_vtable());
+		add_vtable("null", create_null_vtable());
+		add_vtable("function", create_function_vtable());
 	}
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
@@ -178,16 +196,91 @@ public:
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
 		auto it = _functions.find(name);
-		return it != _functions.end() ? it->second : scope::get_identifier(name);
+		if(it != _functions.end()){
+			return it->second;
+		}
+		auto cit = _vtables.find(name);
+		return cit != _vtables.end() ? identifier_ptr(new class_identifier(name)) : scope::get_identifier(name);
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
 		auto it = _functions.find(name);
-		return (it == _functions.end() || !_definitions[it->second->get_function().value] ) && scope::is_allowed(name);
+		if(it != _functions.end() && !_definitions[it->second->get_function().value] ){
+			return false;
+		}
+		return _vtables.find(name) == _vtables.end() && scope::is_allowed(name);
 	}
 
 	bool add_vtable(std::string name, vtable_ptr vt){
 		return _vtables.emplace(name, vt).second;
+	}
+	
+	virtual bool has_class(std::string name) const override{
+		return _vtables.find(name) != _vtables.end() || scope::has_class(name);
+	}
+};
+
+class class_scope: public scope{
+private:
+	std::unordered_map<std::string, method> _methods;
+	std::unordered_map<std::string, size_t> _fields;
+	std::string _name;
+	size_t _fields_count;
+public:
+	class_scope(std::string name, scope* parent):
+		scope(parent, false, false, false, false, true),
+		_name(name),
+		_fields_count(0){
+	}
+	bool has_method(std::string name) const{
+		auto it = _methods.find(name);
+		return it != _methods.end() && !it->second;
+	}
+	
+	void define_method(std::string name, method&& m){
+		_methods[name] = std::move(m);
+	}
+	
+	bool add_field(std::string name){
+		if(_fields.find(name) == _fields.end()){
+			_fields[name] = _fields_count++;
+			return true;
+		}
+		return false;
+	}
+	
+	std::string get_undefined_method() const{
+		for(const auto& p: _methods){
+			if(!p.second){
+				return p.first;
+			}
+		}
+		return "";
+	}
+
+	bool is_allowed_member(std::string name) const{
+		auto mit = _methods.find(name);
+		if(mit != _methods.end() && mit->second){
+			return false;
+		}
+		
+		auto fit = _fields.find(name);
+		if(fit != _fields.end()){
+			return false;
+		}
+		return true;
+	}
+	
+	vtable_ptr get_vtable(){
+		return vtable_ptr(new vtable(std::move(_methods), std::move(_fields)));
+	}
+	
+	virtual identifier_ptr get_identifier(std::string name) const override{
+		return name == _name ? identifier_ptr(new class_identifier(name)) : scope::get_identifier(name);
+	}
+	
+	virtual bool has_class(std::string name) const override{
+		return name == _name || scope::has_class(name);
 	}
 };
 

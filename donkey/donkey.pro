@@ -14,7 +14,8 @@ SOURCES += main.cpp \
     expression_builder.cpp \
     expressions.cpp \
     core_vtables.cpp \
-    runtime_context.cpp
+    runtime_context.cpp \
+    donkey_object.cpp
 
 HEADERS += \
     errors.hpp \
@@ -46,7 +47,8 @@ HEADERS += \
     native_function.hpp \
     config.hpp \
     native_converter.hpp \
-    donkey_callback.hpp
+    donkey_callback.hpp \
+    donkey_object.hpp
 
 OTHER_FILES += \
     examples.txt \

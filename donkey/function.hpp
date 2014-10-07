@@ -2,10 +2,11 @@
 #define __function_hpp__
 
 #include <functional>
-#include "variables.hpp"
-#include "runtime_context.hpp"
 
 namespace donkey{
+
+struct runtime_context;
+class variable;
 
 typedef std::function<variable(runtime_context&, size_t)> function;
 

@@ -20,6 +20,20 @@ public:
 	}
 };
 
+class this_expression final: public expression{
+public:
+	this_expression():
+		expression(expression_type::variant){
+	}
+	virtual std::string as_string(runtime_context& ctx) override{
+		return as_param(ctx).to_string();
+	}
+	virtual variable as_param(runtime_context& ctx) override{
+		return *ctx.that;
+	}
+	virtual void as_void(runtime_context&) override{
+	}
+};
 
 
 class const_number_expression final: public expression{
@@ -114,21 +128,40 @@ public:
 	}
 };
 
-class field_expression final: public lvalue_expression{
+class member_expression final: public lvalue_expression{
 private:
 	std::string _name;
 	expression_ptr _that;
 public:
-	field_expression(expression_ptr that, std::string name):
+	member_expression(expression_ptr that, std::string name):
 		_name(name),
 		_that(that){
 	}
+	
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable that = _that->as_param(ctx);
-		return vtable::get_field(that, ctx, _name);
+		return get_vtable(ctx, that.get_type_name())->get_field(that, _name);
 	}
+	
+	virtual variable call(runtime_context &ctx, size_t params_size) override{
+		variable that = _that->as_param(ctx);
+		return get_vtable(ctx, that.get_type_name())->call_member(that, ctx, params_size, _name);
+	}
+	
 	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
+		as_param(ctx);
+	}
+	
+	virtual number as_number(runtime_context& ctx) override{
+		return as_lvalue(ctx).as_number();
+	}
+	
+	virtual std::string as_string(runtime_context& ctx) override{
+		return as_lvalue(ctx).to_string();
+	}
+	
+	virtual variable as_param(runtime_context& ctx) override{
+		return as_lvalue(ctx);
 	}
 };
 

@@ -33,7 +33,7 @@ vtable_ptr create_string_vtable(){
 	methods.emplace("substr", create_native_method(&string_substr, std::make_tuple(0, integer(std::string::npos))));
 	
 	methods.emplace("toString", &string_to_string);
-	
+		
 	return vtable_ptr(new vtable(std::move(methods), std::move(fields)));
 }
 

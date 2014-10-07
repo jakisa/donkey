@@ -5,6 +5,8 @@
 #include "config.hpp"
 #include "errors.hpp"
 #include "helpers.hpp"
+#include "function.hpp"
+#include "donkey_object.hpp"
 
 #include <cstring>
 #include <cstdint>
@@ -22,10 +24,12 @@ struct code_address{
 };
 
 enum struct data_type: char{
-	nothing  = 0x00,
-	number   = 0x01,
-	function = 0x02,
-	string   = 0x03,
+	nothing      = 0x00,
+	number       = 0x01,
+	code_address = 0x02,
+	string       = 0x03,
+	function     = 0x04,
+	object       = 0x05,
 };
 
 enum struct mem_type: char{
@@ -96,6 +100,10 @@ public:
 		--_u_count;
 	}
 	
+	bool expired(){
+		return _s_count == 0;
+	}
+	
 	template<class T>
 	T* as_t(){
 		if(_p == nullptr){
@@ -130,6 +138,7 @@ inline constexpr size_t stack_var_union_size(){
 	);
 }
 
+variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
 
 class variable{
 private:
@@ -144,6 +153,14 @@ private:
 	data_type _dt;
 	mem_type _mt;
 	
+	void _runtime_error(std::string msg) const{
+		if(_mt == mem_type::weak_pointer && _h_ptr->expired()){
+			runtime_error("expired object access");
+		}else{
+			runtime_error(msg);
+		}
+	}
+	
 	void _inc_counts() const{
 		if(!(char(_mt) & mem_type_smartptr_mask)){
 			return;
@@ -155,7 +172,9 @@ private:
 			case mem_type::weak_pointer:
 				_h_ptr->add_weak();
 				break;
-			default:
+			case mem_type::stack_pointer:
+			case mem_type::value:
+			case mem_type::nothing:
 				break;
 		}
 	}
@@ -170,20 +189,28 @@ private:
 					case data_type::string:
 						_h_ptr->remove_shared_array<char>();
 						break;
+					case data_type::object:
+						_h_ptr->remove_shared<donkey_object>();
+						break;
 					case data_type::number:
 						_h_ptr->remove_shared<number>();
 						break;
-					case data_type::function:
+					case data_type::code_address:
 						_h_ptr->remove_shared<code_address>();
 						break;
-					default:
+					case data_type::function:
+						_h_ptr->remove_shared<function>();
+						break;
+					case data_type::nothing:
 						break;
 				}
 				break;
 			case mem_type::weak_pointer:
 				_h_ptr->remove_weak();
 				break;
-			default:
+			case mem_type::stack_pointer:
+			case mem_type::value:
+			case mem_type::nothing:
 				break;
 		}
 	}
@@ -216,7 +243,7 @@ public:
 	
 	explicit variable(code_address f):
 		_f(f),
-		_dt(data_type::function),
+		_dt(data_type::code_address),
 		_mt(mem_type::value){
 	}
 	
@@ -227,6 +254,7 @@ public:
 		}
 		_h_ptr = new heap_header(p);
 		if(!_h_ptr){
+			delete[] p;
 			runtime_error("out of memory");
 		}
 		memcpy(p, s.c_str(), s.size()+1);
@@ -249,6 +277,34 @@ public:
 		}
 		memcpy(p, s, sz + 1);
 		_dt = data_type::string;
+		_mt = mem_type::shared_pointer;
+	}
+	
+	explicit variable(function&& f){
+		function* p = new function(std::move(f));
+		if(!p){
+			runtime_error("out of memory");
+		}
+		_h_ptr = new heap_header(p);
+		if(!_h_ptr){
+			delete p;
+			runtime_error("out of memory");
+		}
+		_dt = data_type::function;
+		_mt = mem_type::shared_pointer;
+	}
+	
+	explicit variable(std::string type_name, size_t fields_size){
+		donkey_object* p = new donkey_object(type_name, fields_size);
+		if(!p){
+			runtime_error("out of memory");
+		}
+		_h_ptr = new heap_header(p);
+		if(!_h_ptr){
+			delete p;
+			runtime_error("out of memory");
+		}
+		_dt = data_type::object;
 		_mt = mem_type::shared_pointer;
 	}
 	
@@ -369,17 +425,26 @@ public:
 		return (_mt == mem_type::weak_pointer && _h_ptr->_p == nullptr) ? data_type::nothing : _dt;
 	}
 	
+	bool is_callable() const{
+		data_type dt = get_data_type();
+		return dt == data_type::code_address || dt == data_type::function;
+	}
+	
 	std::string get_type_name() const{
 		switch(get_data_type()){
 			case data_type::number:
 				return "number";
+			case data_type::code_address:
 			case data_type::function:
 				return "function";
 			case data_type::string:
 				return "string";
-			default:
+			case data_type::nothing:
 				return "null";
+			case data_type::object:
+				return _mt == mem_type::stack_pointer ? _s_ptr->get_type_name() : _h_ptr->as_t<donkey_object>()->get_type_name();
 		}
+		return "";
 	}
 	
 	number as_stack_number_unsafe() const{
@@ -400,7 +465,7 @@ public:
 	
 	number as_number() const{
 		if(get_data_type() != data_type::number){
-			runtime_error("number expected");
+			_runtime_error("number expected");
 		}
 		return as_number_unsafe();
 	}
@@ -423,28 +488,53 @@ public:
 	
 	number& as_lnumber(){
 		if(get_data_type() != data_type::number){
-			runtime_error("number expected");
+			_runtime_error("number expected");
 		}
 		return as_lnumber_unsafe();
 	}
 	
-	code_address as_function_unsafe() const{
+	code_address as_code_address_unsafe() const{
 		switch(_mt){
 			case mem_type::shared_pointer:
 			case mem_type::weak_pointer:
 				return *_h_ptr->as_t<code_address>();
 			case mem_type::stack_pointer:
-				return _s_ptr->as_function_unsafe();
+				return _s_ptr->as_code_address_unsafe();
 			default:
 				return _f;
 		}
 	}
 	
-	code_address as_function() const{
-		if(get_data_type() != data_type::function){
-			runtime_error("function expected");
+	donkey_object& as_object_unsafe() const{
+		switch(_mt){
+			case mem_type::shared_pointer:
+			case mem_type::weak_pointer:
+				return *_h_ptr->as_t<donkey_object>();
+			case mem_type::stack_pointer:
+				return _s_ptr->as_object_unsafe();
+			default:
+				return *static_cast<donkey_object*>(nullptr);
 		}
-		return as_function_unsafe();
+	}
+	
+	variable call(runtime_context& ctx, size_t params_size) const{
+		switch(get_data_type()){
+			case data_type::code_address:
+				return call_function_by_address(as_code_address_unsafe(), ctx, params_size);
+			case data_type::function:
+				switch(_mt){
+					case mem_type::shared_pointer:
+					case mem_type::weak_pointer:
+						return (*_h_ptr->as_t<function>())(ctx, params_size);
+					case mem_type::stack_pointer:
+						return _s_ptr->call(ctx, params_size);
+					default:
+						break;
+				}
+			default:
+				_runtime_error("function expected");
+		}
+		return variable();
 	}
 	
 	const char* as_string_unsafe() const{
@@ -458,19 +548,22 @@ public:
 	
 	const char* as_string() const{
 		if(get_data_type() != data_type::string){
-			runtime_error("string expected");
+			_runtime_error("string expected");
 		}
 		return as_string_unsafe();
 	}
 	
 	std::string to_string() const{
-		switch(_dt){
+		switch(get_data_type()){
 			case data_type::string:
 				return std::string(as_string_unsafe());
 			case data_type::number:
 				return donkey::to_string(as_number());
+			case data_type::code_address:
 			case data_type::function:
 				return std::string("function");
+			case data_type::object:
+				return _h_ptr->as_t<donkey_object>()->to_string();
 			default:
 				return std::string("null");
 		}
@@ -495,8 +588,8 @@ public:
 		switch(dt){
 			case data_type::number:
 				return as_number_unsafe() == oth.as_number_unsafe();
-			case data_type::function:
-				return as_function_unsafe() == oth.as_function_unsafe();
+			case data_type::code_address:
+				return as_code_address_unsafe() == oth.as_code_address_unsafe();
 			case data_type::string:
 				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) == 0;
 			case data_type::nothing:
@@ -539,22 +632,17 @@ public:
 	}
 	
 	variable& nth_field(size_t n) const{
-		runtime_error("variable doesn't have " + std::to_string(n) + " fields");
+		if(get_data_type() == data_type::object){
+			if(_mt == mem_type::stack_pointer){
+				return _s_ptr->nth_field(n);
+			}
+			return _h_ptr->as_t<donkey_object>()->get_field(n);
+		}
+	
+		_runtime_error("variable doesn't have " + std::to_string(n) + " fields");
 		return *static_cast<variable*>(nullptr);
 	}
 	
-	std::string get_vtable_name() const{
-		switch(get_data_type()){
-			case data_type::string:
-				return "%STRING%";
-			case data_type::number:
-				return "%NUMBER%";
-			case data_type::function:
-				return "%FUNCTION%";
-			default:
-				return "%NULL%";
-		}
-	}
 };
 
 }//donkey

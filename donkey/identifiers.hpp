@@ -2,13 +2,16 @@
 #define __identifiers_hpp__
 
 #include "runtime_context.hpp"
+#include "function.hpp"
 
 namespace donkey{
 
 enum class identifier_type{
 	global_variable,
 	local_variable,
-	function
+	function,
+	classname,
+	module,
 };
 
 class identifier{
@@ -32,6 +35,7 @@ public:
 typedef std::shared_ptr<identifier> identifier_ptr;
 
 class global_variable_identifier: public identifier{
+private:
 	int _idx;
 public:
 	global_variable_identifier(int idx):
@@ -45,6 +49,7 @@ public:
 };
 
 class local_variable_identifier: public identifier{
+private:
 	int _idx;
 public:
 	local_variable_identifier(int idx):
@@ -58,6 +63,7 @@ public:
 };
 
 class function_identifier: public identifier{
+private:
 	code_address _f;
 public:
 	function_identifier(code_address f):
@@ -67,6 +73,34 @@ public:
 	
 	const code_address& get_function() const{
 		return _f;
+	}
+};
+
+class class_identifier: public identifier{
+private:
+	std::string _name;
+public:
+	class_identifier(const std::string& name):
+		identifier(identifier_type::classname),
+		_name(name){
+	}
+	const std::string& get_name() const{
+		return _name;
+	}
+};
+
+class identifier_lookup;
+
+class module_identifier: public identifier{
+private:
+	const identifier_lookup& _lookup;
+public:
+	module_identifier(const identifier_lookup& lookup):
+		identifier(identifier_type::module),
+		_lookup(lookup){
+	}
+	const identifier_lookup& get_lookup() const{
+		return _lookup;
 	}
 };
 
@@ -84,6 +118,10 @@ public:
 	virtual identifier_ptr get_identifier(std::string name) const = 0;
 	
 	virtual bool is_allowed(std::string name) const = 0;
+	
+	virtual bool in_class() const = 0;
+	
+	virtual bool has_class(std::string name) const = 0;
 	
 	virtual ~identifier_lookup(){
 	}

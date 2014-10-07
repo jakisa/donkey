@@ -21,11 +21,14 @@ struct runtime_context{
 	size_t function_stack_bottom;
 	size_t retval_stack_index;
 	
+	variable* that;
+	
 	const module* code;
 
 	runtime_context(const module* code):
 		function_stack_bottom(0),
 		retval_stack_index(-1),
+		that(nullptr),
 		code(code){
 	}
 
@@ -54,18 +57,21 @@ private:
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
 	size_t _stack_size;
+	variable* _that;
 	runtime_context& _ctx;
 public:
 	stack_restorer(runtime_context& ctx):
 		_function_stack_bottom(ctx.function_stack_bottom),
 		_retval_stack_index(ctx.retval_stack_index),
 		_stack_size(ctx.stack.size()),
+		_that(ctx.that),
 		_ctx(ctx){
 	}
 	~stack_restorer(){
 		_ctx.stack.resize(_stack_size);
 		_ctx.retval_stack_index = _retval_stack_index;
 		_ctx.function_stack_bottom = _function_stack_bottom;
+		_ctx.that = _that;
 	}
 };
 

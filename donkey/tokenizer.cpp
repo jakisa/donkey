@@ -126,12 +126,12 @@ static std::string fetch_string(const char* begin, const char* end, const char*&
 	return "";
 }
 
-std::string tokenizer::unquoted() const{
+std::string tokenizer::unquoted_string(const std::string& token, int line_number){
 	std::string ret;
 	bool escape = false;
-	for(size_t i=1; i + 1 < _token.size(); ++i){
+	for(size_t i=1; i + 1 < token.size(); ++i){
 		if(escape){
-			switch(_token[i]){
+			switch(token[i]){
 				case '\\':
 					ret += '\\';
 					break;
@@ -146,32 +146,35 @@ std::string tokenizer::unquoted() const{
 					break;
 				case 'n':
 					ret += '\n';
+				case '0':
+					ret += '\0';
 					break;
 				default:
-					parse_error(get_line_number(), "unknown escape sequence");
+					parse_error(line_number, "unknown escape sequence");
 					break;
 			}
 			escape = false;
 		}else{
-			switch(_token[i]){
+			switch(token[i]){
 				case '\\':
 					escape = true;
 					break;
 				case '\t':
-					parse_error(get_line_number(), "tab character in string literal");
+					parse_error(line_number, "tab character in string literal");
 					break;
 				case '\r':
 				case '\n':
-					parse_error(get_line_number(), "newline in string literal");
+					parse_error(line_number, "newline in string literal");
 					break;
 				default:
-					ret += _token[i];
+					ret += token[i];
 					break;
 			}
 		}
 	}
 	return ret;
 }
+
 
 static std::string fetch_number(const char*, const char* end, const char*& current){
 	const char* old = current;
@@ -257,6 +260,9 @@ void tokenizer::_fetch_next_token(){
 			break;
 		case tt_word:
 			_token = fetch_word(_begin, _end, _current);
+			if(_token == "new"){
+				_tt = tt_operator;
+			}
 			break;
 		case tt_operator:
 			_token = fetch_operator(_begin, _end, _current);

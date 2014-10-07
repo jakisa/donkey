@@ -3,6 +3,7 @@
 
 #include "function.hpp"
 #include "native_converter.hpp"
+#include "donkey_callback.hpp"
 
 #include <tuple>
 #include <type_traits>
@@ -135,22 +136,22 @@ function create_native_function(R(*f)(Args...), D d){
 namespace detail{
 	template<class F, typename R, typename... Args>
 	function create_native_function(F f, R(F::*)(Args...)){
-		return native_method<R, Args...>(f);
+		return native_function<R, Args...>(std::forward<F>(f));
 	}
 	
 	template<class F, typename R, typename... Args>
 	function create_native_function(F f, R(F::*)(Args...) const){
-		return native_function<R, Args...>(f);
+		return native_function<R, Args...>(std::forward<F>(f));
 	}
 	
 	template<class D, class F, typename R, typename... Args>
 	function create_native_function(F f, D d, R(F::*)(Args...)){
-		return native_function<R, Args...>(f, d);
+		return native_function<R, Args...>(std::forward<F>(f), d);
 	}
 	
 	template<class D, class F, typename R, typename... Args>
 	function create_native_function(F f, D d, R(F::*)(Args...) const){
-		return native_function<R, Args...>(f, d);
+		return native_function<R, Args...>(std::forward<F>(f), d);
 	}
 }
 
@@ -177,22 +178,22 @@ method create_native_method(R(*f)(T, Args...), D d){
 namespace detail{
 	template<class F, typename R, typename T, typename... Args>
 	method create_native_method(F f, R(F::*)(T, Args...)){
-		return native_method<R, T, Args...>(f);
+		return native_method<R, T, Args...>(std::forward<F>(f));
 	}
 	
 	template<class F, typename R, typename T, typename... Args>
 	method create_native_method(F f, R(F::*)(T, Args...) const){
-		return native_method<R, T, Args...>(f);
+		return native_method<R, T, Args...>(std::forward<F>(f));
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
 	method create_native_method(F f, D d, R(F::*)(T, Args...)){
-		return native_method<R, T, Args...>(f, d);
+		return native_method<R, T, Args...>(std::forward<F>(f), d);
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
 	method create_native_method(F f, D d, R(F::*)(T, Args...) const){
-		return native_method<R, T, Args...>(f, d);
+		return native_method<R, T, Args...>(std::forward<F>(f), d);
 	}
 }
 
@@ -206,6 +207,21 @@ method create_native_method(F f, D d){
 	return detail::create_native_method(f, d, &F::operator());
 }
 
+
+namespace detail{
+	template<typename R, typename... Args>
+	struct param_converter<std::function<R(Args...)> >{
+		typedef std::function<R(Args...)> F;
+		
+		static F to_native(variable v, runtime_context& ctx){
+			return donkey_callback<R,Args...>(v, ctx);
+		}
+		
+		static function from_native(F f){
+			return donkey::create_native_function(f);
+		}
+	};
+}
 
 }//donkey
 
