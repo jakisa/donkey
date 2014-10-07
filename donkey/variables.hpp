@@ -140,7 +140,7 @@ inline constexpr size_t stack_var_union_size(){
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
 
-class variable{
+class variable final{
 private:
 	union{
 		number _n;
@@ -377,17 +377,11 @@ public:
 			_dt = orig._dt;
 			return *(_s_ptr) = std::move(orig);
 		}
-		orig._inc_counts();
-		_dec_counts();
 		
-		_ = orig._;
-		_dt = orig._dt;
-		_mt = orig._mt;
-		
-		orig._dec_counts();
-		
-		orig._dt = data_type::nothing;
-		orig._mt = mem_type::nothing;
+		char tmp[sizeof(variable)];
+		memcpy(tmp, this, sizeof(variable));
+		memcpy(this, &orig, sizeof(variable));
+		memcpy(&orig, tmp, sizeof(variable));
 		
 		return *this;
 	}

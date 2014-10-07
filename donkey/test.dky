@@ -8,4 +8,6 @@ class C{
 
 var a = new C();
 a.v = 2;
-a = a.f(3);
+a = (a.f(3) == 5 ? 7 : 8);
+
+a = "neki tekst".substr(3, 4);

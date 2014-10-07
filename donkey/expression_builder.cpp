@@ -298,6 +298,10 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 					}
 					part_ptr param =  create_expression_tree(parser, true, false);
 					
+					if(*parser == ","){
+						++parser;
+					}
+					
 					if(byref){
 						param = part_ptr(new expression_part{oper::ref, "", param, part_ptr()});
 					}
