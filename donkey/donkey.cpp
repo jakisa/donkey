@@ -526,6 +526,8 @@ private:
 		ADD_COMPILER("break", compile_break);
 		ADD_COMPILER("continue", compile_continue);
 		ADD_COMPILER("class", compile_class);
+		ADD_COMPILER("this", compile_expression_statement);
+		ADD_COMPILER("null", compile_expression_statement);
 	}
 
 #undef ADD_COMPILER

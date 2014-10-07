@@ -13,7 +13,7 @@ private:
 	std::vector<char> _byref;
 	expression_ptr _f;
 
-	virtual variable make_call(runtime_context& ctx){
+	variable make_call(runtime_context& ctx){
 		stack_restorer _(ctx);
 	
 		for(size_t i = 0; i < _params.size(); ++i){
@@ -61,6 +61,23 @@ private:
 	std::string _type_name;
 	std::vector<expression_ptr> _params;
 	std::vector<char> _byref;
+	
+	void init(variable& that, vtable* vt, runtime_context& ctx){
+		stack_restorer _(ctx);
+	
+		if(vt->has_method(_type_name)){
+			for(size_t i = 0; i < _params.size(); ++i){
+				if(_byref[i]){
+					ctx.push(std::static_pointer_cast<lvalue_expression>(_params[i])->as_lvalue(ctx).by_ref(ctx.stack));
+				}else{
+					ctx.push(_params[i]->as_param(ctx).by_val());
+				}
+			}
+			
+			vt->call_member(that, ctx, _params.size(), _type_name);
+		}
+	}
+	
 public:
 	constructor_call_expression(std::string type_name, std::vector<expression_ptr> params, std::vector<char> byref):
 		expression(string_to_type(type_name)),
@@ -70,7 +87,9 @@ public:
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		vtable* vt = get_vtable(ctx, _type_name);
-		return variable(_type_name, vt->get_fields_size(), vt);
+		variable ret(_type_name, vt->get_fields_size(), vt);
+		init(ret, vt, ctx);
+		return ret;
 	}
 	virtual number as_number(runtime_context& ctx) final override{
 		return as_param(ctx).as_number();

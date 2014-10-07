@@ -1,5 +1,6 @@
 #include "donkey_object.hpp"
 #include "variables.hpp"
+#include "vtable.hpp"
 
 #include <vector>
 

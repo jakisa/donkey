@@ -50,6 +50,10 @@ public:
 		return that.nth_field(it->second);
 	}
 	
+	bool has_method(const std::string& name) const{
+		return _methods.find(name) != _methods.end();
+	}
+	
 	size_t get_fields_size() const{
 		return _fields.size();
 	}
