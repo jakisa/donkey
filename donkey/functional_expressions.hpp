@@ -87,7 +87,7 @@ public:
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		vtable* vt = get_vtable(ctx, _type_name);
-		variable ret(_type_name, vt->get_fields_size(), vt);
+		variable ret(vt);
 		init(ret, vt, ctx);
 		return ret;
 	}

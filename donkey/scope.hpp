@@ -139,6 +139,10 @@ public:
 	virtual vtable* get_vtable(std::string name) const override{
 		return _parent ? _parent->get_vtable(name) : nullptr;
 	}
+	
+	virtual std::string get_current_class() const override{
+		return _parent ? _parent->get_current_class() : "";
+	}
 };
 
 class global_scope: public scope{
@@ -148,10 +152,12 @@ private:
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 public:
 	global_scope(){
-		add_vtable("string", create_string_vtable(), std::vector<std::string>());
-		add_vtable("number", create_number_vtable(), std::vector<std::string>());
-		add_vtable("null", create_null_vtable(), std::vector<std::string>());
-		add_vtable("function", create_function_vtable(), std::vector<std::string>());
+		vtable_ptr object_vt = create_object_vtable();
+		add_vtable("object", create_object_vtable());
+		add_vtable("string", create_string_vtable(*object_vt));
+		add_vtable("number", create_number_vtable(*object_vt));
+		add_vtable("null", create_null_vtable(*object_vt));
+		add_vtable("function", create_function_vtable(*object_vt));
 	}
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
@@ -215,12 +221,7 @@ public:
 		return _vtables.find(name) == _vtables.end() && scope::is_allowed(name);
 	}
 
-	bool add_vtable(std::string name, vtable_ptr vt, const std::vector<std::string>& bases){
-		
-		for(const std::string& base: bases){
-			get_vtable(base)->add_to_derived(*vt);
-		}		
-		
+	bool add_vtable(std::string name, vtable_ptr vt){
 		return _vtables.emplace(name, vt).second;
 	}
 	
@@ -234,44 +235,47 @@ public:
 	}
 };
 
+
 class class_scope: public scope{
 private:
-	std::unordered_map<std::string, method> _methods;
+	std::unordered_map<std::string, method_ptr> _methods;
 	std::unordered_map<std::string, size_t> _fields;
 	std::string _name;
-	size_t _fields_count;
+	size_t _fields_size;
+	
+	static variable variable_strong(variable& that, runtime_context&, size_t){
+		return that.non_weak();
+	}
+	
+	static variable variable_weak(variable& that, runtime_context&, size_t){
+		return that.non_shared();
+	}
 public:
 	class_scope(std::string name, scope* parent):
 		scope(parent, false, false, false, false, true),
 		_name(name),
-		_fields_count(0){
+		_fields_size(0){
+		
+		_methods.emplace("strong", method_ptr(new method(&class_scope::variable_strong)));
+		_methods.emplace("weak", method_ptr(new method(&class_scope::variable_weak)));
 	}
 	bool has_method(std::string name) const{
 		auto it = _methods.find(name);
 		return it != _methods.end() && !it->second;
 	}
 	
-	void define_method(std::string name, method&& m){
-		_methods[name] = std::move(m);
+	void define_method(std::string name, method_ptr m){
+		_methods[name] = m;
 	}
 	
 	bool add_field(std::string name){
 		if(_fields.find(name) == _fields.end()){
-			_fields[name] = _fields_count++;
+			_fields[name] = _fields_size++;
 			return true;
 		}
 		return false;
 	}
 	
-	std::string get_undefined_method() const{
-		for(const auto& p: _methods){
-			if(!p.second){
-				return p.first;
-			}
-		}
-		return "";
-	}
-
 	bool is_allowed_member(std::string name) const{
 		auto mit = _methods.find(name);
 		if(mit != _methods.end() && mit->second){
@@ -285,8 +289,12 @@ public:
 		return true;
 	}
 	
-	vtable_ptr get_vtable(){
-		return vtable_ptr(new vtable(std::move(_methods), std::move(_fields)));
+	vtable_ptr create_vtable(const std::vector<std::string>& bases){
+		vtable_ptr ret(new vtable(std::move(_name), std::move(_methods), std::move(_fields), _fields_size));
+		for(const std::string& base: bases){
+			ret->derive_from(*get_vtable(base));
+		}
+		return ret;
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
@@ -295,6 +303,10 @@ public:
 	
 	virtual bool has_class(std::string name) const override{
 		return name == _name || scope::has_class(name);
+	}
+	
+	virtual std::string get_current_class() const override{
+		return _name;
 	}
 };
 

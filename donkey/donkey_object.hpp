@@ -16,7 +16,7 @@ class donkey_object{
 private:
 	data* _data;
 public:
-	donkey_object(std::string type_name, size_t fields_size, vtable* vt);
+	donkey_object(vtable* vt);
 	vtable* get_vtable();
 	variable& get_field(size_t i);
 	const std::string& get_type_name() const;

@@ -31,8 +31,10 @@ const char* keywords[] = {
 	"new",
 	"null",
 	"number",
+	"object",
 	"ref",
 	"return",
+	"self",
 	"string",
 	"switch",
 	"this",
@@ -44,7 +46,7 @@ inline bool str_less(const char* l, const char* r){
 	return strcmp(l, r) < 0;
 }
 
-inline bool is_keyword(const std::string& name){
+bool is_keyword(const std::string& name){
 	return std::binary_search(keywords, keywords + sizeof(keywords)/sizeof(keywords[0]), name.c_str(), &str_less);
 }
 
@@ -88,10 +90,9 @@ private:
 		
 		std::string name = parse_allowed_name(target, parser);
 		
-		
 		class_scope ctarget(name, &target);
 		
-		std::vector<std::string> bases;
+		std::vector<std::string> bases(1, "object");
 		
 		if(*parser == ":"){
 			++parser;
@@ -100,6 +101,9 @@ private:
 					unexpected_error(parser.get_line_number(), *parser);
 				}
 				std::string base = *parser;
+				if(base == "number" || base == "string" || base == "function" || base == "null"){
+					semantic_error(parser.get_line_number(), "cannot inherit from " + name);
+				}
 				if(!target.has_class(base)){
 					semantic_error(parser.get_line_number(), "class " + base + " is undefined");
 				}
@@ -123,7 +127,7 @@ private:
 		
 		++parser;
 		
-		static_cast<global_scope&>(target).add_vtable(name, ctarget.get_vtable(), bases);
+		static_cast<global_scope&>(target).add_vtable(name, ctarget.create_vtable(bases));
 	}
 	
 	void compile_function_helper(std::string name, scope& target, tokenizer& parser,
@@ -201,7 +205,7 @@ private:
 	}
 	
 	static void define_method(class_scope& target, std::string name, scope& function_scope, size_t params_size){
-		target.define_method(name, donkey_method(params_size, function_scope.get_block()));
+		target.define_method(name, method_ptr(new method(donkey_method(params_size, function_scope.get_block()))));
 	}
 
 	void compile_function(scope& target, tokenizer& parser){
@@ -548,6 +552,8 @@ private:
 		ADD_COMPILER("class", compile_class);
 		ADD_COMPILER("this", compile_expression_statement);
 		ADD_COMPILER("null", compile_expression_statement);
+		ADD_COMPILER("self", compile_expression_statement);
+		ADD_COMPILER("new", compile_expression_statement);
 	}
 
 #undef ADD_COMPILER
@@ -601,7 +607,9 @@ public:
 			
 			it->second->load(ctx);
 			
-			printf("%s\n", ctx.stack[0].to_string().c_str());
+			variable that = ctx.stack[0];
+			
+			printf("%s\n", get_vtable(ctx, ctx.stack[0])->call_member(that, ctx, 0, "toString").to_string().c_str());
 			
 			return true;
 //		}catch(const exception&){

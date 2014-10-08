@@ -166,44 +166,44 @@ function create_native_function(F f, D d){
 }
 
 template<typename R, typename T, typename... Args>
-method create_native_method(R(*f)(T, Args...)){
-	return native_method<R, T, Args...>(f);
+method_ptr create_native_method(R(*f)(T, Args...)){
+	return method_ptr(new method(native_method<R, T, Args...>(f)));
 }
 
 template<class D, typename R, typename T, typename... Args>
-method create_native_method(R(*f)(T, Args...), D d){
-	return native_method<R, T, Args...>(f, d);
+method_ptr create_native_method(R(*f)(T, Args...), D d){
+	return method_ptr(new method(native_method<R, T, Args...>(f, d)));
 }
 
 namespace detail{
 	template<class F, typename R, typename T, typename... Args>
-	method create_native_method(F f, R(F::*)(T, Args...)){
-		return native_method<R, T, Args...>(std::forward<F>(f));
+	method_ptr create_native_method(F f, R(F::*)(T, Args...)){
+		return method_ptr(new method(native_method<R, T, Args...>(std::forward<F>(f))));
 	}
 	
 	template<class F, typename R, typename T, typename... Args>
-	method create_native_method(F f, R(F::*)(T, Args...) const){
-		return native_method<R, T, Args...>(std::forward<F>(f));
+	method_ptr create_native_method(F f, R(F::*)(T, Args...) const){
+		return method_ptr(new method(native_method<R, T, Args...>(std::forward<F>(f))));
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
-	method create_native_method(F f, D d, R(F::*)(T, Args...)){
-		return native_method<R, T, Args...>(std::forward<F>(f), d);
+	method_ptr create_native_method(F f, D d, R(F::*)(T, Args...)){
+		return method_ptr(new method(native_method<R, T, Args...>(std::forward<F>(f), d)));
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
-	method create_native_method(F f, D d, R(F::*)(T, Args...) const){
-		return native_method<R, T, Args...>(std::forward<F>(f), d);
+	method_ptr create_native_method(F f, D d, R(F::*)(T, Args...) const){
+		return method_ptr(new method(native_method<R, T, Args...>(std::forward<F>(f), d)));
 	}
 }
 
 template<class F>
-method create_native_method(F f){
+method_ptr create_native_method(F f){
 	return detail::create_native_method(f, &F::operator());
 }
 
 template<class F, class D>
-method create_native_method(F f, D d){
+method_ptr create_native_method(F f, D d){
 	return detail::create_native_method(f, d, &F::operator());
 }
 

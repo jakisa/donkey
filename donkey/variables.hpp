@@ -294,8 +294,8 @@ public:
 		_mt = mem_type::shared_pointer;
 	}
 	
-	explicit variable(std::string type_name, size_t fields_size, vtable* vt){
-		donkey_object* p = new donkey_object(type_name, fields_size, vt);
+	explicit variable(vtable* vt){
+		donkey_object* p = new donkey_object(vt);
 		if(!p){
 			runtime_error("out of memory");
 		}
@@ -378,6 +378,7 @@ public:
 			return *(_s_ptr) = std::move(orig);
 		}
 		
+		
 		char tmp[sizeof(variable)];
 		memcpy(tmp, this, sizeof(variable));
 		memcpy(this, &orig, sizeof(variable));
@@ -387,6 +388,9 @@ public:
 	}
 	
 	variable non_shared() const{
+		if(_mt == mem_type::stack_pointer){
+			return _s_ptr->non_shared();
+		}
 		if(_mt == mem_type::shared_pointer){
 			variable ret;
 			ret._mt = mem_type::weak_pointer;
@@ -398,6 +402,9 @@ public:
 	}
 	
 	variable non_weak() const{
+		if(_mt == mem_type::stack_pointer){
+			return _s_ptr->non_weak();
+		}
 		if(_mt == mem_type::weak_pointer){
 			if(_h_ptr->_s_count == 0){
 				return variable();

@@ -9,18 +9,16 @@ namespace donkey{
 
 struct donkey_object::data{
 	std::vector<variable> fields;
-	std::string type_name;
 	vtable* vt;
 	
-	data(std::string type_name, size_t fields_size, vtable* vt):
-		fields(fields_size),
-		type_name(type_name),
+	data(vtable* vt):
+		fields(vt->get_fields_size()),
 		vt(vt){
 	}
 };
 
-donkey_object::donkey_object(std::string type_name, size_t fields_size, vtable* vt):
-	_data(new data(type_name, fields_size, vt)){
+donkey_object::donkey_object(vtable* vt):
+	_data(new data(vt)){
 	if(!_data){
 		runtime_error("out of memory");
 	}
@@ -35,7 +33,7 @@ variable& donkey_object::get_field(size_t i){
 }
 
 const std::string& donkey_object::get_type_name() const{
-	return _data->type_name;
+	return _data->vt->get_name();
 }
 
 std::string donkey_object::to_string() const{

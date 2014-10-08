@@ -4,9 +4,9 @@ CONFIG -= app_bundle
 CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11
 
-QMAKE_CXXFLAGS_DEBUG += -pg
+#QMAKE_CXXFLAGS_RELEASE += -g
 
-QMAKE_LFLAGS_DEBUG += -pg
+#QMAKE_LFLAGS_RELEASE += -g
 
 SOURCES += main.cpp \
     tokenizer.cpp \
@@ -35,7 +35,6 @@ HEADERS += \
     logical_expressions.hpp \
     relation_expressions.hpp \
     ternary_expressions.hpp \
-    sequentional_expressions.hpp \
     assignment_expressions.hpp \
     functional_expressions.hpp \
     scope.hpp \
@@ -48,7 +47,8 @@ HEADERS += \
     config.hpp \
     native_converter.hpp \
     donkey_callback.hpp \
-    donkey_object.hpp
+    donkey_object.hpp \
+    sequential_expressions.hpp
 
 OTHER_FILES += \
     examples.txt \

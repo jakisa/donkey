@@ -24,44 +24,67 @@ static variable variable_to_string(variable& that, runtime_context&, size_t){
 	return variable(that.to_string());
 }
 
-vtable_ptr create_string_vtable(){
-	std::unordered_map<std::string, method> methods;
+static variable variable_strong(variable& that, runtime_context&, size_t){
+	return that.non_weak();
+}
+
+static variable variable_weak(variable& that, runtime_context&, size_t){
+	return that.non_shared();
+}
+
+vtable_ptr create_object_vtable(){
+	std::unordered_map<std::string, method_ptr> methods;
+	std::unordered_map<std::string, size_t> fields;
+	
+	methods.emplace("toString", method_ptr(new method(&variable_to_string)));
+	
+	methods.emplace("strong", method_ptr(new method(&variable_strong)));
+	
+	methods.emplace("weak", method_ptr(new method(&variable_weak)));
+	
+	return vtable_ptr(new vtable("object", std::move(methods), std::move(fields), 0));
+}
+
+vtable_ptr create_string_vtable(const vtable& base){
+	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
 	methods.emplace("length", create_native_method(&string_length));
 	
 	methods.emplace("substr", create_native_method(&string_substr, std::make_tuple(0, integer(std::string::npos))));
 	
-	methods.emplace("toString", &string_to_string);
-		
-	return vtable_ptr(new vtable(std::move(methods), std::move(fields)));
+	methods.emplace("toString", method_ptr(new method(&string_to_string)));
+	
+	vtable_ptr ret(new vtable("string", std::move(methods), std::move(fields), 0));
+	ret->derive_from(base);
+	return ret;
 }
 
-vtable_ptr create_number_vtable(){
-	std::unordered_map<std::string, method> methods;
+vtable_ptr create_number_vtable(const vtable& base){
+	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	methods.emplace("toString", &variable_to_string);
-	
-	return vtable_ptr(new vtable(std::move(methods), std::move(fields)));
+	vtable_ptr ret(new vtable("number", std::move(methods), std::move(fields), 0));
+	ret->derive_from(base);
+	return ret;
 }
 
-vtable_ptr create_function_vtable(){
-	std::unordered_map<std::string, method> methods;
+vtable_ptr create_function_vtable(const vtable& base){
+	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	methods.emplace("toString", &variable_to_string);
-	
-	return vtable_ptr(new vtable(std::move(methods), std::move(fields)));
+	vtable_ptr ret(new vtable("function", std::move(methods), std::move(fields), 0));
+	ret->derive_from(base);
+	return ret;
 }
 
-vtable_ptr create_null_vtable(){
-	std::unordered_map<std::string, method> methods;
+vtable_ptr create_null_vtable(const vtable& base){
+	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	methods.emplace("toString", &variable_to_string);
-	
-	return vtable_ptr(new vtable(std::move(methods), std::move(fields)));
+	vtable_ptr ret(new vtable("null", std::move(methods), std::move(fields), 0));
+	ret->derive_from(base);
+	return ret;
 }
 
 }//donkey

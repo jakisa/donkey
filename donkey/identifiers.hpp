@@ -121,6 +121,8 @@ public:
 	
 	virtual bool in_class() const = 0;
 	
+	virtual std::string get_current_class() const = 0;
+	
 	virtual bool has_class(std::string name) const = 0;
 	
 	virtual vtable* get_vtable(std::string name) const = 0;

@@ -23,7 +23,8 @@ enum class precedence{
 	additive               =  9,
 	multiplicative         = 10,
 	unary_prefix           = 11,
-	biggest                = 12,
+	post_dot_call          = 12,
+	scope                  = 13,
 };
 
 enum class operator_type{
@@ -58,7 +59,7 @@ inline operator_type get_operator_type(oper op){
 			}
 		case precedence::conditional_expression:
 			return operator_type::ternary;
-		case precedence::biggest:
+		case precedence::post_dot_call:
 			switch(op){
 				case oper::post_dec:
 				case oper::post_inc:
@@ -137,6 +138,7 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{"/", oper::div},
 	{"/=", oper::div_assignment},
 	{":", oper::conditional_colon},
+	{"::", oper::scope},
 	{"<", oper::less},
 	{"<<", oper::shiftl},
 	{"<<=", oper::shiftl_assignment},
@@ -440,6 +442,27 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 	}
 }
 
+bool is_keyword(const std::string& name); //donkey.cpp
+
+static std::pair<std::string, std::string> get_member_name(part_ptr tree, const identifier_lookup& lookup, bool self, int line_number){
+	std::string classname;
+	if(self){
+		classname = lookup.get_current_class();
+	}else if(tree->op == oper::scope){
+		if(!lookup.has_class(tree->first_child->str)){
+			semantic_error(line_number, "unknown class name");
+		}
+		classname = tree->first_child->str;
+		tree = tree->first_child->next_sibling;
+	}
+	
+	std::string membername = tree->str;
+	if(membername.empty() || membername[0] == '"' || isdigit(membername[0]) || is_keyword(membername)){
+		semantic_error(line_number, "invalid member name");
+	}
+	return std::pair<std::string, std::string>(classname, membername);
+}
+
 static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup, int line_number){
 	if(!tree){
 		return expression_ptr();
@@ -464,25 +487,40 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 					semantic_error(line_number, "cannot construct " + f->str);
 				}
 				
+				std::string name = static_cast<class_identifier&>(*classname).get_name();
+				
+				if(name == "object" || name == "number" || name == "string" || name == "function" || name == "null"){
+					semantic_error(line_number, "cannot construct " + name);
+				}
+				
+				
 				std::vector<expression_ptr> params;
 				std::vector<char> byref;
 				
 				fetch_params(f, lookup, params, byref, line_number);
 				
-				return build_constructor_call_expression(f->str, params, byref);
+				return build_constructor_call_expression(name, params, byref);
 			}
 			break;
 		case oper::dot:
 			{
-				expression_ptr that = tree_to_expression(tree->first_child, lookup, line_number);
-				
-				part_ptr member = tree->first_child->next_sibling;
-				
-				if(member->op != oper::none || member->str.front() == '"' || isdigit(member->str.front())){
-					syntax_error(line_number, "member name expected right from dot");
+				expression_ptr that;
+				bool self = false;
+				if(tree->first_child->str == "self"){
+					self = true;
+					that = build_this_expression();
+				}else{
+					that = tree_to_expression(tree->first_child, lookup, line_number);
 				}
 				
-				return build_member_expression(that, member->str);
+				std::pair<std::string, std::string> member = get_member_name(tree->first_child->next_sibling, lookup, self, line_number);
+				
+				if(member.first.empty()){
+					return build_member_expression(that, member.second);
+				}else{
+					return build_full_member_expression(that, member.first, member.second);
+				}
+				
 			}
 		case oper::call:
 			{

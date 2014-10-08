@@ -165,6 +165,45 @@ public:
 	}
 };
 
+class full_member_expression final: public lvalue_expression{
+private:
+	std::string _type;
+	std::string _member;
+	expression_ptr _that;
+public:
+	full_member_expression(expression_ptr that, std::string type, std::string member):
+		_type(type),
+		_member(member),
+		_that(that){
+	}
+	
+	virtual variable& as_lvalue(runtime_context& ctx) override{
+		variable that = _that->as_param(ctx);
+		return get_vtable(ctx, that)->get_field(that, _type, _member);
+	}
+	
+	virtual variable call(runtime_context &ctx, size_t params_size) override{
+		variable that = _that->as_param(ctx);
+		return get_vtable(ctx, that)->call_member(that, ctx, params_size, _type, _member);
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		as_param(ctx);
+	}
+	
+	virtual number as_number(runtime_context& ctx) override{
+		return as_lvalue(ctx).as_number();
+	}
+	
+	virtual std::string as_string(runtime_context& ctx) override{
+		return as_lvalue(ctx).to_string();
+	}
+	
+	virtual variable as_param(runtime_context& ctx) override{
+		return as_lvalue(ctx);
+	}
+};
+
 }//donkey
 
 #endif /*__core_expressions_hpp__*/

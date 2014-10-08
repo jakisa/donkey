@@ -154,6 +154,7 @@ enum class oper{
 	post_inc             = 241,
 	dot                  = 242,
 	call                 = 243,
+	scope                = 260,
 };
 
 
@@ -178,6 +179,8 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, int line_number);
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member);
+
+expression_ptr build_full_member_expression(expression_ptr that, const std::string& type, const std::string& member);
 
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
 

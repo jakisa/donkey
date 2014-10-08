@@ -6,7 +6,7 @@
 #include "relation_expressions.hpp"
 #include "logical_expressions.hpp"
 #include "assignment_expressions.hpp"
-#include "sequentional_expressions.hpp"
+#include "sequential_expressions.hpp"
 #include "ternary_expressions.hpp"
 #include "functional_expressions.hpp"
 #include "identifiers.hpp"
@@ -192,6 +192,10 @@ expression_ptr build_global_variable_expression(size_t idx){
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member){
 	return expression_ptr(new member_expression(that, member));
+}
+
+expression_ptr build_full_member_expression(expression_ptr that, const std::string& type, const std::string& member){
+	return expression_ptr(new full_member_expression(that, type, member));
 }
 
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref){

@@ -1,25 +1,39 @@
 class C{
-    var v;
-    function f(x){
-	return x + this.v;
+    var x;
+    var y;
+    function init_c(){
+	self.x = 1;
+	self.y = 2;
+	this.x = 3;
+	this.z = 4;
     }
-    
-    function C(x){
-	this.v = x;
+    function f(){
+	return self.y;
     }
 }
 
 class D: C{
-    var k;
+    var x;
+    var z;
+    
+}
+
+class E: C{
+}
+
+class F: D, E{
 }
 
 
-var a = new C(9);
-//a.v = 2;
-a = a.f(3);
+var out;
 
-var b = new D();
+var b = new F();
 
-b.k = "aaa";
+b.init_c();
 
-b.v = 42;
+b.x = 101;
+b.z = 102;
+
+b.D::y = 300;
+
+out = b.f();
