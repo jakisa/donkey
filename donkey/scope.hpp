@@ -264,8 +264,12 @@ public:
 		return it != _methods.end() && !it->second;
 	}
 	
-	void define_method(std::string name, method_ptr m){
-		_methods[name] = m;
+	void declare_method(std::string name){
+		_methods[name].reset(new method());
+	}
+	
+	void define_method(std::string name, method m){
+		*(_methods[name]) = m;
 	}
 	
 	bool add_field(std::string name){
@@ -289,8 +293,11 @@ public:
 		return true;
 	}
 	
-	vtable_ptr create_vtable(const std::vector<std::string>& bases){
-		vtable_ptr ret(new vtable(std::move(_name), std::move(_methods), std::move(_fields), _fields_size));
+	vtable_ptr create_vtable(const std::vector<std::string>& bases) const{
+		auto name = _name;
+		auto methods = _methods;
+		auto fields = _fields;
+		vtable_ptr ret(new vtable(std::move(name), std::move(methods), std::move(fields), _fields_size));
 		for(const std::string& base: bases){
 			ret->derive_from(*get_vtable(base));
 		}

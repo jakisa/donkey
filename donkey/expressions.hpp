@@ -180,7 +180,8 @@ expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_p
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member);
 
-expression_ptr build_full_member_expression(expression_ptr that, const std::string& type, const std::string& member);
+expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx);
+expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m);
 
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
 

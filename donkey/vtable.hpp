@@ -50,34 +50,32 @@ public:
 		return (*it->second)(that, ctx, params_size);
 	}
 	
-	variable& get_field(variable& that, const std::string& name, size_t offset = 0) const{
+	variable& get_field(variable& that, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){
 			runtime_error("field " + name + " is not defined for " + _name);
 		}
-		return that.nth_field(offset + it->second);
+		return that.nth_field(it->second);
 	}
 	
-	variable call_member(variable& that, runtime_context& ctx, size_t params_size, const std::string& type, const std::string& member) const{
-		if(type == _name){
-			return call_member(that, ctx, params_size, member);
+	variable call_method(variable& that, runtime_context& ctx, size_t params_size, const std::string& type, method& m){
+		if(_name != type && _bases.find(type) == _bases.end()){
+			runtime_error(_name + " is not derived from " + type);
 		}
-		const auto& it = _bases.find(type);
+		
+		return m(that, ctx, params_size);
+	}
+	
+	variable& get_field(variable& that, const std::string& type, size_t idx){
+		if(type == _name){
+			return that.nth_field(idx);
+		}
+		auto it = _bases.find(type);
 		if(it == _bases.end()){
 			runtime_error(_name + " is not derived from " + type);
 		}
-		return it->second.vt->call_member(that, ctx, params_size, member);
-	}
-	
-	variable& get_field(variable& that, const std::string& type, const std::string& member){
-		if(type == _name){
-			return get_field(that, member);
-		}
-		const auto& it = _bases.find(type);
-		if(it == _bases.end()){
-			runtime_error(_name + " is not derived from " + type);
-		}
-		return it->second.vt->get_field(that, member, it->second.data_begin);
+		
+		return that.nth_field(it->second.data_begin + idx);
 	}
 	
 	bool has_member(const std::string& name) const{
@@ -90,6 +88,14 @@ public:
 	
 	bool has_field(const std::string& name) const{
 		return _fields.find(name) != _fields.end();
+	}
+	
+	method_ptr get_method(const std::string& name) const{
+		return _methods.find(name)->second;
+	}
+	
+	size_t get_field_index(const std::string& name) const{
+		return _fields.find(name)->second;
 	}
 	
 	size_t get_fields_size() const{

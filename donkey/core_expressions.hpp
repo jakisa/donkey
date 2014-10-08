@@ -165,45 +165,56 @@ public:
 	}
 };
 
-class full_member_expression final: public lvalue_expression{
+class field_expression final: public lvalue_expression{
 private:
-	std::string _type;
-	std::string _member;
 	expression_ptr _that;
+	std::string _type;
+	int _idx;
 public:
-	full_member_expression(expression_ptr that, std::string type, std::string member):
+	field_expression(expression_ptr that, std::string type, int idx):
+		_that(that),
 		_type(type),
-		_member(member),
-		_that(that){
+		_idx(idx){
 	}
-	
+
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->get_field(that, _type, _member);
+		return get_vtable(ctx, that)->get_field(that, _type, _idx);
 	}
-	
-	virtual variable call(runtime_context &ctx, size_t params_size) override{
-		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->call_member(that, ctx, params_size, _type, _member);
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_param(ctx);
-	}
-	
-	virtual number as_number(runtime_context& ctx) override{
-		return as_lvalue(ctx).as_number();
-	}
-	
-	virtual std::string as_string(runtime_context& ctx) override{
-		return as_lvalue(ctx).to_string();
-	}
-	
-	virtual variable as_param(runtime_context& ctx) override{
-		return as_lvalue(ctx);
+
+	virtual void as_void(runtime_context&) override{
 	}
 };
 
+class method_expression final: public expression{
+private:
+	expression_ptr _that;
+	std::string _type;
+	method& _m;
+public:
+	method_expression(expression_ptr that, const std::string& type, method& m):
+		expression(expression_type::function),
+		_that(that),
+		_type(type),
+		_m(m){
+	}
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		variable that = _that->as_param(ctx);
+		return get_vtable(ctx, that)->call_method(that, ctx, params_size, _type, _m);
+	}
+	virtual std::string as_string(runtime_context&) override{
+		runtime_error("methods cannot be used as objects");
+		return "";
+	}
+	virtual variable as_param(runtime_context&) override{
+		runtime_error("methods cannot be used as objects");
+		return variable();
+	}
+
+	virtual void as_void(runtime_context&) override{
+		runtime_error("methods cannot be used as objects");
+	}
+};
 }//donkey
 
 #endif /*__core_expressions_hpp__*/

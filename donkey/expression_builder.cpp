@@ -450,7 +450,7 @@ static std::pair<std::string, std::string> get_member_name(part_ptr tree, const 
 		classname = lookup.get_current_class();
 	}else if(tree->op == oper::scope){
 		if(!lookup.has_class(tree->first_child->str)){
-			semantic_error(line_number, "unknown class name");
+			semantic_error(line_number, "unknown class name " + tree->first_child->str);
 		}
 		classname = tree->first_child->str;
 		tree = tree->first_child->next_sibling;
@@ -507,6 +507,9 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				expression_ptr that;
 				bool self = false;
 				if(tree->first_child->str == "self"){
+					if(!lookup.in_class()){
+						semantic_error(line_number, "self is only allowed inside class");
+					}
 					self = true;
 					that = build_this_expression();
 				}else{
@@ -518,7 +521,18 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				if(member.first.empty()){
 					return build_member_expression(that, member.second);
 				}else{
-					return build_full_member_expression(that, member.first, member.second);
+					vtable* vt = lookup.get_vtable(member.first);
+					
+					if(vt->has_method(member.second)){
+						return build_method_expression(that, member.first, *(vt->get_method(member.second)));
+					}
+					if(vt->has_field(member.second)){
+						return build_field_expression(that, member.first, vt->get_field_index(member.second));
+					}
+					
+					semantic_error(line_number, "class " + member.first + " doesn't have field " + member.second);
+					
+					return expression_ptr();
 				}
 				
 			}

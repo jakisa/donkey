@@ -194,8 +194,12 @@ expression_ptr build_member_expression(expression_ptr that, const std::string& m
 	return expression_ptr(new member_expression(that, member));
 }
 
-expression_ptr build_full_member_expression(expression_ptr that, const std::string& type, const std::string& member){
-	return expression_ptr(new full_member_expression(that, type, member));
+expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx){
+	return expression_ptr(new field_expression(that, type, idx));
+}
+
+expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m){
+	return expression_ptr(new method_expression(that, type, m));
 }
 
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref){

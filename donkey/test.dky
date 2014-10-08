@@ -8,21 +8,26 @@ class C{
 	this.z = 4;
     }
     function f(){
-	return self.y;
+	return this.y;
     }
 }
 
 class D: C{
     var x;
     var z;
-    
 }
 
 class E: C{
+    function g(){
+	this.w = 17;
+    }
 }
 
+
 class F: D, E{
+    var w;
 }
+
 
 
 var out;
@@ -31,9 +36,9 @@ var b = new F();
 
 b.init_c();
 
-b.x = 101;
-b.z = 102;
+b.y = 300;
 
-b.D::y = 300;
+b.g();
+
 
 out = b.f();

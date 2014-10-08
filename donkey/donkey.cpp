@@ -81,6 +81,36 @@ private:
 		return parse_allowed_name(parser);
 	}
 	
+	void compile_method_stub(class_scope& target, tokenizer& parser){
+		++parser;
+		if(!target.is_allowed_member(*parser)){
+			semantic_error(parser.get_line_number(), *parser + " is already defined");
+		}
+		std::string name = parse_allowed_name(parser);
+		
+		target.declare_method(name);
+		
+		parse("(", parser);
+		
+		for(int nesting = 1; parser && nesting; ++parser){
+			if(*parser == "("){
+				++nesting;
+			}else if(*parser == ")"){
+				--nesting;
+			}
+		}
+		
+		parse("{", parser);
+		
+		for(int nesting = 1; parser && nesting; ++parser){
+			if(*parser == "{"){
+				++nesting;
+			}else if(*parser == "}"){
+				--nesting;
+			}
+		}
+	}
+	
 	void compile_class(scope& target, tokenizer& parser){
 		if(!target.is_global()){
 			syntax_error(parser.get_line_number(), "local classes are not supported");
@@ -117,17 +147,25 @@ private:
 		
 		parse("{", parser);
 		
+		for(tokenizer stub_parser = parser; *stub_parser != "}";){
+			if(*stub_parser == "var"){
+				compile_field(ctarget, stub_parser);
+			}else if(*stub_parser == "function"){
+				compile_method_stub(ctarget, stub_parser);
+			}
+		}
+		
+		static_cast<global_scope&>(target).add_vtable(name, ctarget.create_vtable(bases));
+		
 		while(*parser != "}"){
 			if(*parser == "var"){
-				compile_field(ctarget, parser);
+				skip_field(ctarget, parser);
 			}else if(*parser == "function"){
 				compile_function(ctarget, parser);
 			}
 		}
 		
 		++parser;
-		
-		static_cast<global_scope&>(target).add_vtable(name, ctarget.create_vtable(bases));
 	}
 	
 	void compile_function_helper(std::string name, scope& target, tokenizer& parser,
@@ -205,7 +243,7 @@ private:
 	}
 	
 	static void define_method(class_scope& target, std::string name, scope& function_scope, size_t params_size){
-		target.define_method(name, method_ptr(new method(donkey_method(params_size, function_scope.get_block()))));
+		target.define_method(name, donkey_method(params_size, function_scope.get_block()));
 	}
 
 	void compile_function(scope& target, tokenizer& parser){
@@ -225,9 +263,6 @@ private:
 			class_scope& ctarget = static_cast<class_scope&>(target);
 			
 			++parser;
-			if(!ctarget.is_allowed_member(*parser)){
-				semantic_error(parser.get_line_number(), *parser + " is already defined");
-			}
 			std::string name = parse_allowed_name(parser);
 			
 			compile_function_helper(name, target, parser,
@@ -250,6 +285,18 @@ private:
 				semantic_error(parser.get_line_number(), *parser + " is already defined");
 			}
 			target.add_field(name);
+			if(*parser == ","){
+				++parser;
+			}
+		}
+		++parser;
+	}
+	
+	void skip_field(class_scope&, tokenizer& parser){
+		++parser;
+		
+		while(parser && *parser != ";"){
+			++parser; //name;
 			if(*parser == ","){
 				++parser;
 			}
