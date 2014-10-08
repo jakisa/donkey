@@ -6,6 +6,7 @@
 #include "expression_builder.hpp"
 
 #include <algorithm>
+#include <unordered_set>
 
 namespace donkey{
 
@@ -111,6 +112,39 @@ private:
 		}
 	}
 	
+	const vtable* add_table(std::unordered_set<const vtable*>& tables, const vtable* table){
+		if(tables.find(table) != tables.end()){
+			return table->get_fields_size() ? table : nullptr;
+		}
+		tables.insert(table);
+		
+		std::vector<const vtable*> bases = table->get_bases();
+		
+		for(const vtable* base: bases){
+			if(tables.find(base) != tables.end()){
+				if(base->get_fields_size()){
+					return base;
+				}
+			}else{
+				tables.insert(base);
+			}
+		}
+		
+		return nullptr;
+	}
+	
+	std::string check_diamond(const std::vector<std::string>& bases, const global_scope& scope){
+		std::unordered_set<const vtable*> tables;
+		
+		for(const std::string& base: bases){
+			const vtable* ret = add_table(tables, scope.get_vtable(base));
+			if(ret){
+				return ret->get_name();
+			}
+		}
+		return "";
+	}
+	
 	void compile_class(scope& target, tokenizer& parser){
 		if(!target.is_global()){
 			syntax_error(parser.get_line_number(), "local classes are not supported");
@@ -145,6 +179,14 @@ private:
 			}while(*parser != "{");
 		}
 		
+		global_scope& gtarget = static_cast<global_scope&>(target);
+		
+		std::string diamond_base = check_diamond(bases, gtarget);
+		
+		if(!diamond_base.empty()){
+			semantic_error(parser.get_line_number(), "non-empty diamond base " + diamond_base + " detected for class " + name);
+		}
+		
 		parse("{", parser);
 		
 		for(tokenizer stub_parser = parser; *stub_parser != "}";){
@@ -155,7 +197,7 @@ private:
 			}
 		}
 		
-		static_cast<global_scope&>(target).add_vtable(name, ctarget.create_vtable(bases));
+		gtarget.add_vtable(name, ctarget.create_vtable(bases));
 		
 		while(*parser != "}"){
 			if(*parser == "var"){

@@ -17,7 +17,7 @@ class D: C{
     var z;
 }
 
-class E: C{
+class E{
     function g(){
 	this.w = 17;
     }
@@ -32,7 +32,7 @@ class F: D, E{
 
 var out;
 
-var b = new F();
+var b = (new F()).strong();
 
 b.init_c();
 

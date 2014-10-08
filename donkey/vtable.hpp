@@ -142,6 +142,14 @@ public:
 	const std::string& get_name() const{
 		return _name;
 	}
+	
+	std::vector<const vtable*> get_bases() const{
+		std::vector<const vtable*> ret;
+		for(const auto& p: _bases){
+			ret.push_back(p.second.vt);
+		}
+		return ret;
+	}
 };
 
 typedef std::shared_ptr<vtable> vtable_ptr;
