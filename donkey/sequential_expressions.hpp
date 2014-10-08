@@ -1,5 +1,5 @@
-#ifndef __sequentional_expressions_hpp__
-#define __sequentional_expressions_hpp__
+#ifndef __sequential_expressions_hpp__
+#define __sequential_expressions_hpp__
 
 #include "expressions.hpp"
 
@@ -40,4 +40,4 @@ public:
 
 }//donkey
 
-#endif /*__sequentional_expressions_hpp__*/
+#endif /*__sequential_expressions_hpp__*/
