@@ -26,23 +26,11 @@ public:
 		_body(std::move(body)){
 	}
 	variable operator()(runtime_context& ctx, size_t params_count) const{
-		for(; params_count > _params_count; --params_count){
-			ctx.pop();
-		}
-		for(; params_count < _params_count; ++params_count){
-			ctx.push(variable());
-		}
-		
-		ctx.function_stack_bottom = ctx.stack.size() - _params_count;
-		ctx.retval_stack_index = ctx.stack.size();
-		
-		ctx.push(variable());
+		function_stack_manipulator _(ctx, _params_count, params_count);
 		
 		_body(ctx);
 		
-		variable ret = ctx.top();
-		ctx.pop();
-		return ret;
+		return ctx.top();
 	}
 };
 
@@ -67,24 +55,11 @@ public:
 		_body(std::move(body)){
 	}
 	variable operator()(variable& that, runtime_context& ctx, size_t params_count) const{
-		for(; params_count > _params_count; --params_count){
-			ctx.pop();
-		}
-		for(; params_count < _params_count; ++params_count){
-			ctx.push(variable());
-		}
-		
-		ctx.function_stack_bottom = ctx.stack.size() - _params_count;
-		ctx.retval_stack_index = ctx.stack.size();
-		ctx.that = &that;
-		
-		ctx.push(variable());
+		function_stack_manipulator _(ctx, _params_count, params_count, &that);
 		
 		_body(ctx);
 		
-		variable ret = ctx.top();
-		ctx.pop();
-		return ret;
+		return ctx.top();
 	}
 };
 

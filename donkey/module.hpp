@@ -23,9 +23,11 @@ public:
 		_globals_count(globals_count){
 	}
 	void load(runtime_context& ctx){
-		ctx.stack = std::vector<variable>(_globals_count);
-		ctx.function_stack_bottom = ctx.stack.size();
 		_s(ctx);
+	}
+	
+	size_t get_globals_count() const{
+		return _globals_count;
 	}
 	
 	variable call_function_by_address(code_address address, runtime_context& ctx, size_t prms) const{

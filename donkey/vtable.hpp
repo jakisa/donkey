@@ -26,6 +26,8 @@ private:
 	std::unordered_map<std::string, size_t> _fields;
 	size_t _fields_size;
 	
+
+	
 	variable call_field(variable that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){

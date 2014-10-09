@@ -197,6 +197,11 @@ private:
 			}
 		}
 		
+		/*
+		if(!ctarget.has_method(name)){
+			ctarget.declare_method(name); 
+		}*/
+		
 		gtarget.add_vtable(name, ctarget.create_vtable(bases));
 		
 		while(*parser != "}"){
@@ -542,7 +547,9 @@ private:
 				dflt = s.get_number_of_statements();
 				has_dflt = true;
 			}
-			compile_statement(s, parser);
+			if(*parser != "case" && *parser != "default"){
+				compile_statement(s, parser);
+			}			
 		}
 		syntax_error(parser.get_line_number(), "'}' expected");
 	}
@@ -692,13 +699,13 @@ public:
 				return false;
 			}
 			
-			runtime_context ctx(it->second.get());
+			runtime_context ctx(it->second.get(), it->second->get_globals_count());
 			
 			it->second->load(ctx);
 			
-			variable that = ctx.stack[0];
+			variable that = ctx.global(0);
 			
-			printf("%s\n", get_vtable(ctx, ctx.stack[0])->call_member(that, ctx, 0, "toString").to_string().c_str());
+			printf("%s\n", get_vtable(ctx, that)->call_member(that, ctx, 0, "toString").to_string().c_str());
 			
 			return true;
 //		}catch(const exception&){

@@ -6,7 +6,7 @@
 
 namespace donkey{
 
-struct runtime_context;
+class runtime_context;
 class variable;
 
 typedef std::function<variable(runtime_context&, size_t)> function;

@@ -33,14 +33,14 @@ namespace detail{
 	struct caller<F, R, std::tuple<ArgsL...>, std::tuple<M, ArgsR...> >{
 	
 		static variable call(size_t idx, const F& f, runtime_context& ctx, ArgsL... argsl){
-			variable m = idx == 0 ? variable() : ctx.stack[ctx.stack.size()-idx];
+			variable m = ctx.top(idx);
 			return caller<
 				F,
 				R,
 				std::tuple<ArgsL...,M>,
 				std::tuple<ArgsR...>
 			>::call(
-				idx == 0 ? 0 : idx-1, f, ctx, argsl..., detail::param_converter<M>::to_native(std::move(m), ctx)
+				idx-1, f, ctx, argsl..., detail::param_converter<M>::to_native(std::move(m), ctx)
 			);
 		}
 	};
@@ -79,17 +79,18 @@ public:
 	}
 
 	variable operator()(runtime_context& ctx, size_t sz){
+		stack_pusher pusher(ctx);
 		if(sz < sizeof...(Args)){
 			size_t missing = sizeof...(Args) - sz;
 			if(missing > _dflts.size()){
 				runtime_error("not enough function parameters provided");
 				return variable();
 			}
-			ctx.stack.insert(ctx.stack.end(), _dflts.end() - missing, _dflts.end());
+			pusher.push(_dflts.end() - missing, _dflts.end());
 			sz = sizeof...(Args);
 		}
 	
-		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz, _f, ctx);
+		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz-1, _f, ctx);
 	}
 };
 
@@ -109,17 +110,18 @@ public:
 	}
 
 	variable operator()(variable& that, runtime_context& ctx, size_t sz){
+		stack_pusher pusher(ctx);
 		if(sz < sizeof...(Args)){
 			size_t missing = sizeof...(Args) - sz;
 			if(missing > _dflts.size()){
 				runtime_error("not enough function parameters provided");
 				return variable();
 			}
-			ctx.stack.insert(ctx.stack.end(), _dflts.end() - missing, _dflts.end());
+			pusher.push(_dflts.end() - missing, _dflts.end());
 			sz = sizeof...(Args);
 		}
 	
-		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
+		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz-1, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
 	}
 };
 

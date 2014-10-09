@@ -1,44 +1,15 @@
-class C{
-    var x;
-    var y;
-    function init_c(){
-	self.x = 1;
-	self.y = 2;
-	this.x = 3;
-	this.z = 4;
+function fib(n){
+    if(n < 2){
+	return n;
     }
-    function f(){
-	return this.y;
-    }
-}
-
-class D: C{
-    var x;
-    var z;
-}
-
-class E{
-    function g(){
-	this.w = 17;
-    }
+    return fib(n-2) + fib(n-1);
 }
 
 
-class F: D, E{
-    var w;
-}
+var a = fib(30);
 
 
+//first: 0.75
+//make_shared: 0.65
 
-var out;
-
-var b = (new F()).strong();
-
-b.init_c();
-
-b.y = 300;
-
-b.g();
-
-
-out = b.f();
+//variable: 0.26

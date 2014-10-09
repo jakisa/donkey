@@ -121,13 +121,14 @@ inline constexpr size_t max(size_t x, size_t y){
 struct stack_var_ptr{
 	std::vector<variable>* v;
 	size_t i;
+	variable* p;
 	
 	variable& operator*() const{
-		return (*v)[i];
+		return p ? *p : (*v)[i];
 	}
 	
 	variable* operator->() const{
-		return &((*v)[i]);
+		return p ? p : &((*v)[i]);
 	}
 };
 
@@ -179,10 +180,7 @@ private:
 		}
 	}
 	
-	void _dec_counts() const{
-		if(!(char(_mt) & mem_type_smartptr_mask)){
-			return;
-		}
+	void _dec_counts_impl() const{
 		switch(_mt){
 			case mem_type::shared_pointer:
 				switch(_dt){
@@ -213,6 +211,13 @@ private:
 			case mem_type::nothing:
 				break;
 		}
+	}
+	
+	void _dec_counts() const{
+		if(!(char(_mt) & mem_type_smartptr_mask)){
+			return;
+		}
+		_dec_counts_impl();
 	}
 	
 	struct by_val_wrapper{
@@ -306,10 +311,6 @@ public:
 		}
 		_dt = data_type::object;
 		_mt = mem_type::shared_pointer;
-	}
-	
-	stack_var_ptr by_ref(std::vector<variable>& v){
-		return stack_var_ptr{&v, size_t(this - &v[0])};
 	}
 	
 	variable(stack_var_ptr p):
@@ -424,6 +425,10 @@ public:
 	
 	data_type get_data_type() const{
 		return (_mt == mem_type::weak_pointer && _h_ptr->_p == nullptr) ? data_type::nothing : _dt;
+	}
+	
+	mem_type get_mem_type() const{
+		return _mt;
 	}
 	
 	bool is_callable() const{

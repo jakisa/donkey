@@ -29,7 +29,7 @@ public:
 		return as_param(ctx).to_string();
 	}
 	virtual variable as_param(runtime_context& ctx) override{
-		return *ctx.that;
+		return *ctx.that();
 	}
 	virtual void as_void(runtime_context&) override{
 	}
@@ -106,7 +106,7 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		return ctx.stack[ctx.function_stack_bottom +_idx];
+		return ctx.local(_idx);
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -121,7 +121,7 @@ public:
 		_idx(idx){
 	}
 	virtual variable& as_lvalue(runtime_context & ctx) override{
-		return ctx.stack[_idx];
+		return ctx.global(_idx);
 	}
 
 	virtual void as_void(runtime_context&) override{

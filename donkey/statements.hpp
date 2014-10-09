@@ -15,23 +15,6 @@ enum class statement_retval{
 	ret,
 };
 
-class var_initializer{
-	var_initializer(const var_initializer&) = delete;
-	void operator=(const var_initializer&) = delete;
-private:
-	size_t _sz;
-	runtime_context& _ctx;
-public:
-	var_initializer(size_t sz, runtime_context& ctx):
-		_sz(sz),
-		_ctx(ctx){
-		_ctx.stack.resize(_ctx.stack.size() + _sz);
-	}
-	~var_initializer(){
-		_ctx.stack.resize(_ctx.stack.size() - _sz);
-	}
-};
-
 typedef std::function<statement_retval(runtime_context&)> statement;
 
 inline statement_retval empty_statement(runtime_context&){
@@ -71,7 +54,10 @@ public:
 		_locals_count(locals_count){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		var_initializer _(_locals_count, ctx);
+		stack_pusher pusher(ctx);
+		
+		pusher.push_default(_locals_count);
+		
 		for(const statement& s: _ss){
 			statement_retval r = s(ctx);
 			if(r != statement_retval::nxt){
@@ -282,7 +268,7 @@ public:
 		_e(e){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		ctx.stack[ctx.retval_stack_index] = _e->as_param(ctx);
+		ctx.set_retval(_e->as_param(ctx));
 		return statement_retval::ret;
 	}
 };

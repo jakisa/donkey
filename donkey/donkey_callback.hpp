@@ -14,14 +14,14 @@ class donkey_callback{
 	variable _v;
 	runtime_context& _ctx;
 	
-	variable _push_and_call(const variable& v, runtime_context& ctx, size_t sz){
+	variable _push_and_call(stack_pusher&, const variable& v, runtime_context& ctx, size_t sz){
 		return v.call(ctx, sz);
 	}
 	
 	template<typename T, typename... Args2>
-	variable _push_and_call(const variable& v, runtime_context& ctx, size_t sz, T t, Args2... args){
-		ctx.push(detail::param_converter<T>::from_native(t));
-		return _push_and_call(v, ctx, sz+1, args...);
+	variable _push_and_call(stack_pusher& pusher, const variable& v, runtime_context& ctx, size_t sz, T t, Args2... args){
+		pusher.push(detail::param_converter<T>::from_native(t));
+		return _push_and_call(pusher, v, ctx, sz+1, args...);
 	}
 	
 public:
@@ -30,8 +30,8 @@ public:
 		_ctx(ctx){
 	}
 	R operator()(Args... args){
-		stack_restorer _(_ctx);
-		return detail::param_converter<R>::to_native(_push_and_call(_v, _ctx, 0, args...), _ctx);
+		stack_pusher pusher(_ctx);
+		return detail::param_converter<R>::to_native(_push_and_call(pusher, _v, _ctx, 0, args...), _ctx);
 	}
 };
 
