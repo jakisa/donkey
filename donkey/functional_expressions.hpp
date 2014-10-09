@@ -34,14 +34,13 @@ public:
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
-		stack_pusher pusher(ctx);
-	
+		stack_ref_manipulator pusher(ctx);
+		
 		for(size_t i = 0; i < _params.size(); ++i){
 			if(_byref[i]){
-				variable& v = static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx);
-				pusher.push(ctx.by_ref(v));
+				pusher.push_ref(static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx));
 			}else{
-				pusher.push(_params[i]->as_param(ctx).by_val());
+				pusher.push(_params[i]->as_param(ctx));
 			}
 		}
 		
@@ -60,18 +59,16 @@ private:
 	std::vector<char> _byref;
 	
 	void init(variable& that, vtable* vt, runtime_context& ctx){
-		stack_pusher pusher(ctx);
-	
 		if(vt->has_method(_type_name)){
 			
+			stack_ref_manipulator pusher(ctx);
+		
 			for(size_t i = 0; i < _params.size(); ++i){
 				if(_byref[i]){
-					variable& v = static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx);
-					pusher.push(ctx.by_ref(v));
+					pusher.push_ref(static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx));
 				}else{
-					pusher.push(_params[i]->as_param(ctx).by_val());
+					pusher.push(_params[i]->as_param(ctx));
 				}
-				
 			}
 			
 			vt->call_member(that, ctx, _params.size(), _type_name);

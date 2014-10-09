@@ -17,6 +17,7 @@ class runtime_context{
 	friend class stack_pusher;
 	friend class stack_remover;
 	friend class function_stack_manipulator;
+	friend class stack_ref_manipulator;
 	
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
@@ -87,19 +88,6 @@ public:
 	
 	variable* that(){
 		return _that;
-	}
-	
-	stack_var_ptr by_ref(variable& v){
-		variable* p = &v;
-	
-		if(!_stack.empty() && p >= &_stack.front() && p <= &_stack.back()){
-			return stack_var_ptr{&_stack, size_t(p - &_stack.front()), nullptr};
-		}
-		if(!_globals.empty() && p >= &_globals.front() && p <= &_globals.back()){
-			return stack_var_ptr{&_globals, size_t(p - &_globals.front()), nullptr};
-		}
-		
-		return stack_var_ptr{nullptr, 0, p};
 	}
 	
 };
@@ -192,6 +180,40 @@ public:
 	}
 };
 
+
+class stack_ref_manipulator{
+	stack_ref_manipulator(const stack_ref_manipulator&) = delete;
+	void operator=(const stack_ref_manipulator&) = delete;
+private:
+	stack_pusher _pusher;
+	std::vector<variable*> _byref;
+	std::vector<size_t> _byref_idx;
+	runtime_context& _ctx;
+	size_t _vars_cnt;
+public:
+	stack_ref_manipulator(runtime_context& ctx):
+		_pusher(ctx),
+		_ctx(ctx),
+		_vars_cnt(0){
+	}
+	
+	void push(variable&& v){
+		_pusher.push(std::move(v));
+		++_vars_cnt;
+	}
+	
+	void push_ref(variable& v){
+		_byref_idx.push_back(_vars_cnt++);
+		_byref.push_back(&v);
+		_pusher.push(variable(v));
+	}
+	
+	~stack_ref_manipulator(){
+		for(size_t i = 0; i < _byref.size(); ++i){
+			*_byref[i] = _ctx.top(_vars_cnt - _byref_idx[i] - 1);
+		}
+	}
+};
 
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);

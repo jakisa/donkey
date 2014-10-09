@@ -23,6 +23,7 @@ struct code_address{
 	}
 };
 
+/*
 enum struct data_type: char{
 	nothing      = 0x00,
 	number       = 0x01,
@@ -37,12 +38,64 @@ enum struct mem_type: char{
 	shared_pointer = 0x10,
 	value          = 0x20,
 	weak_pointer   = 0x30,
-	stack_pointer  = 0x40,
 };
 
 enum{
 	mem_type_smartptr_mask = 0x10
+};*/
+
+enum struct var_type: char{
+	nothing        = 0x00,
+	number         = 0x01,
+	code_address   = 0x02,
+	
+	string         = 0x13,
+	function       = 0x14,
+	object         = 0x15,
+	
+	weak_string    = 0x23,
+	weak_function  = 0x24,
+	weak_object    = 0x25,
 };
+
+enum{
+	sharedptr_mask = 0x10,
+	weakptr_mask   = 0x20,
+	smartptr_mask  = (sharedptr_mask | weakptr_mask),
+};
+
+inline bool is_shared(var_type vt){
+	return sharedptr_mask & char(vt);
+}
+
+inline bool is_weak(var_type vt){
+	return weakptr_mask & char(vt);
+}
+
+inline bool is_smart(var_type vt){
+	return smartptr_mask & char(vt);
+}
+
+inline bool is_string(var_type vt){
+	return char(var_type::string) & char(vt);
+}
+
+inline bool is_function(var_type vt){
+	return char(var_type::function) & char(vt);
+}
+
+inline bool is_object(var_type vt){
+	return char(var_type::object) & char(vt);
+}
+
+inline var_type shared_version(var_type vt){
+	return var_type((char(vt) & (~sharedptr_mask)) | weakptr_mask);
+}
+
+inline var_type weak_version(var_type vt){
+	return var_type((char(vt) & (~weakptr_mask)) | sharedptr_mask);
+}
+
 
 class variable;
 
@@ -118,24 +171,10 @@ inline constexpr size_t max(size_t x, size_t y){
 }
 
 
-struct stack_var_ptr{
-	std::vector<variable>* v;
-	size_t i;
-	variable* p;
-	
-	variable& operator*() const{
-		return p ? *p : (*v)[i];
-	}
-	
-	variable* operator->() const{
-		return p ? p : &((*v)[i]);
-	}
-};
-
 inline constexpr size_t stack_var_union_size(){
 	return max(
 		max(sizeof(number), sizeof(code_address)),
-		max(sizeof(stack_var_ptr), sizeof(heap_header*))
+		sizeof(heap_header*)
 	);
 }
 
@@ -146,110 +185,79 @@ private:
 	union{
 		number _n;
 		code_address _f;
-		stack_var_ptr _s_ptr;
 		heap_header* _h_ptr;
 		std::array<char, stack_var_union_size()> _;
 	};
 	
-	data_type _dt;
-	mem_type _mt;
+	var_type _vt;
 	
 	void _runtime_error(std::string msg) const{
-		if(_mt == mem_type::weak_pointer && _h_ptr->expired()){
+		if(is_weak(_vt) && _h_ptr->expired()){
 			runtime_error("expired object access");
 		}else{
 			runtime_error(msg);
 		}
 	}
 	
-	void _inc_counts() const{
-		if(!(char(_mt) & mem_type_smartptr_mask)){
-			return;
+	void _inc_counts_impl() const{
+		if(is_shared(_vt)){
+			_h_ptr->add_shared();
+		}else{
+			_h_ptr->add_weak();
 		}
-		switch(_mt){
-			case mem_type::shared_pointer:
-				_h_ptr->add_shared();
-				break;
-			case mem_type::weak_pointer:
-				_h_ptr->add_weak();
-				break;
-			case mem_type::stack_pointer:
-			case mem_type::value:
-			case mem_type::nothing:
-				break;
+	}
+	
+	void _inc_counts() const{
+		if(is_smart(_vt)){
+			_inc_counts_impl();
 		}
 	}
 	
 	void _dec_counts_impl() const{
-		switch(_mt){
-			case mem_type::shared_pointer:
-				switch(_dt){
-					case data_type::string:
-						_h_ptr->remove_shared_array<char>();
-						break;
-					case data_type::object:
-						_h_ptr->remove_shared<donkey_object>();
-						break;
-					case data_type::number:
-						_h_ptr->remove_shared<number>();
-						break;
-					case data_type::code_address:
-						_h_ptr->remove_shared<code_address>();
-						break;
-					case data_type::function:
-						_h_ptr->remove_shared<function>();
-						break;
-					case data_type::nothing:
-						break;
-				}
+		switch(_vt){
+			case var_type::string:
+				_h_ptr->remove_shared_array<char>();
 				break;
-			case mem_type::weak_pointer:
+			case var_type::object:
+				_h_ptr->remove_shared<donkey_object>();
+				break;
+			case var_type::function:
+				_h_ptr->remove_shared<function>();
+				break;
+			case var_type::weak_string:
+			case var_type::weak_object:
+			case var_type::weak_function:
 				_h_ptr->remove_weak();
 				break;
-			case mem_type::stack_pointer:
-			case mem_type::value:
-			case mem_type::nothing:
+			default:
 				break;
 		}
 	}
 	
 	void _dec_counts() const{
-		if(!(char(_mt) & mem_type_smartptr_mask)){
-			return;
+		if(is_smart(_vt)){
+			_dec_counts_impl();
 		}
-		_dec_counts_impl();
 	}
-	
-	struct by_val_wrapper{
-		variable& var;
-		by_val_wrapper(variable& var):
-			var(var){
-		}
-	};
 public:
 	variable():
-		_dt(data_type::nothing),
-		_mt(mem_type::nothing){
+		_vt(var_type::nothing){
 	}
 	
 	variable& reset(){
 		_dec_counts();
-		_dt = data_type::nothing;
-		_mt = mem_type::nothing;
-		
+		_vt = var_type::nothing;
 		return *this;
 	}
 	
 	explicit variable(number n):
 		_n(n),
-		_dt(data_type::number),
-		_mt(mem_type::value){
+		_vt(var_type::number){
 	}
 	
 	explicit variable(code_address f):
 		_f(f),
-		_dt(data_type::code_address),
-		_mt(mem_type::value){
+		_vt(var_type::code_address){
 	}
 	
 	explicit variable(const std::string& s){
@@ -263,8 +271,7 @@ public:
 			runtime_error("out of memory");
 		}
 		memcpy(p, s.c_str(), s.size()+1);
-		_dt = data_type::string;
-		_mt = mem_type::shared_pointer;
+		_vt = var_type::string;
 	}
 	
 	explicit variable(const char* s){
@@ -281,8 +288,7 @@ public:
 			runtime_error("out of memory");
 		}
 		memcpy(p, s, sz + 1);
-		_dt = data_type::string;
-		_mt = mem_type::shared_pointer;
+		_vt = var_type::string;
 	}
 	
 	explicit variable(function&& f){
@@ -295,8 +301,7 @@ public:
 			delete p;
 			runtime_error("out of memory");
 		}
-		_dt = data_type::function;
-		_mt = mem_type::shared_pointer;
+		_vt = var_type::function;
 	}
 	
 	explicit variable(vtable* vt){
@@ -309,32 +314,13 @@ public:
 			delete p;
 			runtime_error("out of memory");
 		}
-		_dt = data_type::object;
-		_mt = mem_type::shared_pointer;
-	}
-	
-	variable(stack_var_ptr p):
-		_s_ptr(p->_mt == mem_type::stack_pointer ? p->_s_ptr : p),
-		_dt(p->_dt),
-		_mt(mem_type::stack_pointer){
-	}
-	
-	by_val_wrapper by_val(){
-		return by_val_wrapper(*this);
-	}
-	
-	variable(by_val_wrapper w):
-		_(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_ : w.var._),
-		_dt(w.var._dt),
-		_mt(w.var._mt == mem_type::stack_pointer ? w.var._s_ptr->_mt : w.var._mt){
-		_inc_counts();
+		_vt = var_type::object;
 	}
 		
 	
 	variable(const variable& orig):
 		_(orig._),
-		_dt(orig._dt),
-		_mt(orig._mt){
+		_vt(orig._vt){
 		_inc_counts();
 	}
 	
@@ -342,43 +328,25 @@ public:
 		if(&orig == this){
 			return *this;
 		}
-		if(orig._mt == mem_type::stack_pointer){
-			return *this = *(orig._s_ptr);
-		}
-		if(_mt == mem_type::stack_pointer){
-			_dt = orig._dt;
-			return *(_s_ptr) = orig;
-		}	
 		orig._inc_counts();
 		_dec_counts();
 		
 		_ = orig._;
-		_dt = orig._dt;
-		_mt = orig._mt;
+		_vt = orig._vt;
 		
 		return *this;
 	}
 	
 	variable(variable&& orig):
 		_(orig._),
-		_dt(orig._dt),
-		_mt(orig._mt){
-		orig._dt = data_type::nothing;
-		orig._mt = mem_type::nothing;
+		_vt(orig._vt){
+		orig._vt = var_type::nothing;
 	}
 	
 	variable& operator=(variable&& orig){
 		if(&orig == this){
 			return *this;
 		}
-		if(orig._mt == mem_type::stack_pointer){
-			return *this = *(orig._s_ptr);
-		}
-		if(_mt == mem_type::stack_pointer){
-			_dt = orig._dt;
-			return *(_s_ptr) = std::move(orig);
-		}
-		
 		
 		char tmp[sizeof(variable)];
 		memcpy(tmp, this, sizeof(variable));
@@ -389,12 +357,9 @@ public:
 	}
 	
 	variable non_shared() const{
-		if(_mt == mem_type::stack_pointer){
-			return _s_ptr->non_shared();
-		}
-		if(_mt == mem_type::shared_pointer){
+		if(is_shared(_vt)){
 			variable ret;
-			ret._mt = mem_type::weak_pointer;
+			ret._vt = weak_version(_vt);
 			ret._h_ptr = _h_ptr;
 			ret._inc_counts();
 			return ret;
@@ -403,15 +368,12 @@ public:
 	}
 	
 	variable non_weak() const{
-		if(_mt == mem_type::stack_pointer){
-			return _s_ptr->non_weak();
-		}
-		if(_mt == mem_type::weak_pointer){
+		if(is_weak(_vt)){
 			if(_h_ptr->_s_count == 0){
 				return variable();
 			}
 			variable ret;
-			ret._mt = mem_type::shared_pointer;
+			ret._vt = shared_version(_vt);
 			ret._h_ptr = _h_ptr;
 			ret._inc_counts();
 			return ret;
@@ -423,54 +385,43 @@ public:
 		_dec_counts();
 	}
 	
-	data_type get_data_type() const{
-		return (_mt == mem_type::weak_pointer && _h_ptr->_p == nullptr) ? data_type::nothing : _dt;
-	}
-	
-	mem_type get_mem_type() const{
-		return _mt;
+	var_type get_data_type() const{
+		if(is_weak(_vt)){
+			return _h_ptr->_p == nullptr ? var_type::nothing : shared_version(_vt);
+		}
+		return _vt;
 	}
 	
 	bool is_callable() const{
-		data_type dt = get_data_type();
-		return dt == data_type::code_address || dt == data_type::function;
+		var_type vt = get_data_type();
+		return vt == var_type::code_address || vt == var_type::function;
 	}
 	
 	std::string get_type_name() const{
 		switch(get_data_type()){
-			case data_type::number:
+			case var_type::number:
 				return "number";
-			case data_type::code_address:
-			case data_type::function:
+			case var_type::code_address:
+			case var_type::function:
 				return "function";
-			case data_type::string:
+			case var_type::string:
 				return "string";
-			case data_type::nothing:
+			case var_type::nothing:
 				return "null";
-			case data_type::object:
-				return _mt == mem_type::stack_pointer ? _s_ptr->get_type_name() : _h_ptr->as_t<donkey_object>()->get_type_name();
+			case var_type::object:
+				return _h_ptr->as_t<donkey_object>()->get_type_name();
+			default:
+				return "";
 		}
 		return "";
 	}
 	
-	number as_stack_number_unsafe() const{
+	number as_number_unsafe() const{
 		return _n;
 	}
 	
-	number as_number_unsafe() const{
-		switch(_mt){
-			case mem_type::shared_pointer:
-			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<number>();
-			case mem_type::stack_pointer:
-				return _s_ptr->as_number_unsafe();
-			default:
-				return _n;
-		}
-	}
-	
 	number as_number() const{
-		if(get_data_type() != data_type::number){
+		if(_vt != var_type::number){
 			_runtime_error("number expected");
 		}
 		return as_number_unsafe();
@@ -481,62 +432,26 @@ public:
 	}
 	
 	number& as_lnumber_unsafe(){
-		switch(_mt){
-			case mem_type::shared_pointer:
-			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<number>();
-			case mem_type::stack_pointer:
-				return _s_ptr->as_lnumber_unsafe();
-			default:
-				return _n;
-		}
+		return _n;
 	}
 	
 	number& as_lnumber(){
-		if(get_data_type() != data_type::number){
+		if(_vt != var_type::number){
 			_runtime_error("number expected");
 		}
 		return as_lnumber_unsafe();
 	}
 	
 	code_address as_code_address_unsafe() const{
-		switch(_mt){
-			case mem_type::shared_pointer:
-			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<code_address>();
-			case mem_type::stack_pointer:
-				return _s_ptr->as_code_address_unsafe();
-			default:
-				return _f;
-		}
-	}
-	
-	donkey_object& as_object_unsafe() const{
-		switch(_mt){
-			case mem_type::shared_pointer:
-			case mem_type::weak_pointer:
-				return *_h_ptr->as_t<donkey_object>();
-			case mem_type::stack_pointer:
-				return _s_ptr->as_object_unsafe();
-			default:
-				return *static_cast<donkey_object*>(nullptr);
-		}
+		return _f;
 	}
 	
 	variable call(runtime_context& ctx, size_t params_size) const{
 		switch(get_data_type()){
-			case data_type::code_address:
+			case var_type::code_address:
 				return call_function_by_address(as_code_address_unsafe(), ctx, params_size);
-			case data_type::function:
-				switch(_mt){
-					case mem_type::shared_pointer:
-					case mem_type::weak_pointer:
-						return (*_h_ptr->as_t<function>())(ctx, params_size);
-					case mem_type::stack_pointer:
-						return _s_ptr->call(ctx, params_size);
-					default:
-						break;
-				}
+			case var_type::function:
+				return (*_h_ptr->as_t<function>())(ctx, params_size);
 			default:
 				_runtime_error("function expected");
 		}
@@ -544,16 +459,11 @@ public:
 	}
 	
 	const char* as_string_unsafe() const{
-		switch(_mt){
-			case mem_type::stack_pointer:
-				return _s_ptr->as_string_unsafe();
-			default:
-				return _h_ptr->as_t<char>();
-		}
+		return _h_ptr->as_t<char>();
 	}
 	
 	const char* as_string() const{
-		if(get_data_type() != data_type::string){
+		if(get_data_type() != var_type::string){
 			_runtime_error("string expected");
 		}
 		return as_string_unsafe();
@@ -561,14 +471,14 @@ public:
 	
 	std::string to_string() const{
 		switch(get_data_type()){
-			case data_type::string:
+			case var_type::string:
 				return std::string(as_string_unsafe());
-			case data_type::number:
+			case var_type::number:
 				return donkey::to_string(as_number());
-			case data_type::code_address:
-			case data_type::function:
+			case var_type::code_address:
+			case var_type::function:
 				return std::string("function");
-			case data_type::object:
+			case var_type::object:
 				return _h_ptr->as_t<donkey_object>()->to_string();
 			default:
 				return std::string("null");
@@ -576,29 +486,24 @@ public:
 	}
 	
 	heap_header* as_reference_unsafe() const{
-		switch(_mt){
-			case mem_type::stack_pointer:
-				return _s_ptr->as_reference_unsafe();
-			default:
-				return _h_ptr;
-		}
+		return _h_ptr;
 	}
 	
 	bool operator==(const variable& oth) const{
-		data_type dt = get_data_type();
+		var_type dt = get_data_type();
 		
 		if(dt != oth.get_data_type()){
 			return false;
 		}
 		
 		switch(dt){
-			case data_type::number:
+			case var_type::number:
 				return as_number_unsafe() == oth.as_number_unsafe();
-			case data_type::code_address:
+			case var_type::code_address:
 				return as_code_address_unsafe() == oth.as_code_address_unsafe();
-			case data_type::string:
+			case var_type::string:
 				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) == 0;
-			case data_type::nothing:
+			case var_type::nothing:
 				return true;
 			default:
 				return as_reference_unsafe() == oth.as_reference_unsafe();
@@ -610,14 +515,14 @@ public:
 	}
 	
 	bool operator<(const variable& oth) const{
-		data_type dt = get_data_type();
+		var_type dt = get_data_type();
 		if(dt != oth.get_data_type()){
 			runtime_error("cannot compare " + get_type_name() + " and " + oth.get_type_name());
 		}
 		switch(dt){
-			case data_type::number:
+			case var_type::number:
 				return as_number_unsafe() < oth.as_number_unsafe();
-			case data_type::string:
+			case var_type::string:
 				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) < 0;
 			default:
 				runtime_error("cannot compare " + get_type_name() + " and " + oth.get_type_name());
@@ -638,10 +543,7 @@ public:
 	}
 	
 	variable& nth_field(size_t n) const{
-		if(get_data_type() == data_type::object){
-			if(_mt == mem_type::stack_pointer){
-				return _s_ptr->nth_field(n);
-			}
+		if(get_data_type() == var_type::object){
 			return _h_ptr->as_t<donkey_object>()->get_field(n);
 		}
 	
@@ -650,10 +552,7 @@ public:
 	}
 	
 	vtable* get_vtable() const{
-		if(get_data_type() == data_type::object){
-			if(_mt == mem_type::stack_pointer){
-				return _s_ptr->get_vtable();
-			}
+		if(get_data_type() == var_type::object){
 			return _h_ptr->as_t<donkey_object>()->get_vtable();
 		}
 	

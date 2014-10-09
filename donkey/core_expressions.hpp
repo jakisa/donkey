@@ -45,7 +45,7 @@ public:
 		_d(d){
 	}
 	virtual number as_number(runtime_context&) override{
-		return _d.as_stack_number_unsafe();
+		return _d.as_number_unsafe();
 	}
 	virtual variable as_param(runtime_context&) override{
 		return _d;
