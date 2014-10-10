@@ -61,8 +61,9 @@ private:
 		}
 	}
 public:
-	runtime_context(const module* code, size_t globals_count):
+	runtime_context(const module* code, size_t globals_count, size_t stack_size):
 		_globals(globals_count),
+		_stack(stack_size),
 		_code(code),
 		_function_stack_bottom(0),
 		_retval_stack_index(-1),

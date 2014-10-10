@@ -903,7 +903,7 @@ public:
 		//}
 	}
 	
-	bool execute_module(const char* module_name){
+	bool execute_module(const char* module_name, size_t stack_size){
 //		try{
 			auto it = _modules.find(module_name);
 			
@@ -911,7 +911,7 @@ public:
 				return false;
 			}
 			
-			runtime_context ctx(it->second.get(), it->second->get_globals_count());
+			runtime_context ctx(it->second.get(), it->second->get_globals_count(), stack_size);
 			
 			it->second->load(ctx);
 			
@@ -934,8 +934,8 @@ bool compiler::compile_module(const char* module_name){
 	return _private->compile_module(module_name);
 }
 
-bool compiler::execute_module(const char* module_name){
-	return _private->execute_module(module_name);
+bool compiler::execute_module(const char* module_name, size_t stack_size){
+	return _private->execute_module(module_name, stack_size);
 }
 
 compiler::~compiler(){
