@@ -51,7 +51,8 @@ HEADERS += \
     donkey_callback.hpp \
     donkey_object.hpp \
     sequential_expressions.hpp \
-    stack.hpp
+    stack.hpp \
+    null_check_expressions.hpp
 
 OTHER_FILES += \
     examples.txt \

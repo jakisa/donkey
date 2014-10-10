@@ -26,6 +26,7 @@ static const char* two_letter_operators[] = {
 	"==",
 	">=",
 	">>",
+	"?\?",
 	"\\=",
 	"^=",
 	"|=",
@@ -36,6 +37,7 @@ static const char* three_letter_operators[] = {
 	"..=",
 	"<<=",
 	">>=",
+	"?\?=",
 };
 
 static const char* skip_whitespaces(const char* current, const char* end){

@@ -112,6 +112,22 @@ private:
 		}
 	}
 	
+	void skip_constructor(tokenizer& parser){
+		do{
+			++parser;
+		}while(parser && *parser != "{");
+		
+		parse("{", parser);
+		
+		for(int nesting = 1; parser && nesting; ++parser){
+			if(*parser == "{"){
+				++nesting;
+			}else if(*parser == "}"){
+				--nesting;
+			}
+		}
+	}
+	
 	const vtable* add_table(std::unordered_set<const vtable*>& tables, const vtable* table){
 		if(tables.find(table) != tables.end()){
 			return table->get_fields_size() ? table : nullptr;
@@ -189,26 +205,32 @@ private:
 		
 		parse("{", parser);
 		
+		bool constructor_defined = false;
+		
 		for(tokenizer stub_parser = parser; *stub_parser != "}";){
 			if(*stub_parser == "var"){
 				compile_field(ctarget, stub_parser);
 			}else if(*stub_parser == "function"){
 				compile_method_stub(ctarget, stub_parser);
+			}else if(*stub_parser == name){
+				if(constructor_defined){
+					semantic_error(parser.get_line_number(), "constructor is already defined");
+				}
+				skip_constructor(stub_parser);
+				constructor_defined = true;
 			}
 		}
 		
-		/*
-		if(!ctarget.has_method(name)){
-			ctarget.declare_method(name); 
-		}*/
 		
 		gtarget.add_vtable(name, ctarget.create_vtable(bases));
 		
 		while(*parser != "}"){
 			if(*parser == "var"){
-				skip_field(ctarget, parser);
+				skip_field(parser);
 			}else if(*parser == "function"){
 				compile_function(ctarget, parser);
+			}else if(*parser == name){
+				compile_constructor(ctarget, parser, bases);
 			}
 		}
 		
@@ -218,7 +240,8 @@ private:
 	void compile_function_helper(std::string name, scope& target, tokenizer& parser,
 		std::function<void(std::string, bool)> declare,
 		std::function<void(std::string, scope&, size_t)> define,
-		std::function<bool(std::string)> is_defined){
+		std::function<bool(std::string)> is_defined,
+		std::function<void(scope&, tokenizer&)> pre_function){
 		
 		if(*parser == ";"){
 			declare(name, true);
@@ -242,7 +265,6 @@ private:
 		
 		++parser;
 		
-		
 		if(is_defined(name)){
 			semantic_error(parser.get_line_number(), name + " is already defined");
 		}
@@ -260,6 +282,8 @@ private:
 		function_scope.add_variable("%RETVAL%");
 		
 		scope inner_scope(&function_scope);
+		
+		pre_function(inner_scope, parser);
 		
 		parse("{", parser);
 		
@@ -292,6 +316,9 @@ private:
 	static void define_method(class_scope& target, std::string name, scope& function_scope, size_t params_size){
 		target.define_method(name, donkey_method(params_size, function_scope.get_block()));
 	}
+	
+	static void ignore_pre_function(scope&, tokenizer&){
+	}
 
 	void compile_function(scope& target, tokenizer& parser){
 		if(target.is_global()){
@@ -303,7 +330,8 @@ private:
 			compile_function_helper(name, target, parser,
 				                    std::bind(&compiler::priv::declare_function, std::ref(gtarget), _1, _2),
 				                    std::bind(&compiler::priv::define_function, std::ref(gtarget), _1, _2, _3),
-				                    std::bind(&global_scope::has_function, std::cref(gtarget), _1));
+				                    std::bind(&global_scope::has_function, std::cref(gtarget), _1),
+				                    &compiler::priv::ignore_pre_function);
 			return;
 		}
 		if(target.is_class()){
@@ -315,11 +343,91 @@ private:
 			compile_function_helper(name, target, parser,
 			                        std::bind(&compiler::priv::declare_method, std::ref(parser), _1, _2),
 			                        std::bind(&compiler::priv::define_method, std::ref(ctarget), _1, _2, _3),
-			                        std::bind(&class_scope::has_method, std::cref(ctarget), _1));
+			                        std::bind(&class_scope::has_method, std::cref(ctarget), _1),
+			                        &compiler::priv::ignore_pre_function);
 			return;
 		}
 	
 		unexpected_error(parser.get_line_number(), *parser);
+	}
+	
+	static void declare_constructor(tokenizer& parser, std::string, bool forward){
+		if(forward){
+			syntax_error(parser.get_line_number(), "forward declaration of constructor is not supported not useful");
+		}
+	}
+	
+	static void define_constructor(class_scope& target, std::string, scope& function_scope, size_t params_size){
+		target.define_constructor(donkey_method(params_size, function_scope.get_block()));
+	}
+	
+	static bool has_constructor(std::string){
+		return false;
+	}
+	
+	static void compile_pre_constructor(const std::vector<std::string>& bases, scope& inner, tokenizer& parser){
+		std::unordered_map<std::string, bool> constructed;
+		
+		for(const std::string& base_name: bases){
+			constructed.emplace(base_name, false);
+		}
+		
+		if(*parser == ":"){
+			++parser;
+			while(parser && *parser != "{"){
+				std::string base_name = parse_allowed_name(parser);
+				auto it = constructed.find(base_name);
+				
+				if(it == constructed.end()){
+					semantic_error(parser.get_line_number(), base_name + " is not base of this class");
+				}
+				
+				if(it->second){
+					semantic_error(parser.get_line_number(), base_name + " is already constructed");
+				}
+				
+				parse("(", parser);
+				
+				if(*parser == ")"){
+					inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name)));
+				}else{
+					std::vector<expression_ptr> params;
+					while(parser && *parser != ")"){
+						params.push_back(build_expression(inner, parser, false, true));
+						if(*parser == ","){
+							++parser;
+						}
+					}
+					inner.add_statement(base_constructor_statement(inner.get_vtable(base_name), std::move(params)));
+				}
+				
+				parse(")", parser);
+				
+				it->second = true;
+				
+				if(*parser == ","){
+					++parser;
+				}
+			}
+		}
+		
+		for(const std::string& base_name: bases){
+			if(!constructed[base_name]){
+				inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name)));
+			}
+		}
+		
+	}
+	
+	void compile_constructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases){
+		++parser;
+		
+		compile_function_helper("", target, parser,
+		                        std::bind(&compiler::priv::declare_constructor, std::ref(parser), _1, _2),
+		                        std::bind(&compiler::priv::define_constructor, std::ref(target), _1, _2, _3),
+		                        &compiler::priv::has_constructor,
+		                        std::bind(&compiler::priv::compile_pre_constructor, std::cref(bases), _1, _2)
+		);
 	}
 	
 	void compile_field(class_scope& target, tokenizer& parser){
@@ -339,7 +447,7 @@ private:
 		++parser;
 	}
 	
-	void skip_field(class_scope&, tokenizer& parser){
+	void skip_field(tokenizer& parser){
 		++parser;
 		
 		while(parser && *parser != ";"){

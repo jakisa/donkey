@@ -18,6 +18,7 @@ enum class expression_type{
 	variant,
 };
 
+
 inline expression_type string_to_type(std::string name){
 	if(name == "number"){
 		return expression_type::number;
@@ -73,6 +74,19 @@ inline bool is_variant_expression(expression_ptr e){
 	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::variant;
 }
 
+inline expression_type combined_expression_type(expression_ptr e1, expression_ptr e2){
+	if(is_variant_expression(e1) || is_variant_expression(e2)){
+		return expression_type::variant;
+	}
+	if(e1->get_type() == expression_type::function && e2->get_type() == expression_type::function){
+		return expression_type::function;
+	}
+	if(e1->get_type() == expression_type::number && e2->get_type() == expression_type::number){
+		return expression_type::number;
+	}
+	return expression_type::string;
+}
+
 class lvalue_expression: public expression{
 protected:
 	lvalue_expression():
@@ -108,53 +122,55 @@ enum class oper{
 	ref                  =   4,
 
 	comma                =  20,
-	or_assignment        =  40,
-	xor_assignment       =  41,
-	and_assignment       =  42,
-	shiftr_assignment    =  43,
-	shiftl_assignment    =  44,
-	concat_assignment    =  45,
-	minus_assignment     =  46,
-	plus_assignment      =  47,
-	mod_assignment       =  48,
-	idiv_assignment      =  49,
-	div_assignment       =  50,
-	mul_assignment       =  51,
-	assignment           =  52,
+	fallback_assignment  =  40,
+	or_assignment        =  41,
+	xor_assignment       =  42,
+	and_assignment       =  43,
+	shiftr_assignment    =  44,
+	shiftl_assignment    =  45,
+	concat_assignment    =  46,
+	minus_assignment     =  47,
+	plus_assignment      =  48,
+	mod_assignment       =  49,
+	idiv_assignment      =  50,
+	div_assignment       =  51,
+	mul_assignment       =  52,
+	assignment           =  53,
 	conditional_question =  60,
 	conditional_colon    =  61,
-	logical_or           =  80,
-	logical_and          = 100,
-	unequal              = 120,
-	equal                = 121,
-	greater_equal        = 140,
-	less_equal           = 141,
-	greater              = 142,
-	less                 = 143,
-	shiftr               = 160,
-	shiftl               = 161,
-	bitwise_or           = 180,
-	bitwise_xor          = 181,
-	concat               = 182,
-	minus                = 183,
-	plus                 = 184,
-	bitwise_and          = 185,
-	mod                  = 200,
-	idiv                 = 201,
-	div                  = 202,
-	mul                  = 203,
-	logical_not          = 220,
-	bitwise_not          = 221,
-	unary_minus          = 222,
-	unary_plus           = 223,
-	pre_dec              = 224,
-	pre_inc              = 225,
-	construct            = 226,
-	post_dec             = 240,
-	post_inc             = 241,
-	dot                  = 242,
-	call                 = 243,
-	scope                = 260,
+	fallback             =  80,
+	logical_or           = 100,
+	logical_and          = 120,
+	unequal              = 140,
+	equal                = 141,
+	greater_equal        = 160,
+	less_equal           = 161,
+	greater              = 162,
+	less                 = 163,
+	shiftr               = 180,
+	shiftl               = 181,
+	bitwise_or           = 200,
+	bitwise_xor          = 201,
+	concat               = 202,
+	minus                = 203,
+	plus                 = 204,
+	bitwise_and          = 205,
+	mod                  = 220,
+	idiv                 = 221,
+	div                  = 222,
+	mul                  = 223,
+	logical_not          = 240,
+	bitwise_not          = 241,
+	unary_minus          = 242,
+	unary_plus           = 243,
+	pre_dec              = 244,
+	pre_inc              = 245,
+	construct            = 246,
+	post_dec             = 260,
+	post_inc             = 261,
+	dot                  = 262,
+	call                 = 263,
+	scope                = 280,
 };
 
 
@@ -183,7 +199,7 @@ expression_ptr build_member_expression(expression_ptr that, const std::string& m
 expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx);
 expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m);
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
+expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params);
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 

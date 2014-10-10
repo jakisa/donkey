@@ -1,15 +1,28 @@
-function fib(n){
-    if(n < 2){
-	return n;
+class C{
+    var v;
+    C(v){
+	self.v = v;
+    }  
+}
+
+class E{
+    var k;
+    E(k){
+	self.k = k;
     }
-    return fib(n-2) + fib(n-1);
 }
 
 
-var a = fib(30);
+class D: C, E{
+    D():
+	C(7),
+	E(100){
+    }
+}
 
+var out = 7;
 
-//first: 0.75
-//make_shared: 0.65
+var b = 14;
+var a = 17;
 
-//variable: 0.26
+out ??= a;

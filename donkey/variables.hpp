@@ -305,13 +305,13 @@ public:
 		return *this;
 	}
 	
-	variable(variable&& orig):
+	variable(variable&& orig) noexcept:
 		_(orig._),
 		_vt(orig._vt){
 		orig._vt = var_type::nothing;
 	}
 	
-	variable& operator=(variable&& orig){
+	variable& operator=(variable&& orig) noexcept{
 		if(&orig == this){
 			return *this;
 		}

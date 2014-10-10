@@ -9,6 +9,7 @@
 #include "sequential_expressions.hpp"
 #include "ternary_expressions.hpp"
 #include "functional_expressions.hpp"
+#include "null_check_expressions.hpp"
 #include "identifiers.hpp"
 
 #include <algorithm>
@@ -77,6 +78,8 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 	switch(op){
 		case oper::comma:
 			return build_binary<comma_expression>(e1, e2, line_number);
+		case oper::fallback_assignment:
+			return build_binary_l<fallback_assignment_expression>(e1, e2, line_number);
 		case oper::or_assignment:
 			return build_binary_l<or_assignment_expression>(e1, e2, line_number);
 		case oper::xor_assignment:
@@ -103,6 +106,8 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 			return build_binary_l<mul_assignment_expression>(e1, e2, line_number);
 		case oper::assignment:
 			return build_binary_l<assignment_expression>(e1, e2, line_number);
+		case oper::fallback:
+			return build_binary<fallback_expression>(e1, e2, line_number);
 		case oper::logical_or:
 			return build_binary<logical_or_expression>(e1, e2, line_number);
 		case oper::logical_and:
@@ -208,8 +213,8 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& t
 	return expression_ptr(new method_expression(that, type, m));
 }
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref){
-	return expression_ptr(new constructor_call_expression(type_name, params, byref));
+expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params){
+	return expression_ptr(new constructor_call_expression(type_name, params));
 }
 
 }//namespace donkey

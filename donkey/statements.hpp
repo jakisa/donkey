@@ -28,6 +28,12 @@ public:
 	expression_statement(expression_ptr e):
 		_e(e){
 	}
+	expression_statement(expression_statement&& orig):
+		_e(orig._e){
+	}
+	expression_statement(const expression_statement& orig):
+		_e(orig._e){
+	}
 	statement_retval operator()(runtime_context& ctx) const{
 		_e->as_void(ctx);
 		return statement_retval::nxt;
@@ -347,9 +353,63 @@ public:
 	return_statement(expression_ptr e):
 		_e(e){
 	}
+	return_statement(return_statement&& orig):
+		_e(orig._e){
+	}
+	return_statement(const return_statement& orig):
+		_e(orig._e){
+	}
 	statement_retval operator()(runtime_context& ctx) const{
 		ctx.set_retval(_e->as_param(ctx));
 		return statement_retval::ret;
+	}
+};
+
+class base_constructor_statement{
+private:
+	vtable* _vt;
+	std::vector<expression_ptr> _params;
+public:
+	base_constructor_statement(vtable* vt, std::vector<expression_ptr>&& params):
+		_vt(vt),
+		_params(std::move(params)){
+	}
+	base_constructor_statement(base_constructor_statement&& orig):
+		_vt(orig._vt),
+		_params(std::move(orig._params)){
+	}
+	base_constructor_statement(const base_constructor_statement& orig):
+		_vt(orig._vt),
+		_params(orig._params){
+	}
+	statement_retval operator()(runtime_context& ctx) const{
+		stack_pusher pusher(ctx);
+		for(size_t i = 0; i != _params.size(); ++i){
+			pusher.push(_params[i]->as_param(ctx));
+		}
+		_vt->call_base_constructor(*ctx.that(), ctx, _params.size());
+		
+		return statement_retval::nxt;
+	}
+};
+
+class base_default_constructor_statement{
+private:
+	vtable* _vt;
+public:
+	base_default_constructor_statement(vtable* vt):
+		_vt(vt){
+	}
+	base_default_constructor_statement(base_default_constructor_statement&& orig):
+		_vt(orig._vt){
+	}
+	base_default_constructor_statement(const base_default_constructor_statement& orig):
+		_vt(orig._vt){
+	}
+	statement_retval operator()(runtime_context& ctx) const{
+		_vt->call_base_constructor(*ctx.that(), ctx, 0);
+		
+		return statement_retval::nxt;
 	}
 };
 

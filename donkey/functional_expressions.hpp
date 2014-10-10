@@ -100,32 +100,22 @@ class constructor_call_expression final: public expression{
 private:
 	std::string _type_name;
 	std::vector<expression_ptr> _params;
-	std::vector<size_t> _byref;
 	
 	void init(variable& that, vtable* vt, runtime_context& ctx){
-		if(vt->has_method(_type_name)){
-			
-			stack_pusher pusher(ctx);
-		
-			for(size_t i = 0; i < _params.size(); ++i){
-				pusher.push(_params[i]->as_param(ctx));
-			}
-			
-			vt->call_member(that, ctx, _params.size(), _type_name);
-			
-			for(size_t i = 0; i < _byref.size(); ++i){
-				size_t idx = _byref[i];
-				static_cast<lvalue_expression&>(*(_params[idx])).as_lvalue(ctx) = std::move(ctx.top(_params.size() - idx - 1));
-			}
+		stack_pusher pusher(ctx);
+	
+		for(size_t i = 0; i < _params.size(); ++i){
+			pusher.push(_params[i]->as_param(ctx));
 		}
+		
+		vt->call_constructor(that, ctx, _params.size());
 	}
 	
 public:
-	constructor_call_expression(std::string type_name, std::vector<expression_ptr> params, std::vector<size_t> byref):
+	constructor_call_expression(std::string type_name, std::vector<expression_ptr> params):
 		expression(string_to_type(type_name)),
 		_type_name(type_name),
-		_params(std::move(params)),
-		_byref(std::move(byref)){
+		_params(std::move(params)){
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		vtable* vt = get_vtable(ctx, _type_name);

@@ -243,6 +243,7 @@ class class_scope: public scope{
 private:
 	std::unordered_map<std::string, method_ptr> _methods;
 	std::unordered_map<std::string, size_t> _fields;
+	method_ptr _constructor;
 	std::string _name;
 	size_t _fields_size;
 	
@@ -256,11 +257,9 @@ private:
 public:
 	class_scope(std::string name, scope* parent):
 		scope(parent, false, false, false, false, true),
+		_constructor(new method()),
 		_name(name),
 		_fields_size(0){
-		
-		_methods.emplace("strong", method_ptr(new method(&class_scope::variable_strong)));
-		_methods.emplace("weak", method_ptr(new method(&class_scope::variable_weak)));
 	}
 	bool has_method(std::string name) const{
 		auto it = _methods.find(name);
@@ -271,8 +270,12 @@ public:
 		_methods[name].reset(new method());
 	}
 	
-	void define_method(std::string name, method m){
-		*(_methods[name]) = m;
+	void define_method(std::string name, method&& m){
+		*(_methods[name]) = std::move(m);
+	}
+	
+	void define_constructor(method&& m){
+		*_constructor = std::move(m);
 	}
 	
 	bool add_field(std::string name){
@@ -300,7 +303,7 @@ public:
 		auto name = _name;
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(name), std::move(methods), std::move(fields), _fields_size));
+		vtable_ptr ret(new vtable(std::move(name), _constructor, std::move(methods), std::move(fields), _fields_size));
 		for(const std::string& base: bases){
 			ret->derive_from(*get_vtable(base));
 		}

@@ -5,19 +5,6 @@
 
 namespace donkey{
 
-inline expression_type combined_expression_type(expression_ptr e1, expression_ptr e2){
-	if(is_variant_expression(e1) || is_variant_expression(e2)){
-		return expression_type::variant;
-	}
-	if(e1->get_type() == expression_type::function && e2->get_type() == expression_type::function){
-		return expression_type::function;
-	}
-	if(e1->get_type() == expression_type::number && e2->get_type() == expression_type::number){
-		return expression_type::number;
-	}
-	return expression_type::string;
-}
-
 class conditional_expression final: public expression{
 private:
 	expression_ptr _e1;

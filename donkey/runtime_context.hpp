@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <cstdint>
+#include <set>
 
 #include "variables.hpp"
 #include "stack.hpp"
@@ -17,6 +18,7 @@ class module;
 class runtime_context{
 	friend class stack_pusher;
 	friend class stack_remover;
+	friend class constructor_stack_manipulator;
 	friend class function_stack_manipulator;
 	friend class stack_ref_manipulator;
 	
@@ -29,6 +31,7 @@ private:
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
 	variable* _that;
+	std::set<std::string>* _constructed;
 
 	void push_default(size_t cnt){
 		_stack.add_size(cnt);
@@ -63,7 +66,8 @@ public:
 		_code(code),
 		_function_stack_bottom(0),
 		_retval_stack_index(-1),
-		_that(nullptr){
+		_that(nullptr),
+		_constructed(nullptr){
 	}
 	
 	const module* code(){
@@ -91,6 +95,13 @@ public:
 		return _that;
 	}
 	
+	bool is_constructed(const std::string& str) const{
+		return _constructed->find(str) != _constructed->end();
+	}
+	
+	void set_constructed(const std::string& str) const{
+		_constructed->insert(str);
+	}
 };
 
 class stack_pusher{
@@ -135,6 +146,24 @@ public:
 	
 	~stack_remover(){
 		_ctx.restore_stack(_removed);
+	}
+};
+
+class constructor_stack_manipulator{
+	constructor_stack_manipulator(const constructor_stack_manipulator&) = delete;
+	void operator=(const constructor_stack_manipulator&) = delete;
+private:
+	std::set<std::string> _constructed;
+	std::set<std::string>* _old_constructed;
+	runtime_context& _ctx;
+public:
+	constructor_stack_manipulator(runtime_context& ctx):
+		_old_constructed(ctx._constructed),
+		_ctx(ctx){
+		ctx._constructed = &_constructed;
+	}
+	~constructor_stack_manipulator(){
+		_ctx._constructed = _old_constructed;
 	}
 };
 

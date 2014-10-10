@@ -24,6 +24,7 @@ private:
 	std::unordered_map<std::string, base_class> _bases;
 	std::unordered_map<std::string, method_ptr> _methods;
 	std::unordered_map<std::string, size_t> _fields;
+	method_ptr _constructor;
 	size_t _fields_size;
 	
 
@@ -37,11 +38,26 @@ private:
 	}
 	
 public:
-	vtable(std::string&& name, std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields, size_t fields_size):
+	vtable(std::string&& name, method_ptr constructor, std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields, size_t fields_size):
 		_name(std::move(name)),
 		_methods(std::move(methods)),
 		_fields(std::move(fields)),
+		_constructor(constructor),
 		_fields_size(fields_size){
+	}
+	
+	void call_base_constructor(variable& that, runtime_context& ctx, size_t params_size) const{
+		if(_constructor && !ctx.is_constructed(_name)){
+			(*_constructor)(that, ctx, params_size);
+			ctx.set_constructed(_name);
+		}
+	}
+	
+	void call_constructor(variable& that, runtime_context& ctx, size_t params_size) const{
+		if(_constructor){
+			constructor_stack_manipulator _(ctx);
+			(*_constructor)(that, ctx, params_size);
+		}
 	}
 
 	variable call_member(variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{

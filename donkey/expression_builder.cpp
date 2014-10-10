@@ -15,16 +15,17 @@ enum class precedence{
 	sequential_evaluation  =  1,
 	assignment             =  2,
 	conditional_expression =  3,
-	logical_or             =  4,
-	logical_and            =  5,
-	equality               =  6,
-	relational             =  7,
-	bitwise_shift          =  8,
-	additive               =  9,
-	multiplicative         = 10,
-	unary_prefix           = 11,
-	post_dot_call          = 12,
-	scope                  = 13,
+	fallback               =  4,
+	logical_or             =  5,
+	logical_and            =  6,
+	equality               =  7,
+	relational             =  8,
+	bitwise_shift          =  9,
+	additive               = 10,
+	multiplicative         = 11,
+	unary_prefix           = 12,
+	post_dot_call          = 13,
+	scope                  = 14,
 };
 
 enum class operator_type{
@@ -150,6 +151,8 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{">>", oper::shiftr},
 	{">>=", oper::shiftr_assignment},
 	{"?", oper::conditional_question},
+	{"?\?", oper::fallback},
+	{"?\?=", oper::fallback_assignment},
 	{"\\", oper::idiv},
 	{"\\=", oper::idiv_assignment},
 	{"^", oper::bitwise_xor},
@@ -512,7 +515,10 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				
 				fetch_params(f, lookup, params, byref, line_number);
 				
-				return build_constructor_call_expression(name, params, byref);
+				if(!byref.empty()){
+					syntax_error(line_number, "cannot pass constructor parameters as reference");
+				}
+				return build_constructor_call_expression(name, params);
 			}
 			break;
 		case oper::dot:
