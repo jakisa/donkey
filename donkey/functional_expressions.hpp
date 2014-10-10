@@ -10,11 +10,11 @@ namespace donkey{
 class function_call_expression final: public expression{
 private:
 	std::vector<expression_ptr> _params;
-	std::vector<char> _byref;
+	std::vector<size_t> _byref;
 	expression_ptr _f;
 
 public:
-	function_call_expression(expression_ptr f, std::vector<expression_ptr> params, std::vector<char> byref):
+	function_call_expression(expression_ptr f, std::vector<expression_ptr> params, std::vector<size_t> byref):
 		expression(expression_type::variant),
 		_params(std::move(params)),
 		_byref(std::move(byref)),
@@ -34,17 +34,20 @@ public:
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
-		stack_ref_manipulator pusher(ctx);
+		stack_pusher pusher(ctx);
 		
 		for(size_t i = 0; i < _params.size(); ++i){
-			if(_byref[i]){
-				pusher.push_ref(static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx));
-			}else{
-				pusher.push(_params[i]->as_param(ctx));
-			}
+			pusher.push(_params[i]->as_param(ctx));
 		}
 		
-		return _f->call(ctx, _params.size());
+		variable ret = _f->call(ctx, _params.size());
+		
+		for(size_t i = 0; i < _byref.size(); ++i){
+			size_t idx = _byref[i];
+			static_cast<lvalue_expression&>(*(_params[idx])).as_lvalue(ctx) = std::move(ctx.top(_params.size() - idx - 1));
+		}
+		
+		return ret;
 	}
 
 	virtual void as_void(runtime_context & ctx) final override{
@@ -97,27 +100,28 @@ class constructor_call_expression final: public expression{
 private:
 	std::string _type_name;
 	std::vector<expression_ptr> _params;
-	std::vector<char> _byref;
+	std::vector<size_t> _byref;
 	
 	void init(variable& that, vtable* vt, runtime_context& ctx){
 		if(vt->has_method(_type_name)){
 			
-			stack_ref_manipulator pusher(ctx);
+			stack_pusher pusher(ctx);
 		
 			for(size_t i = 0; i < _params.size(); ++i){
-				if(_byref[i]){
-					pusher.push_ref(static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx));
-				}else{
-					pusher.push(_params[i]->as_param(ctx));
-				}
+				pusher.push(_params[i]->as_param(ctx));
 			}
 			
 			vt->call_member(that, ctx, _params.size(), _type_name);
+			
+			for(size_t i = 0; i < _byref.size(); ++i){
+				size_t idx = _byref[i];
+				static_cast<lvalue_expression&>(*(_params[idx])).as_lvalue(ctx) = std::move(ctx.top(_params.size() - idx - 1));
+			}
 		}
 	}
 	
 public:
-	constructor_call_expression(std::string type_name, std::vector<expression_ptr> params, std::vector<char> byref):
+	constructor_call_expression(std::string type_name, std::vector<expression_ptr> params, std::vector<size_t> byref):
 		expression(string_to_type(type_name)),
 		_type_name(type_name),
 		_params(std::move(params)),

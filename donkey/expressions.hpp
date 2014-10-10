@@ -183,9 +183,9 @@ expression_ptr build_member_expression(expression_ptr that, const std::string& m
 expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx);
 expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m);
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
+expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 
-expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref);
+expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 
 }//namespace donkey
 

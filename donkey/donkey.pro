@@ -17,8 +17,7 @@ SOURCES += main.cpp \
     core_vtables.cpp \
     runtime_context.cpp \
     donkey_object.cpp \
-    variables.cpp \
-    stack.cpp
+    variables.cpp
 
 HEADERS += \
     errors.hpp \

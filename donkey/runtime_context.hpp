@@ -175,44 +175,6 @@ public:
 	}
 };
 
-
-class stack_ref_manipulator{
-	stack_ref_manipulator(const stack_ref_manipulator&) = delete;
-	void operator=(const stack_ref_manipulator&) = delete;
-private:
-	stack_pusher _pusher;
-	std::vector<variable*> _byref;
-	std::vector<size_t> _byref_idx;
-	runtime_context& _ctx;
-	size_t _vars_cnt;
-	
-	void _update_reference(size_t i);
-public:
-	stack_ref_manipulator(runtime_context& ctx):
-		_pusher(ctx),
-		_ctx(ctx),
-		_vars_cnt(0){
-	}
-	
-	void push(variable&& v){
-		_pusher.push(std::move(v));
-		++_vars_cnt;
-	}
-	
-	void push_ref(variable& v){
-		_byref_idx.push_back(_vars_cnt++);
-		_byref.push_back(&v);
-		_pusher.push(variable(v));
-	}
-	
-	~stack_ref_manipulator(){
-		for(size_t i = 0; i < _byref.size(); ++i){
-			_update_reference(i);
-		}
-	}
-};
-
-
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
 	
 vtable* get_vtable(runtime_context& ctx, std::string name);

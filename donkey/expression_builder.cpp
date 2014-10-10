@@ -426,17 +426,30 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 
 static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup, int line_number);
 
-static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::vector<expression_ptr>& params, std::vector<char>& byref, int line_number){
+static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::vector<expression_ptr>& params, std::vector<size_t>& byref, int line_number){
 	for(part_ptr p = head->next_sibling; p; p = p->next_sibling){
 		if(p->op == oper::ref){
-			byref.push_back(true);
-			expression_ptr e = tree_to_expression(p->first_child, lookup, line_number);
-			if(e->get_type() != expression_type::lvalue){
-				semantic_error(line_number, "l-value expected");
+			byref.push_back(params.size());
+			if(p->first_child->op != oper::none || p->first_child->first_child || p->first_child->next_sibling){
+				syntax_error(line_number, "only variables can be passed by reference");
 			}
-			params.push_back(tree_to_expression(p->first_child, lookup, line_number));
+			identifier_ptr id = lookup.get_identifier(p->first_child->str);
+			
+			expression_ptr e;
+			switch(id->get_type()){
+				case identifier_type::global_variable:
+					e =  build_global_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+					break;
+				case identifier_type::local_variable:
+					e =  build_local_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+					break;
+				default:
+					semantic_error(line_number, "only variables can be passed by reference");
+					break;
+			}
+			
+			params.push_back(e);
 		}else{
-			byref.push_back(false);
 			params.push_back(tree_to_expression(p, lookup, line_number));
 		}
 	}
@@ -495,7 +508,7 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				
 				
 				std::vector<expression_ptr> params;
-				std::vector<char> byref;
+				std::vector<size_t> byref;
 				
 				fetch_params(f, lookup, params, byref, line_number);
 				
@@ -540,7 +553,7 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 			{
 				expression_ptr f = tree_to_expression(tree->first_child, lookup, line_number);
 				std::vector<expression_ptr> params;
-				std::vector<char> byref;
+				std::vector<size_t> byref;
 				
 				fetch_params(tree->first_child, lookup, params, byref, line_number);
 				

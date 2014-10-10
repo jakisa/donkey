@@ -159,8 +159,8 @@ expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_p
 }
 
 
-expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref){
-	if(std::find(byref.begin(), byref.end(), 1) == byref.end()){
+expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref){
+	if(byref.empty()){
 		return expression_ptr(new function_call_expression_byval(f, params));
 	}else{
 		return expression_ptr(new function_call_expression(f, params, byref));
@@ -208,7 +208,7 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& t
 	return expression_ptr(new method_expression(that, type, m));
 }
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<char>& byref){
+expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref){
 	return expression_ptr(new constructor_call_expression(type_name, params, byref));
 }
 
