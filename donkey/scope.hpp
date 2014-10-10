@@ -111,17 +111,20 @@ public:
 	}
 	
 	statement get_block(){
-		if((get_number_of_variables() == 0 || _is_function || is_global()) && _statements.size() < 2){
+		size_t vars_cnt = (is_global() || _is_function) ? 0 : get_number_of_variables();
+	
+		if(vars_cnt == 0){
 			if(_statements.empty()){
 				return statement(empty_statement);
+			}else if(_statements.size() == 1){
+				return std::move(_statements.front());
+			}else{
+				return statement(block_statement(std::move(_statements)));
 			}
 			return std::move(_statements.front());
 		}
-		if(is_global() || _is_function){
-			return statement(block_statement(std::move(_statements), 0));
-		}
 		
-		return statement(block_statement(std::move(_statements), _var_index - _initial_index));
+		return statement(vars_block_statement(std::move(_statements), vars_cnt));
 	}
 	
 	std::vector<statement> get_statements(){

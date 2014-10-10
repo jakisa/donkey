@@ -86,7 +86,9 @@ public:
 				runtime_error("not enough function parameters provided");
 				return variable();
 			}
-			pusher.push(_dflts.end() - missing, _dflts.end());
+			for(auto it = _dflts.end() - missing; it != _dflts.end(); ++it){
+				pusher.push(variable(*it));
+			}
 			sz = sizeof...(Args);
 		}
 	
@@ -117,7 +119,9 @@ public:
 				runtime_error("not enough function parameters provided");
 				return variable();
 			}
-			pusher.push(_dflts.end() - missing, _dflts.end());
+			for(auto it = _dflts.end() - missing; it != _dflts.end(); ++it){
+				pusher.push(variable(*it));
+			}
 			sz = sizeof...(Args);
 		}
 	

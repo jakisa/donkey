@@ -1,22 +1,14 @@
 function fib(n){
     if(n < 2){
 	return n;
+    }else{
+	return fib(n-2) + fib(n-1);
     }
-    return fib(n-2) + fib(n-1);
 }
 
 
 var a = fib(30);
 
-/*
-function f(x, y){
-    x = y;
-}
-
-var a;
-
-f(ref a, 13);
-*/
 
 //first: 0.75
 //make_shared: 0.65

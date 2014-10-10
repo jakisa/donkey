@@ -492,8 +492,19 @@ private:
 			scope s(&target);
 			compile_statement(s, parser);
 			ss.push_back(s.get_block());
+		}else{
+			ss.push_back(&empty_statement);
 		}
-		target.add_statement(if_statement(std::move(es), std::move(ss)));
+		
+		if(es.size() == 1){
+			if(ss.size() == 1){
+				target.add_statement(simple_if_statement(es.front(), std::move(ss.front())));
+			}else{
+				target.add_statement(if_else_statement(es.front(), std::move(ss.front()), std::move(ss.back())));
+			}
+		}else{
+			target.add_statement(if_statement(std::move(es), std::move(ss)));
+		}
 	}
 
 	void compile_switch(scope& target, tokenizer& parser){

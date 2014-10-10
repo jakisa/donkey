@@ -1,5 +1,5 @@
-#ifndef __context_hpp__
-#define __context_hpp__
+#ifndef __runtime_context_hpp__
+#define __runtime_context_hpp__
 
 #include <vector>
 #include <memory>
@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "variables.hpp"
+#include "stack.hpp"
 
 namespace donkey{
 
@@ -23,37 +24,37 @@ class runtime_context{
 	void operator=(const runtime_context&) = delete;
 private:
 	std::vector<variable> _globals;
-	std::vector<variable> _stack;
+	stack _stack;
 	const module* _code;
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
 	variable* _that;
 
 	void push_default(size_t cnt){
-		_stack.resize(_stack.size() + cnt);
+		_stack.add_size(cnt);
 	}
 
 	void push(variable&& v){
-		_stack.push_back(std::move(v));
+		_stack.push(std::move(v));
 	}
 	
-	template<class It>
-	void push(It begin, It end){
-		_stack.insert(_stack.end(), begin, end);
-	}
 	void pop(size_t cnt){
-		_stack.erase(_stack.end() - cnt, _stack.end());
+		_stack.pop(cnt);
+	}
+	
+	size_t stack_size(){
+		return _stack.size();
 	}
 	
 	void store_stack(std::vector<variable>& vs, size_t cnt){
-		for(size_t i = _stack.size() - cnt; i != _stack.size(); ++i){
-			vs.push_back(std::move(_stack[i]));
+		for(size_t i = 0; i < cnt; ++i){
+			vs.push_back(std::move(_stack.top(i)));
 		}
-		_stack.resize(_stack.size() - cnt);
+		_stack.pop(cnt);
 	}
 	void restore_stack(std::vector<variable>& vs){
-		for(variable& v: vs){
-			_stack.push_back(std::move(v));
+		for(size_t i = vs.size(); i > 0; --i){
+			_stack.push(std::move(vs[i-1]));
 		}
 	}
 public:
@@ -70,7 +71,7 @@ public:
 	}
 	
 	variable& top(size_t idx = 0){
-		return _stack[_stack.size() - idx - 1];
+		return _stack.top(idx);
 	}
 	
 	variable& local(size_t idx){
@@ -107,12 +108,6 @@ public:
 	void push(variable&& v){
 		_ctx.push(std::move(v));
 		++_cnt;
-	}
-	
-	template<class It>
-	void push(It begin, It end){
-		_ctx.push(begin, end);
-		_cnt += (end - begin);
 	}
 	
 	void push_default(size_t cnt){
@@ -165,8 +160,8 @@ public:
 		if(expected_params > passed_params){
 			_pusher.push_default(expected_params - passed_params);
 		}
-		_ctx._function_stack_bottom = _ctx._stack.size() - expected_params;
-		_ctx._retval_stack_index = _ctx._stack.size();
+		_ctx._function_stack_bottom = _ctx.stack_size() - expected_params;
+		_ctx._retval_stack_index = _ctx.stack_size();
 		
 		_ctx._that = that;
 		
@@ -190,6 +185,8 @@ private:
 	std::vector<size_t> _byref_idx;
 	runtime_context& _ctx;
 	size_t _vars_cnt;
+	
+	void _update_reference(size_t i);
 public:
 	stack_ref_manipulator(runtime_context& ctx):
 		_pusher(ctx),
@@ -210,7 +207,7 @@ public:
 	
 	~stack_ref_manipulator(){
 		for(size_t i = 0; i < _byref.size(); ++i){
-			*_byref[i] = _ctx.top(_vars_cnt - _byref_idx[i] - 1);
+			_update_reference(i);
 		}
 	}
 };
@@ -224,5 +221,5 @@ vtable* get_vtable(runtime_context& ctx, const variable& v);
 }//namespace donkey
 
 
-#endif /*__context_hpp__*/
+#endif /*__runtime_context_hpp__*/
 

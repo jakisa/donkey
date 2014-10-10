@@ -11,6 +11,8 @@
 #include "functional_expressions.hpp"
 #include "identifiers.hpp"
 
+#include <algorithm>
+
 namespace donkey{
 
 inline lvalue_expression_ptr to_l(expression_ptr e){
@@ -158,7 +160,11 @@ expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_p
 
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<char>& byref){
-	return expression_ptr(new function_call_expression(f, params, byref));
+	if(std::find(byref.begin(), byref.end(), 1) == byref.end()){
+		return expression_ptr(new function_call_expression_byval(f, params));
+	}else{
+		return expression_ptr(new function_call_expression(f, params, byref));
+	}
 }
 
 

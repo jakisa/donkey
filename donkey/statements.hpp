@@ -34,22 +34,22 @@ public:
 	}
 };
 
-class block_statement{
+class vars_block_statement{
 private:
 	std::vector<statement> _ss;
 	size_t _locals_count;
 public:
-	block_statement(block_statement&& orig):
+	vars_block_statement(vars_block_statement&& orig):
 		_ss(std::move(orig._ss)),
 		_locals_count(orig._locals_count){
 	}
 	
-	block_statement(const block_statement& orig):
+	vars_block_statement(const vars_block_statement& orig):
 		_ss(orig._ss),
 		_locals_count(orig._locals_count){
 	}
 	
-	block_statement(std::vector<statement>&& ss, int locals_count):
+	vars_block_statement(std::vector<statement>&& ss, int locals_count):
 		_ss(ss),
 		_locals_count(locals_count){
 	}
@@ -58,6 +58,32 @@ public:
 		
 		pusher.push_default(_locals_count);
 		
+		for(const statement& s: _ss){
+			statement_retval r = s(ctx);
+			if(r != statement_retval::nxt){
+				return r;
+			}
+		}
+		return statement_retval::nxt;
+	}
+};
+
+class block_statement{
+private:
+	std::vector<statement> _ss;
+public:
+	block_statement(block_statement&& orig):
+		_ss(std::move(orig._ss)){
+	}
+	
+	block_statement(const block_statement& orig):
+		_ss(orig._ss){
+	}
+	
+	block_statement(std::vector<statement>&& ss):
+		_ss(ss){
+	}
+	statement_retval operator()(runtime_context& ctx) const{
 		for(const statement& s: _ss){
 			statement_retval r = s(ctx);
 			if(r != statement_retval::nxt){
@@ -196,9 +222,63 @@ public:
 				return _ss[i](ctx);
 			}
 		}
-		if(_ss.size() > _es.size()){
-			return _ss.back()(ctx);
+		return _ss.back()(ctx);
+	}
+};
+
+class simple_if_statement{
+private:
+	expression_ptr _e;
+	statement _s;
+public:
+	simple_if_statement(simple_if_statement&& orig):
+		_e(orig._e),
+		_s(std::move(orig._s)){
+	}
+	simple_if_statement(const simple_if_statement& orig):
+		_e(orig._e),
+		_s(orig._s){
+	}
+	simple_if_statement(expression_ptr e, statement&& s):
+		_e(e),
+		_s(std::move(s)){
+	}
+	
+	statement_retval operator()(runtime_context& ctx) const{
+		if(_e->as_number(ctx)){
+			return _s(ctx);
 		}
+		return statement_retval::nxt;
+	}
+};
+
+class if_else_statement{
+private:
+	expression_ptr _e;
+	statement _s;
+	statement _else;
+public:
+	if_else_statement(if_else_statement&& orig):
+		_e(orig._e),
+		_s(std::move(orig._s)),
+		_else(std::move(orig._else)){
+	}
+	if_else_statement(const if_else_statement& orig):
+		_e(orig._e),
+		_s(orig._s),
+		_else(orig._else){
+	}
+	if_else_statement(expression_ptr e, statement&& s, statement&& els):
+		_e(e),
+		_s(std::move(s)),
+		_else(std::move(els)){
+	}
+	
+	statement_retval operator()(runtime_context& ctx) const{
+		if(_e->as_number(ctx)){
+			return _s(ctx);
+		}
+		_else(ctx);
 		return statement_retval::nxt;
 	}
 };
