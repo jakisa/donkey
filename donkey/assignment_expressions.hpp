@@ -16,7 +16,8 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		return _e1->as_lvalue(ctx) = _e2->as_param(ctx);
+		variable v2 = _e2->as_param(ctx);
+		return _e1->as_lvalue(ctx) = v2;
 	}
 	virtual void as_void(runtime_context& ctx) override{
 		as_lvalue(ctx);
@@ -34,9 +35,10 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		v.as_lnumber() *= _e2->as_number(ctx);
-		return v;
+		number v2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		v1.as_lnumber() *= v2;
+		return v1;
 	}
 	virtual void as_void(runtime_context& ctx) override{
 		as_lvalue(ctx);
@@ -54,9 +56,10 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		v.as_lnumber() /= _e2->as_number(ctx);
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		v1.as_lnumber() /= n2;
+		return v1;
 	}
 	virtual void as_void(runtime_context& ctx) override{
 		as_lvalue(ctx);
@@ -74,10 +77,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) / integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) / integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -96,10 +100,12 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = fmod(n, _e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = fmod(n1, n2);
+		return v1;
+		
 	}
 	virtual void as_void(runtime_context& ctx) override{
 		as_lvalue(ctx);
@@ -117,9 +123,10 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		v.as_lnumber() += _e2->as_number(ctx);
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		v1.as_lnumber() += n2;
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -138,9 +145,10 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		v.as_lnumber() -= _e2->as_number(ctx);
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		v1.as_lnumber() -= n2;
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -160,10 +168,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) << integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) << integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -182,10 +191,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) >> integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) >> integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -204,10 +214,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) & integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) & integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -226,10 +237,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) ^ integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) ^ integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -248,10 +260,11 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		number& n = v.as_lnumber();
-		n = integer(n) | integer(_e2->as_number(ctx));
-		return v;
+		number n2 = _e2->as_number(ctx);
+		variable& v1 = _e1->as_lvalue(ctx);
+		number& n1 = v1.as_lnumber();
+		n1 = integer(n1) | integer(n2);
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{

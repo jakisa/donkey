@@ -40,8 +40,9 @@ public:
 	}
 	
 	virtual variable& as_lvalue(runtime_context& ctx) override{
+		std::string str = _e2->as_string(ctx);
 		variable& v = _e1->as_lvalue(ctx);
-		v = variable(v.to_string() + _e2->as_string(ctx));
+		v = variable(v.to_string() + std::move(str));
 		return v;
 	}
 	

@@ -45,11 +45,13 @@ public:
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable& v = _e1->as_lvalue(ctx);
-		if(v.get_data_type() == var_type::nothing){
-			v = _e2->as_param(ctx);
+		variable v2 = _e2->as_param(ctx);
+		
+		variable& v1 = _e1->as_lvalue(ctx);
+		if(v1.get_data_type() == var_type::nothing){
+			v1 = v2;
 		}
-		return v;
+		return v1;
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
