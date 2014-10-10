@@ -1,6 +1,7 @@
 #include "donkey_object.hpp"
 #include "variables.hpp"
 #include "vtable.hpp"
+#include "runtime_context.hpp"
 
 #include <vector>
 
@@ -44,5 +45,8 @@ donkey_object::~donkey_object(){
 	delete _data;
 }
 
+void donkey_object::dispose(const variable &v, runtime_context &ctx){
+	_data->vt->call_destructor(v, ctx);
+}
 
 }//donkey

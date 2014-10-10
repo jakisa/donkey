@@ -128,6 +128,22 @@ private:
 		}
 	}
 	
+	void skip_destructor(tokenizer& parser){
+		do{
+			++parser;
+		}while(parser && *parser != "{");
+		
+		parse("{", parser);
+		
+		for(int nesting = 1; parser && nesting; ++parser){
+			if(*parser == "{"){
+				++nesting;
+			}else if(*parser == "}"){
+				--nesting;
+			}
+		}
+	}
+	
 	const vtable* add_table(std::unordered_set<const vtable*>& tables, const vtable* table){
 		if(tables.find(table) != tables.end()){
 			return table->get_fields_size() ? table : nullptr;
@@ -159,6 +175,20 @@ private:
 			}
 		}
 		return "";
+	}
+	
+	static variable default_constructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, size_t params_size){
+		for(vtable* vt: bases){
+			vt->call_base_constructor(that, ctx, params_size);
+		}
+		return variable();
+	}
+	
+	static variable default_destructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, size_t){
+		for(size_t i = bases.size(); i > 0; --i){
+			bases[i-1]->call_base_destructor(that, ctx);
+		}
+		return variable();
 	}
 	
 	void compile_class(scope& target, tokenizer& parser){
@@ -206,6 +236,7 @@ private:
 		parse("{", parser);
 		
 		bool constructor_defined = false;
+		bool destructor_defined = false;
 		
 		for(tokenizer stub_parser = parser; *stub_parser != "}";){
 			if(*stub_parser == "var"){
@@ -218,9 +249,30 @@ private:
 				}
 				skip_constructor(stub_parser);
 				constructor_defined = true;
+			}else if(*stub_parser == "~"){
+				if(destructor_defined){
+					semantic_error(parser.get_line_number(), "destructor is already defined");
+				}
+				skip_destructor(stub_parser);
+				destructor_defined = true;
 			}
 		}
 		
+		if(!constructor_defined){
+			std::vector<vtable*> bases_vt;
+			for(const std::string& base: bases){
+				bases_vt.push_back(gtarget.get_vtable(base));
+			}
+			ctarget.define_constructor(std::bind(&compiler::priv::default_constructor, bases_vt, _1, _2, _3));
+		}
+		
+		if(!destructor_defined){
+			std::vector<vtable*> bases_vt;
+			for(const std::string& base: bases){
+				bases_vt.push_back(gtarget.get_vtable(base));
+			}
+			ctarget.define_destructor(std::bind(&compiler::priv::default_destructor, bases_vt, _1, _2, _3));
+		}
 		
 		gtarget.add_vtable(name, ctarget.create_vtable(bases));
 		
@@ -231,6 +283,8 @@ private:
 				compile_function(ctarget, parser);
 			}else if(*parser == name){
 				compile_constructor(ctarget, parser, bases);
+			}else if(*parser == "~"){
+				compile_destructor(ctarget, parser, bases);
 			}
 		}
 		
@@ -376,6 +430,7 @@ private:
 			++parser;
 			while(parser && *parser != "{"){
 				std::string base_name = parse_allowed_name(parser);
+				
 				auto it = constructed.find(base_name);
 				
 				if(it == constructed.end()){
@@ -428,6 +483,44 @@ private:
 		                        &compiler::priv::has_constructor,
 		                        std::bind(&compiler::priv::compile_pre_constructor, std::cref(bases), _1, _2)
 		);
+	}
+	
+	static void declare_destructor(tokenizer& parser, std::string, bool forward){
+		if(forward){
+			syntax_error(parser.get_line_number(), "forward declaration of destructor is not supported not useful");
+		}
+	}
+	
+	static void define_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases, std::string, scope& function_scope, size_t params_size){
+		if(params_size){
+			syntax_error(parser.get_line_number(), "destructor cannot have parameters");
+		}
+		
+		for(size_t i = bases.size(); i != 0; --i){
+			function_scope.add_statement(base_destructor_statement(target.get_vtable(bases[i-1])));
+		}
+		
+		target.define_destructor(donkey_method(params_size, function_scope.get_block()));
+	}
+	
+	static bool has_destructor(std::string){
+		return false;
+	}
+	
+	void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases){
+		++parser;
+		if(*parser != target.get_current_class()){
+			unexpected_error(parser.get_line_number(), *parser);
+		}
+		++parser;
+		
+		compile_function_helper("", target, parser,
+		                        std::bind(&compiler::priv::declare_destructor, std::ref(parser), _1, _2),
+		                        std::bind(&compiler::priv::define_destructor, std::ref(target), std::ref(parser), std::cref(bases), _1, _2, _3),
+		                        &compiler::priv::has_destructor,
+		                        &compiler::priv::ignore_pre_function
+		);
+		
 	}
 	
 	void compile_field(class_scope& target, tokenizer& parser){

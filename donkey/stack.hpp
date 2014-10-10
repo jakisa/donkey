@@ -24,7 +24,9 @@ public:
 	}
 	
 	void pop(size_t cnt){
-		_v.resize(_v.size() - cnt);
+		for(size_t i = 0; i < cnt; ++i){
+			_v.pop_back();
+		}
 	}
 	
 	variable& top(size_t idx){

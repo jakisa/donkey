@@ -54,7 +54,7 @@ public:
 		_params_count(params_count),
 		_body(std::move(body)){
 	}
-	variable operator()(variable& that, runtime_context& ctx, size_t params_count) const{
+	variable operator()(const variable& that, runtime_context& ctx, size_t params_count) const{
 		function_stack_manipulator _(ctx, _params_count, params_count, &that);
 		
 		_body(ctx);

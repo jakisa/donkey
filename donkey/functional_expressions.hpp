@@ -119,7 +119,7 @@ public:
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		vtable* vt = get_vtable(ctx, _type_name);
-		variable ret(vt);
+		variable ret(vt, ctx);
 		init(ret, vt, ctx);
 		return ret;
 	}

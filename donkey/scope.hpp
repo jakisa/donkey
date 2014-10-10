@@ -244,6 +244,7 @@ private:
 	std::unordered_map<std::string, method_ptr> _methods;
 	std::unordered_map<std::string, size_t> _fields;
 	method_ptr _constructor;
+	method_ptr _destructor;
 	std::string _name;
 	size_t _fields_size;
 	
@@ -258,6 +259,7 @@ public:
 	class_scope(std::string name, scope* parent):
 		scope(parent, false, false, false, false, true),
 		_constructor(new method()),
+		_destructor(new method()),
 		_name(name),
 		_fields_size(0){
 	}
@@ -276,6 +278,10 @@ public:
 	
 	void define_constructor(method&& m){
 		*_constructor = std::move(m);
+	}
+	
+	void define_destructor(method&& m){
+		*_destructor = std::move(m);
 	}
 	
 	bool add_field(std::string name){
@@ -303,7 +309,7 @@ public:
 		auto name = _name;
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(name), _constructor, std::move(methods), std::move(fields), _fields_size));
+		vtable_ptr ret(new vtable(std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size));
 		for(const std::string& base: bases){
 			ret->derive_from(*get_vtable(base));
 		}

@@ -111,7 +111,7 @@ public:
 		detail::unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
 	}
 
-	variable operator()(variable& that, runtime_context& ctx, size_t sz){
+	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
 		stack_pusher pusher(ctx);
 		if(sz < sizeof...(Args)){
 			size_t missing = sizeof...(Args) - sz;

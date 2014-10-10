@@ -7,6 +7,8 @@ namespace donkey{
 
 class variable;
 
+class runtime_context;
+
 class vtable;
 
 class donkey_object{
@@ -21,6 +23,7 @@ public:
 	variable& get_field(size_t i);
 	const std::string& get_type_name() const;
 	std::string to_string() const;
+	void dispose(const variable& v, runtime_context& ctx);
 	~donkey_object();
 };
 

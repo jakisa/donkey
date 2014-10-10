@@ -17,7 +17,7 @@ void variable::_dec_counts_impl() const{
 			_h_ptr->remove_shared_array<char>();
 			break;
 		case var_type::object:
-			_h_ptr->remove_shared<donkey_object>();
+			_h_ptr->remove_shared_object(*this);
 			break;
 		case var_type::function:
 			_h_ptr->remove_shared<function>();

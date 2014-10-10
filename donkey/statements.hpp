@@ -413,6 +413,26 @@ public:
 	}
 };
 
+class base_destructor_statement{
+private:
+	vtable* _vt;
+public:
+	base_destructor_statement(vtable* vt):
+		_vt(vt){
+	}
+	base_destructor_statement(base_destructor_statement&& orig):
+		_vt(orig._vt){
+	}
+	base_destructor_statement(const base_destructor_statement& orig):
+		_vt(orig._vt){
+	}
+	statement_retval operator()(runtime_context& ctx) const{
+		_vt->call_base_destructor(*ctx.that(), ctx);
+		
+		return statement_retval::nxt;
+	}
+};
+
 }//donkey
 
 #endif /*__statements_hpp__*/

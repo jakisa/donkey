@@ -30,7 +30,7 @@ private:
 	const module* _code;
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
-	variable* _that;
+	const variable* _that;
 	std::set<std::string>* _constructed;
 
 	void push_default(size_t cnt){
@@ -70,6 +70,13 @@ public:
 		_constructed(nullptr){
 	}
 	
+	~runtime_context(){
+		_stack.pop(_stack.size());
+		for(size_t i = _globals.size(); i != 0; --i){
+			_globals[i-1].reset();
+		}
+	}
+	
 	const module* code(){
 		return _code;
 	}
@@ -91,7 +98,7 @@ public:
 	}
 
 	
-	variable* that(){
+	const variable* that(){
 		return _that;
 	}
 	
@@ -99,8 +106,16 @@ public:
 		return _constructed->find(str) != _constructed->end();
 	}
 	
+	bool is_destroyed(const std::string& str) const{
+		return is_constructed(str);
+	}
+	
 	void set_constructed(const std::string& str) const{
 		_constructed->insert(str);
+	}
+	
+	void set_destroyed(const std::string& str) const{
+		set_constructed(str);
 	}
 };
 
@@ -167,6 +182,8 @@ public:
 	}
 };
 
+typedef constructor_stack_manipulator destructor_stack_manipulator;
+
 class function_stack_manipulator{
 	function_stack_manipulator(const function_stack_manipulator&) = delete;
 	void operator=(const function_stack_manipulator&) = delete;
@@ -176,9 +193,9 @@ private:
 	runtime_context& _ctx;
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
-	variable* _that;
+	const variable* _that;
 public:
-	function_stack_manipulator(runtime_context& ctx, size_t expected_params, size_t passed_params, variable* that = nullptr):
+	function_stack_manipulator(runtime_context& ctx, size_t expected_params, size_t passed_params, const variable* that = nullptr):
 		_remover(ctx, expected_params < passed_params ? passed_params - expected_params : 0),
 		_pusher(ctx),
 		_ctx(ctx),

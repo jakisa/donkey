@@ -108,10 +108,12 @@ class heap_header{
 private:
 	size_t _s_count;
 	size_t _u_count;
+	runtime_context* _ctx;
 	void* _p;
-	heap_header(void* p):
+	heap_header(void* p, runtime_context* ctx = nullptr):
 		_s_count(1),
 		_u_count(1),
+		_ctx(ctx),
 		_p(p){
 	}
 public:
@@ -138,6 +140,19 @@ public:
 		--_s_count;
 		if(!_s_count){
 			delete[] static_cast<T*>(_p);
+			_p = nullptr;
+		}
+		--_u_count;
+		if(!_u_count){
+			delete this;
+		}
+	}
+	
+	void remove_shared_object(const variable& v){
+		--_s_count;
+		if(!_s_count){
+			static_cast<donkey_object*>(_p)->dispose(v, *_ctx);
+			delete static_cast<donkey_object*>(_p);
 			_p = nullptr;
 		}
 		--_u_count;
@@ -272,12 +287,12 @@ public:
 		_vt = var_type::function;
 	}
 	
-	explicit variable(vtable* vt){
+	explicit variable(vtable* vt, runtime_context& ctx){
 		donkey_object* p = new donkey_object(vt);
 		if(!p){
 			runtime_error("out of memory");
 		}
-		_h_ptr = new heap_header(p);
+		_h_ptr = new heap_header(p, &ctx);
 		if(!_h_ptr){
 			delete p;
 			runtime_error("out of memory");
