@@ -8,6 +8,7 @@
 #include <set>
 
 #include "variables.hpp"
+#include "stack.hpp"
 
 namespace donkey{
 
@@ -15,34 +16,63 @@ class module;
 
 
 class runtime_context{
-	friend class function_stack_manipulator;
+	friend class stack_pusher;
+	friend class stack_remover;
 	friend class constructor_stack_manipulator;
+	friend class function_stack_manipulator;
+	friend class stack_ref_manipulator;
 	
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
 private:
 	std::vector<variable> _globals;
-	variable* _locals;
-	variable* _params;
-	size_t _params_cnt;
-	variable* _dflt;
+	stack _stack;
 	const module* _code;
+	size_t _function_stack_bottom;
+	size_t _retval_stack_index;
 	const variable* _that;
 	std::set<std::string>* _constructed;
-	variable _retval;
+
+	void push_default(size_t cnt){
+		_stack.add_size(cnt);
+	}
+
+	void push(variable&& v){
+		_stack.push(std::move(v));
+	}
+	
+	void pop(size_t cnt){
+		_stack.pop(cnt);
+	}
+	
+	size_t stack_size(){
+		return _stack.size();
+	}
+	
+	void store_stack(std::vector<variable>& vs, size_t cnt){
+		for(size_t i = 0; i < cnt; ++i){
+			vs.push_back(std::move(_stack.top(i)));
+		}
+		_stack.pop(cnt);
+	}
+	void restore_stack(std::vector<variable>& vs){
+		for(size_t i = vs.size(); i > 0; --i){
+			_stack.push(std::move(vs[i-1]));
+		}
+	}
 public:
-	runtime_context(const module* code, size_t globals_count):
+	runtime_context(const module* code, size_t globals_count, size_t stack_size):
 		_globals(globals_count),
-		_locals(nullptr),
-		_params(nullptr),
-		_params_cnt(0),
-		_dflt(nullptr),
+		_stack(stack_size),
 		_code(code),
+		_function_stack_bottom(0),
+		_retval_stack_index(-1),
 		_that(nullptr),
 		_constructed(nullptr){
 	}
 	
 	~runtime_context(){
+		_stack.pop(_stack.size());
 		for(size_t i = _globals.size(); i != 0; --i){
 			_globals[i-1].reset();
 		}
@@ -52,21 +82,22 @@ public:
 		return _code;
 	}
 	
-	variable& local(size_t idx){
-		return _locals[idx];
+	variable& top(size_t idx = 0){
+		return _stack.top(idx);
 	}
 	
-	variable& param(size_t idx){
-		return idx < _params_cnt ? _params[idx] : _dflt[idx - _params_cnt];
+	variable& local(size_t idx){
+		return _stack[_function_stack_bottom + idx];
 	}
 	
 	variable& global(size_t idx){
 		return _globals[idx];
 	}
 	
-	variable& retval(){
-		return _retval;
+	void set_retval(variable&& v){
+		_stack[_retval_stack_index] = std::move(v);
 	}
+
 	
 	const variable* that(){
 		return _that;
@@ -89,6 +120,50 @@ public:
 	}
 };
 
+class stack_pusher{
+	stack_pusher(const stack_pusher&) = delete;
+	void operator=(const stack_pusher&) = delete;
+private:
+	runtime_context& _ctx;
+	size_t _cnt;
+public:
+	stack_pusher(runtime_context& _ctx):
+		_ctx(_ctx),
+		_cnt(0){
+	}
+	
+	void push(variable&& v){
+		_ctx.push(std::move(v));
+		++_cnt;
+	}
+	
+	void push_default(size_t cnt){
+		_ctx.push_default(cnt);
+		_cnt += cnt;
+	}
+	
+	~stack_pusher(){
+		_ctx.pop(_cnt);
+	}
+};
+
+class stack_remover{
+	stack_remover(const stack_remover&) = delete;
+	void operator=(const stack_remover&) = delete;
+private:
+	std::vector<variable> _removed;
+	runtime_context& _ctx;
+public:
+	stack_remover(runtime_context& ctx, size_t remove_cnt):
+		_ctx(ctx){
+		_removed.reserve(remove_cnt);
+		_ctx.store_stack(_removed, remove_cnt);
+	}
+	
+	~stack_remover(){
+		_ctx.restore_stack(_removed);
+	}
+};
 
 class constructor_stack_manipulator{
 	constructor_stack_manipulator(const constructor_stack_manipulator&) = delete;
@@ -114,59 +189,40 @@ class function_stack_manipulator{
 	function_stack_manipulator(const function_stack_manipulator&) = delete;
 	void operator=(const function_stack_manipulator&) = delete;
 private:
+	stack_remover _remover;
+	stack_pusher _pusher;
 	runtime_context& _ctx;
-	variable* _locals;
-	variable* _params;
-	size_t _params_cnt;
-	variable* _dflt;
+	size_t _function_stack_bottom;
+	size_t _retval_stack_index;
 	const variable* _that;
 public:
-	function_stack_manipulator(runtime_context& ctx, variable* locals, variable* params, size_t params_cnt, variable* dflt, const variable* that):
+	function_stack_manipulator(runtime_context& ctx, size_t expected_params, size_t passed_params, const variable* that = nullptr):
+		_remover(ctx, expected_params < passed_params ? passed_params - expected_params : 0),
+		_pusher(ctx),
 		_ctx(ctx),
-		_locals(ctx._locals),
-		_params(ctx._params),
-		_params_cnt(ctx._params_cnt),
-		_dflt(ctx._dflt),
+		_function_stack_bottom(ctx._function_stack_bottom),
+		_retval_stack_index(ctx._retval_stack_index),
 		_that(ctx._that){
 		
-		_ctx._locals = locals;
-		_ctx._params = params;
-		_ctx._params_cnt = params_cnt;
-		_ctx._dflt = dflt;
+		if(expected_params > passed_params){
+			_pusher.push_default(expected_params - passed_params);
+		}
+		_ctx._function_stack_bottom = _ctx.stack_size() - expected_params;
+		_ctx._retval_stack_index = _ctx.stack_size();
+		
 		_ctx._that = that;
+		
+		_pusher.push_default(1);
 	}
 	
 	~function_stack_manipulator(){
+		_ctx._function_stack_bottom = _function_stack_bottom;
+		_ctx._retval_stack_index = _retval_stack_index;
 		_ctx._that = _that;
-		_ctx._dflt = _dflt;
-		_ctx._params_cnt = _params_cnt;
-		_ctx._params = _params;
-		_ctx._locals = _locals;
-		_ctx.retval().reset();
 	}
 };
 
-class scope_stack_manipulator{
-	scope_stack_manipulator(const scope_stack_manipulator&) = delete;
-	void operator=(const scope_stack_manipulator&) = delete;
-	runtime_context& _ctx;
-	size_t _begin;
-	size_t _end;
-public:
-	scope_stack_manipulator(runtime_context& ctx, size_t begin, size_t end):
-		_ctx(ctx),
-		_begin(begin),
-		_end(end){
-	}
-	
-	~scope_stack_manipulator(){
-		for(size_t i = _end; i != _begin; --i){
-			_ctx.local(i-1).reset();
-		}
-	}
-};
-
-variable call_function_by_address(code_address addr, runtime_context& ctx, variable* params, size_t params_size);
+variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
 	
 vtable* get_vtable(runtime_context& ctx, std::string name);
 vtable* get_vtable(runtime_context& ctx, const variable& v);

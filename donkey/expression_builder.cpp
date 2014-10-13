@@ -52,8 +52,10 @@ inline operator_type get_operator_type(oper op){
 		case precedence::none:
 			switch(op){
 				case oper::bracket_open:
+				case oper::subscript_open:
 					return operator_type::opening;
 				case oper::bracket_close:
+				case oper::subscript_close:
 					return operator_type::closing;
 				default:
 					return operator_type::none;
@@ -66,6 +68,7 @@ inline operator_type get_operator_type(oper op){
 				case oper::post_inc:
 					return operator_type::unary_postfix;
 				case oper::call:
+				case oper::subscript:
 					return operator_type::call;
 				default:
 					return operator_type::binary;
@@ -153,8 +156,10 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{"?", oper::conditional_question},
 	{"?\?", oper::fallback},
 	{"?\?=", oper::fallback_assignment},
+	{"[", oper::subscript_open},
 	{"\\", oper::idiv},
 	{"\\=", oper::idiv_assignment},
+	{"]", oper::subscript_close},
 	{"^", oper::bitwise_xor},
 	{"^=", oper::xor_assignment},
 	{"new", oper::construct},
@@ -196,14 +201,14 @@ inline bool bigger_precedence(oper next, oper on_stack){
 }
 
 inline bool is_opening(const tokenizer& parser){
-	return *parser == "(" || *parser == "?";
+	return *parser == "(" || *parser == "?" || *parser == "[";
 }
 
 inline bool is_closing(const tokenizer& parser, bool declaration){
 	if(!parser){
 		return true;
 	}
-	return *parser == "" || *parser == ";" || *parser == ")" || *parser == ":" || (declaration && *parser == ",");
+	return *parser == "" || *parser == ";" || *parser == ")" || *parser == "]" || *parser == ":" || (declaration && *parser == ",");
 }
 
 inline bool matching_brackets(oper opening, oper closing){
@@ -212,6 +217,8 @@ inline bool matching_brackets(oper opening, oper closing){
 			return closing == oper::bracket_close;
 		case oper::conditional_question:
 			return closing == oper::conditional_colon;
+		case oper::subscript_open:
+			return closing == oper::subscript_close;
 		default:
 			return false;
 	}
@@ -274,12 +281,17 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 		if(is_opening(parser)){
 			oper opening = string_to_oper(*parser);
 			bool function_call = false;
+			bool subscript = false;
 			
 			if(opening == oper::conditional_question){
 				check_left_operand(is_left_operand, parser, true);
 				consume_stack(oper::conditional_question, parser.get_line_number(), stack, parts);
 			}else if(opening == oper::bracket_open){
 				function_call = is_left_operand;
+			}else if(opening == oper::subscript_open){
+				check_left_operand(is_left_operand, parser, true);
+				consume_stack(oper::subscript, parser.get_line_number(), stack, parts);
+				subscript = true;
 			}
 			
 			++parser;
@@ -315,6 +327,10 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 					
 					last_param = param;
 				}
+			}else if(subscript){
+				inner = part_ptr(new expression_part{oper::subscript, "", parts.back(), part_ptr()});
+				parts.pop_back();
+				inner->first_child->next_sibling = create_expression_tree(parser, false, false);
 			}else{
 				inner = create_expression_tree(parser, false, false);
 			}
@@ -415,8 +431,6 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 			return build_global_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
 		case identifier_type::local_variable:
 			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
-		case identifier_type::parameter:
-			return build_parameter_expression(static_cast<parameter_identifier&>(*id).get_index());
 		case identifier_type::function:
 			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
 		case identifier_type::classname:
@@ -447,9 +461,6 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 					break;
 				case identifier_type::local_variable:
 					e =  build_local_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
-					break;
-				case identifier_type::parameter:
-					e =  build_parameter_expression(static_cast<global_variable_identifier&>(*id).get_index());
 					break;
 				default:
 					semantic_error(line_number, "only variables can be passed by reference");
@@ -571,6 +582,11 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				return build_function_call_expression(f, params, byref);
 			}
 			break;
+		case oper::subscript:
+			return build_index_expression(
+				tree_to_expression(tree->first_child, lookup, line_number),
+				tree_to_expression(tree->first_child->next_sibling, lookup, line_number)
+			);
 		default:
 			switch(get_number_of_operands(tree->op)){
 				case 1:

@@ -10,6 +10,7 @@
 #include "ternary_expressions.hpp"
 #include "functional_expressions.hpp"
 #include "null_check_expressions.hpp"
+#include "item_expressions.hpp"
 #include "identifiers.hpp"
 
 #include <algorithm>
@@ -18,6 +19,10 @@ namespace donkey{
 
 inline lvalue_expression_ptr to_l(expression_ptr e){
 	return std::static_pointer_cast<lvalue_expression>(e);
+}
+
+inline item_expression_ptr to_item(expression_ptr e){
+	return std::static_pointer_cast<item_expression>(e);
 }
 
 template<class E>
@@ -34,6 +39,11 @@ inline expression_ptr build_unary_l(expression_ptr e1, int line_number){
 }
 
 template<class E>
+inline expression_ptr build_unary_item(expression_ptr e1){
+	return expression_ptr(new E(to_item(e1)));
+}
+
+template<class E>
 inline expression_ptr build_binary(expression_ptr e1, expression_ptr e2, int){
 	return expression_ptr(new E(e1, e2));
 }
@@ -47,11 +57,30 @@ inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2, int l
 }
 
 template<class E>
+inline expression_ptr build_binary_item(expression_ptr e1, expression_ptr e2){
+	return expression_ptr(new E(to_item(e1), e2));
+}
+
+template<class E>
 inline expression_ptr build_ternary(expression_ptr e1, expression_ptr e2, expression_ptr e3, int){
 	return expression_ptr(new E(e1, e2, e3));
 }
 
 expression_ptr build_unary_expression(oper op, expression_ptr e, int line_number){
+	if(e->get_type() == expression_type::item){
+		switch(op){
+			case oper::pre_dec:
+				return build_unary_item<item_pre_dec_expression>(e);
+			case oper::pre_inc:
+				return build_unary_item<item_pre_inc_expression>(e);
+			case oper::post_dec:
+				return build_unary_item<item_post_dec_expression>(e);
+			case oper::post_inc:
+				return build_unary_item<item_post_inc_expression>(e);
+			default:
+				break;
+		}
+	}
 	switch(op){
 		case oper::logical_not:
 			return build_unary<logical_not_expression>(e, line_number);
@@ -75,6 +104,40 @@ expression_ptr build_unary_expression(oper op, expression_ptr e, int line_number
 }
 
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, int line_number){
+	if(e1->get_type() == expression_type::item){
+		switch(op){
+			case oper::fallback_assignment:
+				return build_binary_item<item_fallback_assignment_expression>(e1, e2);
+			case oper::or_assignment:
+				return build_binary_item<item_assignment_expression>(e1, e2);
+			case oper::xor_assignment:
+				return build_binary_item<item_xor_assignment_expression>(e1, e2);
+			case oper::and_assignment:
+				return build_binary_item<item_and_assignment_expression>(e1, e2);
+			case oper::shiftr_assignment:
+				return build_binary_item<item_shiftr_assignment_expression>(e1, e2);
+			case oper::shiftl_assignment:
+				return build_binary_item<item_shiftl_assignment_expression>(e1, e2);
+			case oper::concat_assignment:
+				return build_binary_item<item_concat_assignment_expression>(e1, e2);
+			case oper::minus_assignment:
+				return build_binary_item<item_minus_assignment_expression>(e1, e2);
+			case oper::plus_assignment:
+				return build_binary_item<item_plus_assignment_expression>(e1, e2);
+			case oper::mod_assignment:
+				return build_binary_item<item_mod_assignment_expression>(e1, e2);
+			case oper::idiv_assignment:
+				return build_binary_item<item_idiv_assignment_expression>(e1, e2);
+			case oper::div_assignment:
+				return build_binary_item<item_div_assignment_expression>(e1, e2);
+			case oper::mul_assignment:
+				return build_binary_item<item_mul_assignment_expression>(e1, e2);
+			case oper::assignment:
+				return build_binary_item<item_assignment_expression>(e1, e2);
+			default:
+				break;
+		}
+	}
 	switch(op){
 		case oper::comma:
 			return build_binary<comma_expression>(e1, e2, line_number);
@@ -197,10 +260,6 @@ expression_ptr build_local_variable_expression(size_t idx){
 	return expression_ptr(new local_variable_expression(idx));
 }
 
-expression_ptr build_parameter_expression(size_t idx){
-	return expression_ptr(new parameter_expression(idx));
-}
-
 expression_ptr build_global_variable_expression(size_t idx){
 	return expression_ptr(new global_variable_expression(idx));
 }
@@ -219,6 +278,10 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& t
 
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params){
 	return expression_ptr(new constructor_call_expression(type_name, params));
+}
+
+expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){
+	return expression_ptr(new index_expression(e1, e2));
 }
 
 }//namespace donkey

@@ -16,6 +16,7 @@ enum class expression_type{
 	function,
 	lvalue,
 	variant,
+	item,
 };
 
 
@@ -51,7 +52,7 @@ public:
 		return to_string(as_number(ctx));
 	}
 
-	virtual variable call(runtime_context&, variable*, size_t){
+	virtual variable call(runtime_context&, size_t){
 		runtime_error("expression is not function");
 		return variable();
 	}
@@ -71,7 +72,7 @@ public:
 typedef std::shared_ptr<expression> expression_ptr;
 
 inline bool is_variant_expression(expression_ptr e){
-	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::variant;
+	return e->get_type() == expression_type::lvalue || e->get_type() == expression_type::variant || e->get_type() == expression_type::item;
 }
 
 inline expression_type combined_expression_type(expression_ptr e1, expression_ptr e2){
@@ -107,12 +108,69 @@ public:
 		return as_lvalue(ctx).to_string();
 	}
 	
-	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
-		return as_lvalue(ctx).call(ctx, params, params_size);
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return as_lvalue(ctx).call(ctx, params_size);
 	}
 };
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
+
+typedef std::pair<variable, variable> item_handle;
+
+inline void set_item(runtime_context& ctx, const variable& that, variable idx, variable&& value){
+	stack_pusher pusher(ctx);
+	
+	pusher.push(std::move(idx));
+	pusher.push(std::move(value));
+	
+	get_vtable(ctx, that)->call_member(that, ctx, 2, "setItem");
+}
+
+inline variable get_item(runtime_context &ctx, const variable& that, variable idx){
+	stack_pusher pusher(ctx);
+	
+	pusher.push(std::move(idx));
+	
+	return get_vtable(ctx, that)->call_member(that, ctx, 1, "getItem");
+}
+
+class item_expression: public expression{
+protected:
+	item_expression():
+		expression(expression_type::item){
+	}
+	
+	variable get_this_item(runtime_context& ctx){
+		item_handle i = as_item(ctx);
+		return get_item(ctx, i.first, std::move(i.second));
+	}
+	
+public:
+	virtual item_handle as_item(runtime_context&) = 0;
+	
+	virtual variable as_param(runtime_context& ctx) override{
+		return get_this_item(ctx);
+	}
+	
+	virtual number as_number(runtime_context& ctx) override{
+		return get_this_item(ctx).as_number();
+	}
+	
+	virtual std::string as_string(runtime_context& ctx) override{
+		return get_this_item(ctx).to_string();
+	}
+	
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return get_this_item(ctx).call(ctx, params_size);
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		get_this_item(ctx);
+	}
+};
+
+
+typedef std::shared_ptr<item_expression> item_expression_ptr;
 
 enum class oper{
 	none                 =   0,
@@ -120,6 +178,8 @@ enum class oper{
 	bracket_open         =   2,
 	bracket_close        =   3,
 	ref                  =   4,
+	subscript_open       =   5,
+	subscript_close      =   6,
 
 	comma                =  20,
 	fallback_assignment  =  40,
@@ -170,6 +230,7 @@ enum class oper{
 	post_inc             = 261,
 	dot                  = 262,
 	call                 = 263,
+	subscript            = 264,
 	scope                = 280,
 };
 
@@ -188,8 +249,6 @@ expression_ptr build_local_variable_expression(size_t idx);
 
 expression_ptr build_global_variable_expression(size_t idx);
 
-expression_ptr build_parameter_expression(size_t idx);
-
 expression_ptr build_unary_expression(oper op, expression_ptr e1, int line_number);
 
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, int line_number);
@@ -204,6 +263,8 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& t
 expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params);
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
+
+expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2);
 
 }//namespace donkey
 

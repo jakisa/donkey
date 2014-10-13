@@ -82,8 +82,8 @@ public:
 		expression(expression_type::function),
 		_f(f){
 	}
-	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
-		return call_function_by_address(_f, ctx, params, params_size);
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return call_function_by_address(_f, ctx, params_size);
 	}
 	virtual std::string as_string(runtime_context&) override{
 		return "function";
@@ -107,22 +107,6 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		return ctx.local(_idx);
-	}
-
-	virtual void as_void(runtime_context&) override{
-	}
-};
-
-class parameter_expression final: public lvalue_expression{
-private:
-	int _idx;
-public:
-	parameter_expression(int idx):
-		_idx(idx){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		return ctx.param(_idx);
 	}
 
 	virtual void as_void(runtime_context&) override{
@@ -159,9 +143,9 @@ public:
 		return get_vtable(ctx, that)->get_field(that, _name);
 	}
 	
-	virtual variable call(runtime_context &ctx, variable* params, size_t params_size) override{
+	virtual variable call(runtime_context &ctx, size_t params_size) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->call_member(that, ctx, params, params_size, _name);
+		return get_vtable(ctx, that)->call_member(that, ctx, params_size, _name);
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
@@ -214,9 +198,9 @@ public:
 		_type(type),
 		_m(m){
 	}
-	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->call_method(that, ctx, params, params_size, _type, _m);
+		return get_vtable(ctx, that)->call_method(that, ctx, params_size, _type, _m);
 	}
 	virtual std::string as_string(runtime_context&) override{
 		runtime_error("methods cannot be used as objects");

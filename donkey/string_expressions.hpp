@@ -51,6 +51,24 @@ public:
 	}
 };
 
+class item_concat_assignment_expression final: public item_expression{
+private:
+	item_expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	item_concat_assignment_expression(item_expression_ptr e1, expression_ptr e2):
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual item_handle as_item(runtime_context& ctx) override{
+		item_handle ret = _e1->as_item(ctx);
+		variable v = get_item(ctx, ret.first, ret.second);
+		set_item(ctx, ret.first, ret.second, variable(v.as_string() + _e2->as_string(ctx)));
+		return ret;
+	}
+};
+
 }//donkey
 
 #endif /*__string_expressions_hpp__*/

@@ -16,14 +16,14 @@ namespace detail{
 	
 	template<typename F, typename R, typename... ArgsL>
 	struct caller<F, R, std::tuple<ArgsL...>, std::tuple<> >{
-		static variable call(size_t, const F& f, variable*, size_t, variable*, runtime_context&, ArgsL... argsl){
+		static variable call(size_t, const F& f, runtime_context&, ArgsL... argsl){
 			return detail::param_converter<R>::from_native(f(argsl...));
 		}
 	};
 	
 	template<typename F, typename... ArgsL>
 	struct caller<F, void, std::tuple<ArgsL...>, std::tuple<> >{
-		static variable call(size_t, const F& f, variable*, size_t, variable*, runtime_context&, ArgsL... argsl){
+		static variable call(size_t, const F& f, runtime_context&, ArgsL... argsl){
 			f(argsl...);
 			return variable();
 		}
@@ -32,15 +32,15 @@ namespace detail{
 	template<typename F, typename R, typename... ArgsL, typename M, typename... ArgsR>
 	struct caller<F, R, std::tuple<ArgsL...>, std::tuple<M, ArgsR...> >{
 	
-		static variable call(size_t idx, const F& f, variable* params, size_t params_cnt, variable* dflts, runtime_context& ctx, ArgsL... argsl){
-			variable m = idx < params_cnt ? params[idx] : dflts[idx-params_cnt];
+		static variable call(size_t idx, const F& f, runtime_context& ctx, ArgsL... argsl){
+			variable m = ctx.top(idx);
 			return caller<
 				F,
 				R,
 				std::tuple<ArgsL...,M>,
 				std::tuple<ArgsR...>
 			>::call(
-				idx+1, f, params, params_cnt, dflts, ctx, argsl..., detail::param_converter<M>::to_native(std::move(m), ctx)
+				idx-1, f, ctx, argsl..., detail::param_converter<M>::to_native(std::move(m), ctx)
 			);
 		}
 	};
@@ -78,15 +78,21 @@ public:
 		detail::unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
 	}
 
-	variable operator()(runtime_context& ctx, variable* params, size_t sz){
-		size_t missing = sz < sizeof...(Args) ? sizeof...(Args) - sz : 0;
-		
-		if(missing > _dflts.size()){
-			runtime_error("not enough function parameters provided");
-			return variable();
+	variable operator()(runtime_context& ctx, size_t sz){
+		stack_pusher pusher(ctx);
+		if(sz < sizeof...(Args)){
+			size_t missing = sizeof...(Args) - sz;
+			if(missing > _dflts.size()){
+				runtime_error("not enough function parameters provided");
+				return variable();
+			}
+			for(auto it = _dflts.end() - missing; it != _dflts.end(); ++it){
+				pusher.push(variable(*it));
+			}
+			sz = sizeof...(Args);
 		}
-		
-		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(0, _f, params, sz, &_dflts.front(), ctx);
+	
+		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz-1, _f, ctx);
 	}
 };
 
@@ -105,15 +111,21 @@ public:
 		detail::unpacker<D, std::tuple_size<D>::value != 0, 0>::unpack(d, _dflts);
 	}
 
-	variable operator()(const variable& that, runtime_context& ctx, variable* params, size_t sz){
-		size_t missing = sz < sizeof...(Args) ? sizeof...(Args) - sz : 0;
-		
-		if(missing > _dflts.size()){
-			runtime_error("not enough function parameters provided");
-			return variable();
+	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
+		stack_pusher pusher(ctx);
+		if(sz < sizeof...(Args)){
+			size_t missing = sizeof...(Args) - sz;
+			if(missing > _dflts.size()){
+				runtime_error("not enough function parameters provided");
+				return variable();
+			}
+			for(auto it = _dflts.end() - missing; it != _dflts.end(); ++it){
+				pusher.push(variable(*it));
+			}
+			sz = sizeof...(Args);
 		}
-		
-		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(0, _f, params, sz, &_dflts.front(), ctx, detail::this_converter<T>::to_native(that, ctx));
+	
+		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz-1, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
 	}
 };
 

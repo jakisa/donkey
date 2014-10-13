@@ -177,14 +177,14 @@ private:
 		return "";
 	}
 	
-	static variable default_constructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, variable* params, size_t params_size){
+	static variable default_constructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, size_t params_size){
 		for(vtable* vt: bases){
-			vt->call_base_constructor(that, ctx, params, params_size);
+			vt->call_base_constructor(that, ctx, params_size);
 		}
 		return variable();
 	}
 	
-	static variable default_destructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, variable*, size_t){
+	static variable default_destructor(const std::vector<vtable*>& bases, const variable& that, runtime_context& ctx, size_t){
 		for(size_t i = bases.size(); i > 0; --i){
 			bases[i-1]->call_base_destructor(that, ctx);
 		}
@@ -263,7 +263,7 @@ private:
 			for(const std::string& base: bases){
 				bases_vt.push_back(gtarget.get_vtable(base));
 			}
-			ctarget.define_constructor(std::bind(&compiler::priv::default_constructor, bases_vt, _1, _2, _3, _4));
+			ctarget.define_constructor(std::bind(&compiler::priv::default_constructor, bases_vt, _1, _2, _3));
 		}
 		
 		if(!destructor_defined){
@@ -271,7 +271,7 @@ private:
 			for(const std::string& base: bases){
 				bases_vt.push_back(gtarget.get_vtable(base));
 			}
-			ctarget.define_destructor(std::bind(&compiler::priv::default_destructor, bases_vt, _1, _2, _3, _4));
+			ctarget.define_destructor(std::bind(&compiler::priv::default_destructor, bases_vt, _1, _2, _3));
 		}
 		
 		gtarget.add_vtable(name, ctarget.create_vtable(bases));
@@ -358,7 +358,7 @@ private:
 	}
 
 	static void define_function(global_scope& target, std::string name, scope& function_scope, size_t params_size){
-		target.define_function(name, donkey_function(params_size, function_scope.get_local_vars(), function_scope.get_block()));
+		target.define_function(name, donkey_function(params_size, function_scope.get_block()));
 	}
 	
 	static void declare_method(tokenizer& parser, std::string, bool forward){
@@ -368,7 +368,7 @@ private:
 	}
 	
 	static void define_method(class_scope& target, std::string name, scope& function_scope, size_t params_size){
-		target.define_method(name, donkey_method(params_size, function_scope.get_local_vars(), function_scope.get_block()));
+		target.define_method(name, donkey_method(params_size, function_scope.get_block()));
 	}
 	
 	static void ignore_pre_function(scope&, tokenizer&){
@@ -412,7 +412,7 @@ private:
 	}
 	
 	static void define_constructor(class_scope& target, std::string, scope& function_scope, size_t params_size){
-		target.define_constructor(donkey_method(params_size, function_scope.get_local_vars(), function_scope.get_block()));
+		target.define_constructor(donkey_method(params_size, function_scope.get_block()));
 	}
 	
 	static bool has_constructor(std::string){
@@ -500,7 +500,7 @@ private:
 			function_scope.add_statement(base_destructor_statement(target.get_vtable(bases[i-1])));
 		}
 		
-		target.define_destructor(donkey_method(params_size, function_scope.get_local_vars(), function_scope.get_block()));
+		target.define_destructor(donkey_method(params_size, function_scope.get_block()));
 	}
 	
 	static bool has_destructor(std::string){
@@ -567,22 +567,16 @@ private:
 			
 			identifier_ptr id = target.get_identifier(name);
 			
-			int idx = target.is_global() ?
-				static_cast<global_variable_identifier&>(*id).get_index() :
-				target.is_function() ?
-					static_cast<parameter_identifier&>(*id).get_index() :
-					static_cast<local_variable_identifier&>(*id).get_index();
+			int idx = (target.is_global() ?
+			           static_cast<global_variable_identifier&>(*id).get_index() :
+			           static_cast<local_variable_identifier&>(*id).get_index());
 				
 			
 			if(*parser == "="){
 				++parser;
 				ret = build_binary_expression(
 					oper::assignment,
-					target.is_global() ?
-						build_global_variable_expression(idx) : 
-						target.is_function() ?
-							build_parameter_expression(idx) :
-							build_local_variable_expression(idx),
+					target.is_global() ? build_global_variable_expression(idx) : build_local_variable_expression(idx),
 					build_expression(target, parser, false, true),
 					parser.get_line_number()
 				);
@@ -846,7 +840,7 @@ private:
 			semantic_error(parser.get_line_number(), not_defined + " is not defined");
 		}
 		
-		return module_ptr(new module(target.get_block(), target.get_number_of_variables(), target.get_local_vars(), target.get_functions(), target.get_vtables()));
+		return module_ptr(new module(target.get_block(), target.get_number_of_variables(), target.get_functions(), target.get_vtables()));
 	}
 	
 #define ADD_COMPILER(n, f) _compilers.emplace(n, std::bind(&compiler::priv:: f, this, _1, _2))
@@ -909,7 +903,7 @@ public:
 		//}
 	}
 	
-	bool execute_module(const char* module_name){
+	bool execute_module(const char* module_name, size_t stack_size){
 //		try{
 			auto it = _modules.find(module_name);
 			
@@ -917,13 +911,13 @@ public:
 				return false;
 			}
 			
-			runtime_context ctx(it->second.get(), it->second->get_globals_count());
+			runtime_context ctx(it->second.get(), it->second->get_globals_count(), stack_size);
 			
 			it->second->load(ctx);
 			
 			variable that = ctx.global(0);
 			
-			printf("%s\n", get_vtable(ctx, that)->call_member(that, ctx, nullptr, 0, "toString").to_string().c_str());
+			printf("%s\n", get_vtable(ctx, that)->call_member(that, ctx, 0, "toString").to_string().c_str());
 			
 			return true;
 //		}catch(const exception&){
@@ -940,8 +934,8 @@ bool compiler::compile_module(const char* module_name){
 	return _private->compile_module(module_name);
 }
 
-bool compiler::execute_module(const char* module_name){
-	return _private->execute_module(module_name);
+bool compiler::execute_module(const char* module_name, size_t stack_size){
+	return _private->execute_module(module_name, stack_size);
 }
 
 compiler::~compiler(){

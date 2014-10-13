@@ -5,9 +5,9 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11
 
 
-QMAKE_CXXFLAGS_RELEASE += -g
+#QMAKE_CXXFLAGS_RELEASE += -g
 
-QMAKE_LFLAGS_RELEASE += -g
+#QMAKE_LFLAGS_RELEASE += -g
 
 SOURCES += main.cpp \
     tokenizer.cpp \
@@ -53,7 +53,7 @@ HEADERS += \
     sequential_expressions.hpp \
     stack.hpp \
     null_check_expressions.hpp \
-    stack_alloc.hpp
+    item_expressions.hpp
 
 OTHER_FILES += \
     examples.txt \

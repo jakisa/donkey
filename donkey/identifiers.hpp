@@ -9,7 +9,6 @@ namespace donkey{
 enum class identifier_type{
 	global_variable,
 	local_variable,
-	parameter,
 	function,
 	classname,
 	module,
@@ -55,20 +54,6 @@ private:
 public:
 	local_variable_identifier(int idx):
 		identifier(identifier_type::local_variable),
-		_idx(idx){
-	}
-	
-	int get_index() const{
-		return _idx;
-	}
-};
-
-class parameter_identifier: public identifier{
-private:
-	int _idx;
-public:
-	parameter_identifier(int idx):
-		identifier(identifier_type::parameter),
 		_idx(idx){
 	}
 	

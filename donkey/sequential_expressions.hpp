@@ -11,7 +11,7 @@ private:
 	expression_ptr _e2;
 public:
 	comma_expression(expression_ptr e1, expression_ptr e2):
-		expression((e2->get_type() == expression_type::lvalue) ? expression_type::variant : e2->get_type()),
+		expression(is_variant_expression(e2) ? expression_type::variant : e2->get_type()),
 		_e1(e1),
 		_e2(e2){
 	}
@@ -24,9 +24,9 @@ public:
 		return _e1->as_void(ctx), _e2->as_string(ctx);
 	}
 	
-	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
 		_e1->as_void(ctx);
-		return _e2->call(ctx, params, params_size);
+		return _e2->call(ctx, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{

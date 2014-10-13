@@ -29,12 +29,12 @@ private:
 	size_t _fields_size;
 
 	
-	variable call_field(const variable& that, runtime_context& ctx, variable* params, size_t params_size, const std::string& name) const{
+	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){
 			runtime_error("method " + name + " is not defined for " + _name);
 		}
-		return that.nth_field(it->second).call(ctx, params, params_size);
+		return that.nth_field(it->second).call(ctx, params_size);
 	}
 	
 public:
@@ -47,23 +47,23 @@ public:
 		_fields_size(fields_size){
 	}
 	
-	void call_base_constructor(const variable& that, runtime_context& ctx, variable* params, size_t params_size) const{
+	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
 		if(_constructor && !ctx.is_constructed(_name)){
-			(*_constructor)(that, ctx, params, params_size);
+			(*_constructor)(that, ctx, params_size);
 			ctx.set_constructed(_name);
 		}
 	}
 	
-	void call_constructor(const variable& that, runtime_context& ctx, variable* params, size_t params_size) const{
+	void call_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
 		if(_constructor){
 			constructor_stack_manipulator _(ctx);
-			(*_constructor)(that, ctx, params, params_size);
+			(*_constructor)(that, ctx, params_size);
 		}
 	}
 	
 	void call_base_destructor(const variable& that, runtime_context& ctx) const{
 		if(_destructor && !ctx.is_destroyed(_name)){
-			(*_destructor)(that, ctx, nullptr, 0);
+			(*_destructor)(that, ctx, 0);
 			ctx.set_destroyed(_name);
 		}
 	}
@@ -71,16 +71,16 @@ public:
 	void call_destructor(const variable& that, runtime_context& ctx) const{
 		if(_destructor){
 			destructor_stack_manipulator _(ctx);
-			(*_destructor)(that, ctx, nullptr, 0);
+			(*_destructor)(that, ctx, 0);
 		}
 	}
 
-	variable call_member(const variable& that, runtime_context& ctx, variable* params, size_t params_size, const std::string& name) const{
+	variable call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 		auto it = _methods.find(name);
 		if(it == _methods.end()){
-			return call_field(that, ctx, params, params_size, name);
+			return call_field(that, ctx, params_size, name);
 		}
-		return (*it->second)(that, ctx, params, params_size);
+		return (*it->second)(that, ctx, params_size);
 	}
 	
 	variable& get_field(const variable& that, const std::string& name) const{
@@ -91,12 +91,12 @@ public:
 		return that.nth_field(it->second);
 	}
 	
-	variable call_method(const variable& that, runtime_context& ctx, variable* params, size_t params_size, const std::string& type, method& m){
+	variable call_method(const variable& that, runtime_context& ctx, size_t params_size, const std::string& type, method& m){
 		if(_name != type && _bases.find(type) == _bases.end()){
 			runtime_error(_name + " is not derived from " + type);
 		}
 		
-		return m(that, ctx, params, params_size);
+		return m(that, ctx, params_size);
 	}
 	
 	variable& get_field(const variable& that, const std::string& type, size_t idx){

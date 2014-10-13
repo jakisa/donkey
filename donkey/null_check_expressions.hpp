@@ -59,6 +59,26 @@ public:
 	}
 };
 
+class item_fallback_assignment_expression final: public item_expression{
+private:
+	item_expression_ptr _e1;
+	expression_ptr _e2;
+public:
+	item_fallback_assignment_expression(item_expression_ptr e1, expression_ptr e2):
+		_e1(e1),
+		_e2(e2){
+	}
+
+	virtual item_handle as_item(runtime_context& ctx) override{
+		item_handle ret = _e1->as_item(ctx);
+		variable v = get_item(ctx, ret.first, ret.second);
+		if(v.get_data_type() == var_type::nothing){
+			set_item(ctx, ret.first, ret.second, _e2->as_param(ctx));
+		}
+		return ret;
+	}
+};
+
 }//donkey
 
 #endif /* __null_check_expressions_hpp__ */
