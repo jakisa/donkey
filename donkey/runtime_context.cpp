@@ -3,8 +3,8 @@
 
 namespace donkey{
 
-variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size){
-	return ctx.code()->call_function_by_address(addr, ctx, params_size);
+variable call_function_by_address(code_address addr, runtime_context& ctx, variable* params, size_t params_size){
+	return ctx.code()->call_function_by_address(addr, ctx, params, params_size);
 }
 	
 vtable* get_vtable(runtime_context& ctx, std::string name){

@@ -5,6 +5,7 @@
 #include "expressions.hpp"
 #include <vector>
 #include <unordered_map>
+#include "stack_alloc.hpp"
 
 namespace donkey{
 
@@ -43,26 +44,28 @@ public:
 class vars_block_statement{
 private:
 	std::vector<statement> _ss;
-	size_t _locals_count;
+	size_t _locals_begin;
+	size_t _locals_end;
 public:
 	vars_block_statement(vars_block_statement&& orig):
 		_ss(std::move(orig._ss)),
-		_locals_count(orig._locals_count){
+		_locals_begin(orig._locals_begin),
+		_locals_end(orig._locals_end){
 	}
 	
 	vars_block_statement(const vars_block_statement& orig):
 		_ss(orig._ss),
-		_locals_count(orig._locals_count){
+		_locals_begin(orig._locals_begin),
+		_locals_end(orig._locals_end){
 	}
 	
-	vars_block_statement(std::vector<statement>&& ss, int locals_count):
+	vars_block_statement(std::vector<statement>&& ss, size_t locals_begin, size_t locals_end):
 		_ss(ss),
-		_locals_count(locals_count){
+		_locals_begin(locals_begin),
+		_locals_end(locals_end){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		stack_pusher pusher(ctx);
-		
-		pusher.push_default(_locals_count);
+		scope_stack_manipulator _(ctx, _locals_begin, _locals_end);
 		
 		for(const statement& s: _ss){
 			statement_retval r = s(ctx);
@@ -360,7 +363,7 @@ public:
 		_e(orig._e){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		ctx.set_retval(_e->as_param(ctx));
+		ctx.retval() = _e->as_param(ctx);
 		return statement_retval::ret;
 	}
 };
@@ -383,11 +386,15 @@ public:
 		_params(orig._params){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		stack_pusher pusher(ctx);
+		//stack_pusher pusher(ctx);
+		//for(size_t i = 0; i != _params.size(); ++i){
+		//	pusher.push(_params[i]->as_param(ctx));
+		//}
+		STACK_ALLOC(params, _params.size());
 		for(size_t i = 0; i != _params.size(); ++i){
-			pusher.push(_params[i]->as_param(ctx));
+			params[i] = _params[i]->as_param(ctx);
 		}
-		_vt->call_base_constructor(*ctx.that(), ctx, _params.size());
+		_vt->call_base_constructor(*ctx.that(), ctx, params, _params.size());
 		
 		return statement_retval::nxt;
 	}
@@ -407,7 +414,7 @@ public:
 		_vt(orig._vt){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		_vt->call_base_constructor(*ctx.that(), ctx, 0);
+		_vt->call_base_constructor(*ctx.that(), ctx, nullptr, 0);
 		
 		return statement_retval::nxt;
 	}

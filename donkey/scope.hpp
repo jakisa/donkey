@@ -25,6 +25,7 @@ private:
 	bool _can_continue;
 	bool _is_class;
 	bool _in_class;
+	size_t _local_vars;
 public:
 	scope(scope* parent, bool is_function = false, bool is_switch = false, bool can_break = false, bool can_continue = false, bool is_class = false):
 		_parent(parent),
@@ -36,7 +37,8 @@ public:
 		_can_break(can_break || (parent->can_break() && !is_class)),
 		_can_continue(can_continue || (parent->can_continue() && !is_class)),
 		_is_class(is_class),
-		_in_class(is_class || _parent->in_class()){
+		_in_class(is_class || _parent->in_class()),
+		_local_vars(0){
 	}
 	
 	scope():
@@ -49,7 +51,8 @@ public:
 		_can_break(false),
 		_can_continue(false),
 		_is_class(false),
-		_in_class(false){
+		_in_class(false),
+		_local_vars(0){
 	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
@@ -63,6 +66,10 @@ public:
 	
 	bool is_global() const{
 		return !_parent;
+	}
+	
+	bool is_function() const{
+		return _is_function;
 	}
 	
 	bool in_function() const{
@@ -89,12 +96,24 @@ public:
 		return _can_continue;
 	}
 	
+	void update_local_vars(size_t local_vars){
+		if(is_global() || is_function()){
+			if(local_vars > _local_vars){
+				_local_vars = local_vars;
+			}
+		}
+		_parent->update_local_vars(local_vars);
+	}
+	
 	bool add_variable(std::string name){
 		if(_variables.find(name) == _variables.end()){
 			if(is_global()){
 				_variables[name].reset(new global_variable_identifier(_var_index++));
+			}else if(is_function()){
+				_variables[name].reset(new parameter_identifier(_var_index++));
 			}else{
 				_variables[name].reset(new local_variable_identifier(_var_index++));
+				update_local_vars(_var_index);
 			}
 			return true;
 		}
@@ -124,7 +143,11 @@ public:
 			return std::move(_statements.front());
 		}
 		
-		return statement(vars_block_statement(std::move(_statements), vars_cnt));
+		if(!_parent->is_global() && !_parent->is_function()){
+			return statement(vars_block_statement(std::move(_statements), 0, vars_cnt));	
+		}else{
+			return statement(vars_block_statement(std::move(_statements), _parent->_var_index, _parent->_var_index + vars_cnt));
+		}
 	}
 	
 	std::vector<statement> get_statements(){
@@ -133,6 +156,10 @@ public:
 	
 	size_t get_number_of_variables() const{
 		return _var_index - _initial_index;
+	}
+	
+	size_t get_local_vars() const{
+		return _local_vars;
 	}
 	
 	virtual bool has_class(std::string name) const override{

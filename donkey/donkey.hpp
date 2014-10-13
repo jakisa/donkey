@@ -20,7 +20,7 @@ private:
 public:
 	compiler(const char* root);
 	bool compile_module(const char* module_name);
-	bool execute_module(const char* module_name, size_t stack_size = 1024);
+	bool execute_module(const char* module_name);
 	~compiler();
 };
 

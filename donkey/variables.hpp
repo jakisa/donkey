@@ -193,7 +193,7 @@ inline constexpr size_t stack_var_union_size(){
 	);
 }
 
-variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
+variable call_function_by_address(code_address addr, runtime_context& ctx, variable* params, size_t params_size); //runtime_context.cpp
 
 class variable final{
 private:
@@ -429,12 +429,12 @@ public:
 		return _f;
 	}
 	
-	variable call(runtime_context& ctx, size_t params_size) const{
+	variable call(runtime_context& ctx, variable* params, size_t params_size) const{
 		switch(get_data_type()){
 			case var_type::code_address:
-				return call_function_by_address(as_code_address_unsafe(), ctx, params_size);
+				return call_function_by_address(as_code_address_unsafe(), ctx, params, params_size);
 			case var_type::function:
-				return (*_h_ptr->as_t<function>())(ctx, params_size);
+				return (*_h_ptr->as_t<function>())(ctx, params, params_size);
 			default:
 				_runtime_error("function expected");
 		}

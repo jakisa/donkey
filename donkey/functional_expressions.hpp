@@ -2,6 +2,7 @@
 #define __functional_expressions_hpp__
 
 #include "expressions.hpp"
+#include "stack_alloc.hpp"
 
 #include "vtable.hpp"
 
@@ -10,15 +11,18 @@ namespace donkey{
 class function_call_expression final: public expression{
 private:
 	std::vector<expression_ptr> _params;
-	std::vector<size_t> _byref;
+	std::vector<bool> _byref;
 	expression_ptr _f;
 
 public:
 	function_call_expression(expression_ptr f, std::vector<expression_ptr> params, std::vector<size_t> byref):
 		expression(expression_type::variant),
 		_params(std::move(params)),
-		_byref(std::move(byref)),
 		_f(f){
+		
+		for(auto sz: byref){
+			_byref[sz] = true;
+		}
 	}
 	
 	virtual number as_number(runtime_context& ctx) final override{
@@ -29,22 +33,30 @@ public:
 		return as_param(ctx).to_string();
 	}
 
-	virtual variable call(runtime_context& ctx, size_t params_size) final override{
-		return as_param(ctx).call(ctx, params_size);
+	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) final override{
+		return as_param(ctx).call(ctx, params, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
-		stack_pusher pusher(ctx);
+		STACK_ALLOC(params, _params.size());
+		
+		std::vector<variable*> refs(_params.size());
 		
 		for(size_t i = 0; i < _params.size(); ++i){
-			pusher.push(_params[i]->as_param(ctx));
+			if(_byref[i]){
+				refs[i] = &(static_cast<lvalue_expression&>(*(_params[i])).as_lvalue(ctx));
+				params[i] = *(refs[i]);
+			}else{
+				params[i] = _params[i]->as_param(ctx);
+			}
 		}
 		
-		variable ret = _f->call(ctx, _params.size());
+		variable ret = _f->call(ctx, params, _params.size());
 		
-		for(size_t i = 0; i < _byref.size(); ++i){
-			size_t idx = _byref[i];
-			static_cast<lvalue_expression&>(*(_params[idx])).as_lvalue(ctx) = std::move(ctx.top(_params.size() - idx - 1));
+		for(size_t i = 0; i < _params.size(); ++i){
+			if(_byref[i]){
+				*refs[i] = params[i];
+			}
 		}
 		
 		return ret;
@@ -75,19 +87,18 @@ public:
 		return as_param(ctx).to_string();
 	}
 
-	virtual variable call(runtime_context& ctx, size_t params_size) final override{
-		return as_param(ctx).call(ctx, params_size);
+	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) final override{
+		return as_param(ctx).call(ctx, params, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
-		stack_pusher pusher(ctx);
+		STACK_ALLOC(params, _params.size());
 		
 		for(size_t i = 0; i < _params.size(); ++i){
-			pusher.push(_params[i]->as_param(ctx));
+			params[i] = _params[i]->as_param(ctx);
 		}
 		
-		
-		return _f->call(ctx, _params.size());
+		return _f->call(ctx, params, _params.size());
 	}
 
 	virtual void as_void(runtime_context & ctx) final override{
@@ -102,13 +113,13 @@ private:
 	std::vector<expression_ptr> _params;
 	
 	void init(variable& that, vtable* vt, runtime_context& ctx){
-		stack_pusher pusher(ctx);
-	
+		STACK_ALLOC(params, _params.size());
+		
 		for(size_t i = 0; i < _params.size(); ++i){
-			pusher.push(_params[i]->as_param(ctx));
+			params[i] = _params[i]->as_param(ctx);
 		}
 		
-		vt->call_constructor(that, ctx, _params.size());
+		vt->call_constructor(that, ctx, params, _params.size());
 	}
 	
 public:
@@ -131,8 +142,8 @@ public:
 		return as_param(ctx).to_string();
 	}
 
-	virtual variable call(runtime_context& ctx, size_t params_size) override{
-		return as_param(ctx).call(ctx, params_size);
+	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
+		return as_param(ctx).call(ctx, params, params_size);
 	}
 
 	virtual void as_void(runtime_context & ctx) final override{

@@ -415,6 +415,8 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 			return build_global_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
 		case identifier_type::local_variable:
 			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
+		case identifier_type::parameter:
+			return build_parameter_expression(static_cast<parameter_identifier&>(*id).get_index());
 		case identifier_type::function:
 			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
 		case identifier_type::classname:
@@ -445,6 +447,9 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 					break;
 				case identifier_type::local_variable:
 					e =  build_local_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+					break;
+				case identifier_type::parameter:
+					e =  build_parameter_expression(static_cast<global_variable_identifier&>(*id).get_index());
 					break;
 				default:
 					semantic_error(line_number, "only variables can be passed by reference");

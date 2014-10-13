@@ -24,9 +24,9 @@ public:
 		return _e1->as_void(ctx), _e2->as_string(ctx);
 	}
 	
-	virtual variable call(runtime_context& ctx, size_t params_size) override{
+	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
 		_e1->as_void(ctx);
-		return _e2->call(ctx, params_size);
+		return _e2->call(ctx, params, params_size);
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{

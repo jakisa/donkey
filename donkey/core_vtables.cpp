@@ -16,19 +16,19 @@ static std::string string_substr(std::string that, integer pos, integer len){
 	return that.substr(pos, len);
 }
 
-static variable string_to_string(const variable& that, runtime_context&, size_t){
+static variable string_to_string(const variable& that, runtime_context&, variable*, size_t){
 	return that;
 }
 
-static variable variable_to_string(const variable& that, runtime_context&, size_t){
+static variable variable_to_string(const variable& that, runtime_context&, variable*, size_t){
 	return variable(that.to_string());
 }
 
-static variable variable_strong(const variable& that, runtime_context&, size_t){
+static variable variable_strong(const variable& that, runtime_context&, variable*, size_t){
 	return that.non_weak();
 }
 
-static variable variable_weak(const variable& that, runtime_context&, size_t){
+static variable variable_weak(const variable& that, runtime_context&, variable*, size_t){
 	return that.non_shared();
 }
 

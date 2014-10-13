@@ -51,7 +51,7 @@ public:
 		return to_string(as_number(ctx));
 	}
 
-	virtual variable call(runtime_context&, size_t){
+	virtual variable call(runtime_context&, variable*, size_t){
 		runtime_error("expression is not function");
 		return variable();
 	}
@@ -107,8 +107,8 @@ public:
 		return as_lvalue(ctx).to_string();
 	}
 	
-	virtual variable call(runtime_context& ctx, size_t params_size) override{
-		return as_lvalue(ctx).call(ctx, params_size);
+	virtual variable call(runtime_context& ctx, variable* params, size_t params_size) override{
+		return as_lvalue(ctx).call(ctx, params, params_size);
 	}
 };
 
@@ -187,6 +187,8 @@ expression_ptr build_const_function_expression(code_address addr);
 expression_ptr build_local_variable_expression(size_t idx);
 
 expression_ptr build_global_variable_expression(size_t idx);
+
+expression_ptr build_parameter_expression(size_t idx);
 
 expression_ptr build_unary_expression(oper op, expression_ptr e1, int line_number);
 

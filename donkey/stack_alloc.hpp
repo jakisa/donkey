@@ -1,0 +1,4 @@
+#ifndef STACK_ALLOC_HPP
+#define STACK_ALLOC_HPP
+
+#endif // STACK_ALLOC_HPP

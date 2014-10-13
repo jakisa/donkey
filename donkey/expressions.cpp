@@ -197,6 +197,10 @@ expression_ptr build_local_variable_expression(size_t idx){
 	return expression_ptr(new local_variable_expression(idx));
 }
 
+expression_ptr build_parameter_expression(size_t idx){
+	return expression_ptr(new parameter_expression(idx));
+}
+
 expression_ptr build_global_variable_expression(size_t idx){
 	return expression_ptr(new global_variable_expression(idx));
 }
