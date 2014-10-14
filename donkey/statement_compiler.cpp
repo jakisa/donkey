@@ -35,6 +35,20 @@ void compile_statement(scope& target, tokenizer& parser){
 		compile_continue(target, parser);
 	}else if(*parser == "class"){
 		compile_class(target, parser);
+	}else if(*parser == "public"){
+		if(!target.is_global()){
+			unexpected_error(parser.get_line_number(), *parser);
+		}
+		++parser;
+		if(*parser == "var"){
+			compile_variable(target, parser, true);
+		}else if(*parser == "function"){
+			compile_function(target, parser, true);
+		}else if(*parser == "class"){
+			compile_class(target, parser, true);
+		}else{
+			unexpected_error(parser.get_line_number(), *parser);
+		}
 	}else{
 		if(is_keyword(*parser) && *parser != "this" && *parser != "self" && *parser != "new" && *parser != "self"){
 			unexpected_error(parser.get_line_number(), *parser);

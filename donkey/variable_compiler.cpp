@@ -4,7 +4,7 @@
 
 namespace donkey{
 
-expression_ptr compile_variable(scope& target, tokenizer& parser){
+expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public){
 	if(target.is_switch()){
 		unexpected_error(parser.get_line_number(), *parser);
 	}
@@ -15,7 +15,7 @@ expression_ptr compile_variable(scope& target, tokenizer& parser){
 	
 	while(parser && *parser != ";"){
 		std::string name = parse_allowed_name(target, parser);
-		target.add_variable(name);
+		target.add_variable(name, is_public);
 		
 		identifier_ptr id = target.get_identifier(name);
 		

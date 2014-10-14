@@ -27,7 +27,14 @@ private:
 			semantic_error(parser.get_line_number(), not_defined + " is not defined");
 		}
 		
-		_modules.add_module(module_name, module_ptr(new module(target.get_block(), idx, target.get_number_of_variables(), target.get_functions(), target.get_vtables())));
+		_modules.add_module(module_name, module_ptr(new module(
+			target.get_block(),
+			module_name,
+			idx,
+			target.get_number_of_variables(),
+			target.get_functions(),
+			target.get_vtables()
+		)));
 	}
 public:
 	priv(const char* root, size_t stack_size):

@@ -16,6 +16,7 @@ namespace donkey{
 class scope: public identifier_lookup{
 private:
 	std::unordered_map<std::string, identifier_ptr> _variables;
+	std::unordered_map<std::string, size_t> _public_variables;
 	std::vector<statement> _statements;
 	scope* _parent;
 	int _var_index;
@@ -98,8 +99,11 @@ public:
 		return _can_continue;
 	}
 	
-	bool add_variable(std::string name){
+	bool add_variable(std::string name, bool is_public){
 		if(_variables.find(name) == _variables.end()){
+			if(is_public){
+				_public_variables[name] = _var_index;
+			}
 			if(is_global()){
 				_variables[name].reset(new global_variable_identifier(_module_index, _var_index++));
 			}else{
@@ -168,6 +172,8 @@ private:
 	std::vector<function> _definitions;
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 	std::string _module_name;
+	
+	std::unordered_map<std::string, size_t> _public_functions;
 public:
 	global_scope(module_bundle& bundle, std::string&& module_name, size_t module_index):
 		scope(module_index),
@@ -183,11 +189,14 @@ public:
 		return bool(_definitions[idx.get_function_index()]);
 	}
 	
-	void declare_function(std::string name){
+	void declare_function(std::string name, bool is_public){
 		if(_functions.find(name) != _functions.end()){
 			return;
 		}
 		_functions[name].reset(new function_identifier(code_address(get_module_index(), _definitions.size())));
+		if(is_public){
+			_public_functions[name] = _definitions.size();
+		}
 		_definitions.push_back(function());
 	}
 	
@@ -332,12 +341,12 @@ public:
 		return true;
 	}
 	
-	vtable_ptr create_vtable(const std::vector<std::string>& bases) const{
+	vtable_ptr create_vtable(const std::vector<std::string>& bases, bool is_public) const{
 		auto name = _name;
 		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size));
+		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public));
 		for(const std::string& base: bases){
 			ret->derive_from(*get_vtable(base));
 		}

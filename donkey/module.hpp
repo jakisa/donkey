@@ -8,24 +8,26 @@
 
 namespace donkey{
 
-class module final{
+class module final: public identifier_lookup{
 	module(const module&) = delete;
 	void operator=(const module&) = delete;
 private:
 	std::vector<function> _functions;
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 	statement _s;
+	std::string _module_name;
 	size_t _module_index;
 	size_t _globals_count;
 	
-	//std::unordered_map<std::string, size_t> _public_globals;
-	//std::unordered_map<std::string, size_t> _public_functions;
+	std::unordered_map<std::string, size_t> _public_globals;
+	std::unordered_map<std::string, size_t> _public_functions;
 	
 public:
-	module(statement&& s, size_t module_index, size_t globals_count, std::vector<function>&& functions, std::unordered_map<std::string, vtable_ptr>&& vtables):
+	module(statement&& s, std::string module_name, size_t module_index, size_t globals_count, std::vector<function>&& functions, std::unordered_map<std::string, vtable_ptr>&& vtables):
 		_functions(std::move(functions)),
 		_vtables(std::move(vtables)),
 		_s(std::move(s)),
+		_module_name(std::move(module_name)),
 		_module_index(module_index),
 		_globals_count(globals_count){
 	}
@@ -44,6 +46,54 @@ public:
 	vtable* get_vtable(std::string name) const{
 		auto it = _vtables.find(name);
 		return it == _vtables.end() ? nullptr : it->second.get();
+	}
+	
+	virtual identifier_ptr get_identifier(std::string name) const override{
+		auto cit = _vtables.find(name);
+		if(cit != _vtables.end() && cit->second->is_public()){
+			return identifier_ptr(new class_identifier(cit->second->get_full_name()));
+		}
+		
+		auto fit = _public_functions.find(name);
+		if(fit != _public_functions.end()){
+			return identifier_ptr(new function_identifier(code_address(_module_index, fit->second)));
+		}
+		
+		auto git = _public_globals.find(name);
+		if(git != _public_globals.end()){
+			return identifier_ptr(new global_variable_identifier(_module_index, git->second));
+		}
+		
+		return identifier_ptr();
+	}
+	
+	virtual bool is_allowed(std::string) const override{
+		return false;
+	}
+	
+	virtual bool in_class() const override{	
+		return false;
+	}
+	
+	virtual std::string get_current_class() const override{
+		return "";
+	}
+	
+	virtual std::string full_class_name(std::string name) const override{
+		auto cit = _vtables.find(name);
+		if(cit != _vtables.end() && cit->second->is_public()){
+			return name;
+		}
+		
+		cit = _vtables.find(_module_name + "::" + name);
+		if(cit != _vtables.end() && cit->second->is_public()){
+			return _module_name + "::" + name;
+		}
+		return "";
+	}
+	
+	virtual const std::string& get_module_name() const override{
+		return _module_name;
 	}
 };
 

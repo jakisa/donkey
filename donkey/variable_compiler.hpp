@@ -6,7 +6,7 @@
 
 namespace donkey{
 
-expression_ptr compile_variable(scope& target, tokenizer& parser);
+expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public = false);
 
 }//donkey
 

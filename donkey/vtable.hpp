@@ -29,6 +29,7 @@ private:
 	method_ptr _constructor;
 	method_ptr _destructor;
 	size_t _fields_size;
+	bool _is_public;
 
 	
 	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
@@ -40,7 +41,9 @@ private:
 	}
 	
 public:
-	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor, std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields, size_t fields_size):
+	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor,
+	       std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields,
+	       size_t fields_size, bool is_public):
 		_full_name(module_name.empty() ? name : module_name + "::" + name),
 		_module_name(std::move(module_name)),
 		_name(std::move(name)),
@@ -48,7 +51,8 @@ public:
 		_fields(std::move(fields)),
 		_constructor(constructor),
 		_destructor(destructor),
-		_fields_size(fields_size){
+		_fields_size(fields_size),
+		_is_public(is_public){
 	}
 	
 	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
@@ -194,6 +198,10 @@ public:
 			ret.push_back(p.second.vt);
 		}
 		return ret;
+	}
+	
+	bool is_public() const{
+		return _is_public;
 	}
 };
 

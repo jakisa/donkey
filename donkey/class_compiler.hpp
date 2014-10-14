@@ -6,7 +6,7 @@
 
 namespace donkey{
 
-void compile_class(scope& target, tokenizer& parser);
+void compile_class(scope& target, tokenizer& parser, bool is_public = false);
 
 }//donkey
 

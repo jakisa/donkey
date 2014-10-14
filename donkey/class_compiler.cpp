@@ -143,7 +143,7 @@ inline std::string check_diamond(const std::vector<std::string>& bases, const gl
 	return "";
 }
 
-void compile_class(scope& target, tokenizer& parser){
+void compile_class(scope& target, tokenizer& parser, bool is_public){
 	if(!target.is_global()){
 		syntax_error(parser.get_line_number(), "local classes are not supported");
 	}
@@ -229,7 +229,7 @@ void compile_class(scope& target, tokenizer& parser){
 		ctarget.define_destructor(std::bind(&default_destructor, bases_vt, _1, _2, _3));
 	}
 	
-	gtarget.add_vtable(ctarget.create_vtable(bases));
+	gtarget.add_vtable(ctarget.create_vtable(bases, is_public));
 	
 	while(*parser != "}"){
 		if(*parser == "var"){

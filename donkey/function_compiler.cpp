@@ -46,12 +46,12 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 	scope function_scope(&target, true);
 	
 	for(const std::string& prm: params){
-		if(!function_scope.add_variable(prm)){
+		if(!function_scope.add_variable(prm, false)){
 			semantic_error(parser.get_line_number(), prm + " is already defined");
 		}
 	}
 	
-	function_scope.add_variable("%RETVAL%");
+	function_scope.add_variable("%RETVAL%", false);
 	
 	scope inner_scope(&function_scope);
 	
@@ -71,8 +71,8 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 	syntax_error(parser.get_line_number(), "'}' expected");
 }
 
-inline void declare_function(global_scope& target, std::string name, bool){
-	target.declare_function(name);
+inline void declare_function(global_scope& target, std::string name, bool, bool is_public){
+	target.declare_function(name, is_public);
 }
 
 inline void define_function(global_scope& target, std::string name, scope& function_scope, size_t params_size){
@@ -92,7 +92,7 @@ inline void define_method(class_scope& target, std::string name, scope& function
 inline void ignore_pre_function(scope&, tokenizer&){
 }
 
-void compile_function(scope& target, tokenizer& parser){
+void compile_function(scope& target, tokenizer& parser, bool is_public){
 	if(target.is_global()){
 		global_scope& gtarget = static_cast<global_scope&>(target);
 		
@@ -100,7 +100,7 @@ void compile_function(scope& target, tokenizer& parser){
 		std::string name = parse_allowed_name(target, parser);
 		
 		compile_function_helper(name, target, parser,
-								std::bind(&declare_function, std::ref(gtarget), _1, _2),
+								std::bind(&declare_function, std::ref(gtarget), _1, _2, is_public),
 								std::bind(&define_function, std::ref(gtarget), _1, _2, _3),
 								std::bind(&global_scope::has_function, std::cref(gtarget), _1),
 								&ignore_pre_function);
