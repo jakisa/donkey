@@ -12,22 +12,16 @@
 
 namespace donkey{
 
-class module;
-
-
 class runtime_context{
 	friend class stack_pusher;
 	friend class stack_remover;
 	friend class constructor_stack_manipulator;
 	friend class function_stack_manipulator;
-	friend class stack_ref_manipulator;
 	
 	runtime_context(const runtime_context&) = delete;
 	void operator=(const runtime_context&) = delete;
 private:
-	std::vector<variable> _globals;
 	stack _stack;
-	const module* _code;
 	size_t _function_stack_bottom;
 	size_t _retval_stack_index;
 	const variable* _that;
@@ -61,25 +55,12 @@ private:
 		}
 	}
 public:
-	runtime_context(const module* code, size_t globals_count, size_t stack_size):
-		_globals(globals_count),
+	runtime_context(size_t stack_size):
 		_stack(stack_size),
-		_code(code),
 		_function_stack_bottom(0),
 		_retval_stack_index(-1),
 		_that(nullptr),
 		_constructed(nullptr){
-	}
-	
-	~runtime_context(){
-		_stack.pop(_stack.size());
-		for(size_t i = _globals.size(); i != 0; --i){
-			_globals[i-1].reset();
-		}
-	}
-	
-	const module* code(){
-		return _code;
 	}
 	
 	variable& top(size_t idx = 0){
@@ -88,10 +69,6 @@ public:
 	
 	variable& local(size_t idx){
 		return _stack[_function_stack_bottom + idx];
-	}
-	
-	variable& global(size_t idx){
-		return _globals[idx];
 	}
 	
 	void set_retval(variable&& v){
@@ -224,8 +201,10 @@ public:
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
 	
-vtable* get_vtable(runtime_context& ctx, std::string name);
+vtable* get_vtable(runtime_context& ctx, std::string module_name, std::string name);
 vtable* get_vtable(runtime_context& ctx, const variable& v);
+
+variable& global_variable(runtime_context& ctx, uint32_t module_index, uint32_t var_index);
 
 }//namespace donkey
 

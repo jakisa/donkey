@@ -15,11 +15,25 @@
 
 namespace donkey{
 
-struct code_address{
-	uint64_t value;
-	
+class code_address{
+private:
+	uint32_t _module_index;
+	uint32_t _function_index;
+public:
+	code_address(uint32_t module_index, uint32_t function_index):
+		_module_index(module_index),
+		_function_index(function_index){
+	}
 	bool operator==(const code_address& oth) const{
-		return value == oth.value;
+		return _module_index == oth._module_index && _function_index == oth._function_index;
+	}
+
+	uint32_t get_module_index() const{
+		return _module_index;
+	}
+
+	uint32_t get_function_index() const{
+		return _function_index;
 	}
 };
 
@@ -393,6 +407,16 @@ public:
 				return "null";
 			case var_type::object:
 				return _h_ptr->as_t<donkey_object>()->get_type_name();
+			default:
+				return "";
+		}
+		return "";
+	}
+	
+	std::string get_module_name() const{
+		switch(get_data_type()){
+			case var_type::object:
+				return _h_ptr->as_t<donkey_object>()->get_module_name();
 			default:
 				return "";
 		}

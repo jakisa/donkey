@@ -19,16 +19,23 @@ expression_ptr compile_variable(scope& target, tokenizer& parser){
 		
 		identifier_ptr id = target.get_identifier(name);
 		
-		int idx = (target.is_global() ?
-				   static_cast<global_variable_identifier&>(*id).get_index() :
-				   static_cast<local_variable_identifier&>(*id).get_index());
-			
+		expression_ptr e;
+		
+		if(target.is_global()){
+			e = build_global_variable_expression(
+				static_cast<global_variable_identifier&>(*id).get_module_index(),
+				static_cast<global_variable_identifier&>(*id).get_var_index()
+			);
+		}else{
+			e = build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
+		}
+		
 		
 		if(*parser == "="){
 			++parser;
 			ret = build_binary_expression(
 				oper::assignment,
-				target.is_global() ? build_global_variable_expression(idx) : build_local_variable_expression(idx),
+				e,
 				build_expression(target, parser, false, true),
 				parser.get_line_number()
 			);

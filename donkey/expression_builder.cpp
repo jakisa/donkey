@@ -429,7 +429,12 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 	
 	switch(id->get_type()){
 		case identifier_type::global_variable:
-			return build_global_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+			{
+				return build_global_variable_expression(
+					static_cast<global_variable_identifier&>(*id).get_module_index(),
+					static_cast<global_variable_identifier&>(*id).get_var_index()
+				);
+			}
 		case identifier_type::local_variable:
 			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
 		case identifier_type::function:
@@ -458,10 +463,15 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 			expression_ptr e;
 			switch(id->get_type()){
 				case identifier_type::global_variable:
-					e =  build_global_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+					{
+						e = build_global_variable_expression(
+							static_cast<global_variable_identifier&>(*id).get_module_index(),
+							static_cast<global_variable_identifier&>(*id).get_var_index()
+						);
+					}
 					break;
 				case identifier_type::local_variable:
-					e =  build_local_variable_expression(static_cast<global_variable_identifier&>(*id).get_index());
+					e =  build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
 					break;
 				default:
 					semantic_error(line_number, "only variables can be passed by reference");
@@ -481,10 +491,10 @@ static std::pair<std::string, std::string> get_member_name(part_ptr tree, const 
 	if(self){
 		classname = lookup.get_current_class();
 	}else if(tree->op == oper::scope){
-		if(!lookup.has_class(tree->first_child->str)){
+		classname = lookup.full_class_name(tree->first_child->str);
+		if(classname.empty()){
 			semantic_error(line_number, "unknown class name " + tree->first_child->str);
 		}
-		classname = tree->first_child->str;
 		tree = tree->first_child->next_sibling;
 	}
 	
@@ -534,7 +544,7 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				if(!byref.empty()){
 					syntax_error(line_number, "cannot pass constructor parameters as reference");
 				}
-				return build_constructor_call_expression(name, params);
+				return build_constructor_call_expression(lookup.get_module_name(), static_cast<class_identifier&>(*classname).get_name(), params);
 			}
 			break;
 		case oper::dot:

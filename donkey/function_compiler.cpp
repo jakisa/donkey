@@ -148,8 +148,9 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 		++parser;
 		while(parser && *parser != "{"){
 			std::string base_name = parse_allowed_name(parser);
+			std::string full_base_name = inner.full_class_name(base_name);
 			
-			auto it = constructed.find(base_name);
+			auto it = constructed.find(full_base_name);
 			
 			if(it == constructed.end()){
 				semantic_error(parser.get_line_number(), base_name + " is not base of this class");
@@ -162,7 +163,7 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 			parse("(", parser);
 			
 			if(*parser == ")"){
-				inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name)));
+				inner.add_statement(base_default_constructor_statement(inner.get_vtable(full_base_name)));
 			}else{
 				std::vector<expression_ptr> params;
 				while(parser && *parser != ")"){
@@ -171,7 +172,7 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 						++parser;
 					}
 				}
-				inner.add_statement(base_constructor_statement(inner.get_vtable(base_name), std::move(params)));
+				inner.add_statement(base_constructor_statement(inner.get_vtable(full_base_name), std::move(params)));
 			}
 			
 			parse(")", parser);

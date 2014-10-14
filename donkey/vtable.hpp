@@ -20,6 +20,8 @@ struct base_class{
 class vtable{
 	void operator=(const vtable&) = delete;
 private:
+	std::string _full_name;
+	std::string _module_name;
 	std::string _name;
 	std::unordered_map<std::string, base_class> _bases;
 	std::unordered_map<std::string, method_ptr> _methods;
@@ -32,13 +34,15 @@ private:
 	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){
-			runtime_error("method " + name + " is not defined for " + _name);
+			runtime_error("method " + name + " is not defined for " + _full_name);
 		}
 		return that.nth_field(it->second).call(ctx, params_size);
 	}
 	
 public:
-	vtable(std::string&& name, method_ptr constructor, method_ptr destructor, std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields, size_t fields_size):
+	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor, std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields, size_t fields_size):
+		_full_name(module_name.empty() ? name : module_name + "::" + name),
+		_module_name(std::move(module_name)),
 		_name(std::move(name)),
 		_methods(std::move(methods)),
 		_fields(std::move(fields)),
@@ -48,9 +52,9 @@ public:
 	}
 	
 	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
-		if(_constructor && !ctx.is_constructed(_name)){
+		if(_constructor && !ctx.is_constructed(_full_name)){
 			(*_constructor)(that, ctx, params_size);
-			ctx.set_constructed(_name);
+			ctx.set_constructed(_full_name);
 		}
 	}
 	
@@ -62,9 +66,9 @@ public:
 	}
 	
 	void call_base_destructor(const variable& that, runtime_context& ctx) const{
-		if(_destructor && !ctx.is_destroyed(_name)){
+		if(_destructor && !ctx.is_destroyed(_full_name)){
 			(*_destructor)(that, ctx, 0);
-			ctx.set_destroyed(_name);
+			ctx.set_destroyed(_full_name);
 		}
 	}
 	
@@ -86,26 +90,26 @@ public:
 	variable& get_field(const variable& that, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){
-			runtime_error("field " + name + " is not defined for " + _name);
+			runtime_error("field " + name + " is not defined for " + _full_name);
 		}
 		return that.nth_field(it->second);
 	}
 	
 	variable call_method(const variable& that, runtime_context& ctx, size_t params_size, const std::string& type, method& m){
-		if(_name != type && _bases.find(type) == _bases.end()){
-			runtime_error(_name + " is not derived from " + type);
+		if(_full_name != type && _bases.find(type) == _bases.end()){
+			runtime_error(_full_name + " is not derived from " + type);
 		}
 		
 		return m(that, ctx, params_size);
 	}
 	
 	variable& get_field(const variable& that, const std::string& type, size_t idx){
-		if(type == _name){
+		if(type == _full_name){
 			return that.nth_field(idx);
 		}
 		auto it = _bases.find(type);
 		if(it == _bases.end()){
-			runtime_error(_name + " is not derived from " + type);
+			runtime_error(_full_name + " is not derived from " + type);
 		}
 		
 		return that.nth_field(it->second.data_begin + idx);
@@ -136,13 +140,13 @@ public:
 	}
 	
 	void derive_from(const vtable& base){
-		if(_bases.find(base._name) != _bases.end()){
+		if(_bases.find(base._full_name) != _bases.end()){
 			return;
 		}
 		
 		size_t base_begin = _fields_size;
 		
-		_bases[base._name] = base_class{&base, base_begin};
+		_bases[base._full_name] = base_class{&base, base_begin};
 		
 		for(const auto& p: base._bases){
 			_bases.insert(std::unordered_map<std::string, base_class>::value_type(p.first, base_class{p.second.vt, base_begin + p.second.data_begin}));
@@ -174,6 +178,14 @@ public:
 	
 	const std::string& get_name() const{
 		return _name;
+	}
+	
+	const std::string& get_module_name() const{
+		return _module_name;
+	}
+	
+	const std::string& get_full_name() const{
+		return _full_name;
 	}
 	
 	std::vector<const vtable*> get_bases() const{

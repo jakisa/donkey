@@ -9,8 +9,6 @@ int main(){
 	
 	c.compile_module("test");
 	
-	c.execute_module("test");
-	
 	return 0;
 }
 

@@ -36,28 +36,34 @@ typedef std::shared_ptr<identifier> identifier_ptr;
 
 class global_variable_identifier: public identifier{
 private:
-	int _idx;
+	size_t _module_idx;
+	size_t _var_idx;
 public:
-	global_variable_identifier(int idx):
+	global_variable_identifier(size_t module_idx, size_t var_idx):
 		identifier(identifier_type::global_variable),
-		_idx(idx){
+		_module_idx(module_idx),
+		_var_idx(var_idx){
 	}
 	
-	int get_index() const{
-		return _idx;
+	size_t get_module_index() const{
+		return _module_idx;
+	}
+	
+	size_t get_var_index() const{
+		return _var_idx;
 	}
 };
 
 class local_variable_identifier: public identifier{
 private:
-	int _idx;
+	size_t _idx;
 public:
-	local_variable_identifier(int idx):
+	local_variable_identifier(size_t idx):
 		identifier(identifier_type::local_variable),
 		_idx(idx){
 	}
 	
-	int get_index() const{
+	size_t get_index() const{
 		return _idx;
 	}
 };
@@ -123,9 +129,11 @@ public:
 	
 	virtual std::string get_current_class() const = 0;
 	
-	virtual bool has_class(std::string name) const = 0;
+	virtual std::string full_class_name(std::string name) const = 0;
 	
 	virtual vtable* get_vtable(std::string name) const = 0;
+	
+	virtual const std::string& get_module_name() const = 0;
 	
 	virtual ~identifier_lookup(){
 	}

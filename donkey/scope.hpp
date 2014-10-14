@@ -9,6 +9,7 @@
 #include "function.hpp"
 #include "vtable.hpp"
 #include "tokenizer.hpp"
+#include "module_bundle.hpp"
 
 namespace donkey{
 
@@ -18,6 +19,7 @@ private:
 	std::vector<statement> _statements;
 	scope* _parent;
 	int _var_index;
+	size_t _module_index;
 	const int _initial_index;
 	bool _is_function;
 	bool _in_function;
@@ -30,6 +32,7 @@ public:
 	scope(scope* parent, bool is_function = false, bool is_switch = false, bool can_break = false, bool can_continue = false, bool is_class = false):
 		_parent(parent),
 		_var_index(parent->is_global() ? 0 : parent->_var_index),
+		_module_index(_parent->get_module_index()),
 		_initial_index(parent->is_global() ? 0 : parent->_var_index),
 		_is_function(is_function),
 		_in_function(is_function || (_parent->in_function() && !is_class)),
@@ -40,9 +43,10 @@ public:
 		_in_class(is_class || _parent->in_class()){
 	}
 	
-	scope():
+	scope(size_t module_index):
 		_parent(nullptr),
 		_var_index(0),
+		_module_index(module_index),
 		_initial_index(0),
 		_is_function(false),
 		_in_function(false),
@@ -51,6 +55,10 @@ public:
 		_can_continue(false),
 		_is_class(false),
 		_in_class(false){
+	}
+	
+	size_t get_module_index() const{
+		return _module_index;
 	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
@@ -93,7 +101,7 @@ public:
 	bool add_variable(std::string name){
 		if(_variables.find(name) == _variables.end()){
 			if(is_global()){
-				_variables[name].reset(new global_variable_identifier(_var_index++));
+				_variables[name].reset(new global_variable_identifier(_module_index, _var_index++));
 			}else{
 				_variables[name].reset(new local_variable_identifier(_var_index++));
 			}
@@ -136,8 +144,8 @@ public:
 		return _var_index - _initial_index;
 	}
 	
-	virtual bool has_class(std::string name) const override{
-		return _parent ? _parent->has_class(name) : false;
+	virtual std::string full_class_name(std::string name) const override{
+		return _parent ? _parent->full_class_name(name) : "";
 	}
 	
 	virtual vtable* get_vtable(std::string name) const override{
@@ -147,21 +155,24 @@ public:
 	virtual std::string get_current_class() const override{
 		return _parent ? _parent->get_current_class() : "";
 	}
+	
+	virtual const std::string& get_module_name() const{
+		return _parent->get_module_name();
+	}
 };
 
 class global_scope: public scope{
 private:
+	module_bundle& _bundle;
 	std::unordered_map<std::string, function_identifier_ptr> _functions;
 	std::vector<function> _definitions;
 	std::unordered_map<std::string, vtable_ptr> _vtables;
+	std::string _module_name;
 public:
-	global_scope(){
-		vtable_ptr object_vt = create_object_vtable();
-		add_vtable("object", create_object_vtable());
-		add_vtable("string", create_string_vtable(*object_vt));
-		add_vtable("number", create_number_vtable(*object_vt));
-		add_vtable("null", create_null_vtable(*object_vt));
-		add_vtable("function", create_function_vtable(*object_vt));
+	global_scope(module_bundle& bundle, std::string&& module_name, size_t module_index):
+		scope(module_index),
+		_bundle(bundle),
+		_module_name(module_name){
 	}
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
@@ -169,14 +180,14 @@ public:
 			return false;
 		}
 		code_address idx = it->second->get_function();
-		return bool(_definitions[idx.value]);
+		return bool(_definitions[idx.get_function_index()]);
 	}
 	
 	void declare_function(std::string name){
 		if(_functions.find(name) != _functions.end()){
 			return;
 		}
-		_functions[name].reset(new function_identifier(code_address{_definitions.size()}));
+		_functions[name].reset(new function_identifier(code_address(get_module_index(), _definitions.size())));
 		_definitions.push_back(function());
 	}
 	
@@ -184,16 +195,16 @@ public:
 		function_identifier_ptr& ptr = _functions[name];
 		
 		if(ptr){
-			_definitions[ptr->get_function().value] = std::move(f);
+			_definitions[ptr->get_function().get_function_index()] = std::move(f);
 		}else{
-			ptr.reset(new function_identifier(code_address{_definitions.size()}));
+			ptr.reset(new function_identifier(code_address(get_module_index(), _definitions.size())));
 			_definitions.push_back(std::move(f));
 		}
 	}
 	
 	std::string get_undefined_function() const{
 		for(const auto& p: _functions){
-			if(!_definitions[p.second->get_function().value]){
+			if(!_definitions[p.second->get_function().get_function_index()]){
 				return p.first;
 			}
 		}
@@ -214,28 +225,43 @@ public:
 			return it->second;
 		}
 		auto cit = _vtables.find(name);
-		return cit != _vtables.end() ? identifier_ptr(new class_identifier(name)) : scope::get_identifier(name);
+		if(cit == _vtables.end()){
+			cit = _vtables.find(_module_name + "::" + name);
+		}
+		return cit != _vtables.end() ? identifier_ptr(new class_identifier(cit->second->get_full_name())) : scope::get_identifier(name);
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
 		auto it = _functions.find(name);
-		if(it != _functions.end() && !_definitions[it->second->get_function().value] ){
+		if(it != _functions.end() && !_definitions[it->second->get_function().get_function_index()] ){
 			return false;
 		}
-		return _vtables.find(name) == _vtables.end() && scope::is_allowed(name);
+		return _vtables.find(_module_name + "::" + name) == _vtables.end() && scope::is_allowed(name);
 	}
 
-	bool add_vtable(std::string name, vtable_ptr vt){
-		return _vtables.emplace(name, vt).second;
+	bool add_vtable(vtable_ptr vt){
+		return _vtables.emplace(vt->get_full_name(), vt).second;
 	}
 	
 	virtual vtable* get_vtable(std::string name) const override{
+		if(name == "object"){
+			return _bundle.get_vtable("", "object");
+		}
+		
 		auto it = _vtables.find(name);
 		return it != _vtables.end() ? it->second.get() : scope::get_vtable(name);
 	}
 	
-	virtual bool has_class(std::string name) const override{
-		return _vtables.find(name) != _vtables.end() || scope::has_class(name);
+	virtual std::string full_class_name(std::string name) const override{
+		auto cit = _vtables.find(name);
+		if(cit == _vtables.end()){
+			cit = _vtables.find(_module_name + "::"+ name);
+		}
+		return cit == _vtables.end() ? "" : cit->second->get_full_name();
+	}
+	
+	virtual const std::string& get_module_name() const override{
+		return _module_name;
 	}
 };
 
@@ -308,9 +334,10 @@ public:
 	
 	vtable_ptr create_vtable(const std::vector<std::string>& bases) const{
 		auto name = _name;
+		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size));
+		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size));
 		for(const std::string& base: bases){
 			ret->derive_from(*get_vtable(base));
 		}
@@ -318,15 +345,18 @@ public:
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
-		return name == _name ? identifier_ptr(new class_identifier(name)) : scope::get_identifier(name);
+		if(name == _name || name == get_module_name() + "::" + name){
+			return identifier_ptr(new class_identifier(get_module_name() + "::" + name));
+		}
+		return scope::get_identifier(name);
 	}
 	
-	virtual bool has_class(std::string name) const override{
-		return name == _name || scope::has_class(name);
+	virtual std::string full_class_name(std::string name) const override{
+		return name == _name  || name == get_module_name() + "::" + name ? get_module_name() + "::" + name : scope::full_class_name(name);
 	}
 	
 	virtual std::string get_current_class() const override{
-		return _name;
+		return get_module_name() + "::" + _name;
 	}
 };
 

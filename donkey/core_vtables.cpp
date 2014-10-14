@@ -42,7 +42,7 @@ vtable_ptr create_object_vtable(){
 	
 	methods.emplace("weak", method_ptr(new method(&variable_weak)));
 	
-	return vtable_ptr(new vtable("object", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
+	return vtable_ptr(new vtable("", "object", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
 }
 
 vtable_ptr create_string_vtable(const vtable& base){
@@ -55,7 +55,7 @@ vtable_ptr create_string_vtable(const vtable& base){
 	
 	methods.emplace("toString", method_ptr(new method(&string_to_string)));
 	
-	vtable_ptr ret(new vtable("string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
+	vtable_ptr ret(new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
 	ret->derive_from(base);
 	return ret;
 }
@@ -64,7 +64,7 @@ vtable_ptr create_number_vtable(const vtable& base){
 	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	vtable_ptr ret(new vtable("number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
+	vtable_ptr ret(new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
 	ret->derive_from(base);
 	return ret;
 }
@@ -73,7 +73,7 @@ vtable_ptr create_function_vtable(const vtable& base){
 	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	vtable_ptr ret(new vtable("function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
+	vtable_ptr ret(new vtable("", "function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
 	ret->derive_from(base);
 	return ret;
 }
@@ -82,7 +82,7 @@ vtable_ptr create_null_vtable(const vtable& base){
 	std::unordered_map<std::string, method_ptr> methods;
 	std::unordered_map<std::string, size_t> fields;
 	
-	vtable_ptr ret(new vtable("null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
+	vtable_ptr ret(new vtable("", "null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0));
 	ret->derive_from(base);
 	return ret;
 }

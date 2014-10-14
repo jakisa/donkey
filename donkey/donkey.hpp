@@ -18,9 +18,8 @@ private:
 	class priv;
 	priv* _private;
 public:
-	compiler(const char* root);
+	compiler(const char* root, size_t stack_size = 1024);
 	bool compile_module(const char* module_name);
-	bool execute_module(const char* module_name, size_t stack_size = 1024);
 	~compiler();
 };
 

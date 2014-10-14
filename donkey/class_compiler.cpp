@@ -154,7 +154,7 @@ void compile_class(scope& target, tokenizer& parser){
 	
 	class_scope ctarget(name, &target);
 	
-	std::vector<std::string> bases(1, "object");
+	std::vector<std::string> bases;
 	
 	if(*parser == ":"){
 		++parser;
@@ -166,16 +166,19 @@ void compile_class(scope& target, tokenizer& parser){
 			if(base == "number" || base == "string" || base == "function" || base == "null"){
 				semantic_error(parser.get_line_number(), "cannot inherit from " + name);
 			}
-			if(!target.has_class(base)){
+			std::string fullbase = target.full_class_name(base);
+			if(fullbase.empty()){
 				semantic_error(parser.get_line_number(), "class " + base + " is undefined");
 			}
-			bases.push_back(base);
+			bases.push_back(fullbase);
 			++parser;
 			if(*parser == ","){
 				++parser;
 			}
 		}while(*parser != "{");
 	}
+	
+	bases.push_back("object");
 	
 	global_scope& gtarget = static_cast<global_scope&>(target);
 	
@@ -226,7 +229,7 @@ void compile_class(scope& target, tokenizer& parser){
 		ctarget.define_destructor(std::bind(&default_destructor, bases_vt, _1, _2, _3));
 	}
 	
-	gtarget.add_vtable(name, ctarget.create_vtable(bases));
+	gtarget.add_vtable(ctarget.create_vtable(bases));
 	
 	while(*parser != "}"){
 		if(*parser == "var"){

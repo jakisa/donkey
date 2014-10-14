@@ -99,9 +99,9 @@ public:
 
 class local_variable_expression final: public lvalue_expression{
 private:
-	int _idx;
+	size_t _idx;
 public:
-	local_variable_expression(int idx):
+	local_variable_expression(size_t idx):
 		_idx(idx){
 	}
 
@@ -115,13 +115,15 @@ public:
 
 class global_variable_expression final: public lvalue_expression{
 private:
-	int _idx;
+	uint32_t _module_idx;
+	uint32_t _var_idx;
 public:
-	global_variable_expression(int idx):
-		_idx(idx){
+	global_variable_expression(uint32_t module_idx, uint32_t var_idx):
+		_module_idx(module_idx),
+		_var_idx(var_idx){
 	}
 	virtual variable& as_lvalue(runtime_context & ctx) override{
-		return ctx.global(_idx);
+		return global_variable(ctx, _module_idx, _var_idx);
 	}
 
 	virtual void as_void(runtime_context&) override{

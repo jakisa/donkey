@@ -4,6 +4,7 @@
 #include "statement_compiler.hpp"
 #include "module.hpp"
 #include <unordered_map>
+#include "module_bundle.hpp"
 
 namespace donkey{
 
@@ -11,11 +12,12 @@ class compiler::priv{
 private:
 	std::string _root;
 	
-	std::unordered_map<std::string, module_ptr> _modules;
+	module_bundle _modules;
 	
-	
-	module_ptr compile_module(tokenizer& parser){
-		global_scope target;
+	void compile_module(tokenizer& parser, std::string module_name){
+		size_t idx = _modules.reserve_module(module_name);
+		
+		global_scope target(_modules, std::move(module_name), idx);
 		for(; parser;){
 			compile_statement(target, parser);
 		}
@@ -25,11 +27,12 @@ private:
 			semantic_error(parser.get_line_number(), not_defined + " is not defined");
 		}
 		
-		return module_ptr(new module(target.get_block(), target.get_number_of_variables(), target.get_functions(), target.get_vtables()));
+		_modules.add_module(module_name, module_ptr(new module(target.get_block(), idx, target.get_number_of_variables(), target.get_functions(), target.get_vtables())));
 	}
 public:
-	priv(const char* root):
-		_root(root){
+	priv(const char* root, size_t stack_size):
+		_root(root),
+		_modules(stack_size){
 	}
 
 	bool compile_module(const char* module_name){
@@ -55,48 +58,23 @@ public:
 
 		//try{
 			tokenizer parser (&v[0], &v[0] + len);
-			module_ptr m = compile_module(parser);
-			_modules[module_name] = m;
+			compile_module(parser, module_name);
 			return true;
 		//}catch(const exception&){
 		//	return false;
 		//}
 	}
 	
-	bool execute_module(const char* module_name, size_t stack_size){
-//		try{
-			auto it = _modules.find(module_name);
-			
-			if(it == _modules.end()){
-				return false;
-			}
-			
-			runtime_context ctx(it->second.get(), it->second->get_globals_count(), stack_size);
-			
-			it->second->load(ctx);
-			
-			variable that = ctx.global(0);
-			
-			printf("%s\n", get_vtable(ctx, that)->call_member(that, ctx, 0, "toString").to_string().c_str());
-			
-			return true;
-//		}catch(const exception&){
-//			return false;
-//		}
-	}
 };
 
-compiler::compiler(const char* root):
-	_private(new priv(root)){
+compiler::compiler(const char* root, size_t stack_size):
+	_private(new priv(root, stack_size)){
 }
 
 bool compiler::compile_module(const char* module_name){
 	return _private->compile_module(module_name);
 }
 
-bool compiler::execute_module(const char* module_name, size_t stack_size){
-	return _private->execute_module(module_name, stack_size);
-}
 
 compiler::~compiler(){
 	delete _private;

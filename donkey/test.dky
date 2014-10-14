@@ -1,17 +1,36 @@
-function fib(n){
-    if(n < 2){
-	return n;
+var out = 0;
+
+class A{
+    A(){
+	++out;
     }
-    return fib(n-2) + fib(n-1);
+    function f(){
+	return 100;
+    }
+    
 }
 
+class C: A{
+    var x;
+    C(x){
+	self.x = x;
+    }
+    
+    function f(){
+	return 200 + this.C::x;
+    }
+}
 
-var a = fib(30);
+class D: C, A{
+    var y;
+    D():
+	C(1){
+    }
+    function f(){
+	return 300 + this.C::x;
+    }
+}
 
+var c = new D();
 
-//first: 0.75
-//make_shared: 0.65
-
-//variable: 0.28
-
-//local ref: 0.23
+out = c.toString();

@@ -73,7 +73,8 @@ HEADERS += \
     scope_compiler.hpp \
     expression_compiler.hpp \
     class_compiler.hpp \
-    compiler_helpers.hpp
+    compiler_helpers.hpp \
+    module_bundle.hpp
 
 OTHER_FILES += \
     examples.txt \

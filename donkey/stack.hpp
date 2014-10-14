@@ -22,6 +22,10 @@ public:
 		}
 	}
 	
+	~stack(){
+		delete[] _v;
+	}
+	
 	void add_size(size_t sz){
 		_sz += sz;
 		if(_sz > _cap){

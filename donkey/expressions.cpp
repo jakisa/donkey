@@ -260,24 +260,24 @@ expression_ptr build_local_variable_expression(size_t idx){
 	return expression_ptr(new local_variable_expression(idx));
 }
 
-expression_ptr build_global_variable_expression(size_t idx){
-	return expression_ptr(new global_variable_expression(idx));
+expression_ptr build_global_variable_expression(size_t module_idx, size_t var_idx){
+	return expression_ptr(new global_variable_expression(module_idx, var_idx));
 }
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member){
 	return expression_ptr(new member_expression(that, member));
 }
 
-expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx){
-	return expression_ptr(new field_expression(that, type, idx));
+expression_ptr build_field_expression(expression_ptr that, const std::string& name, size_t idx){
+	return expression_ptr(new field_expression(that, name, idx));
 }
 
-expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m){
-	return expression_ptr(new method_expression(that, type, m));
+expression_ptr build_method_expression(expression_ptr that, const std::string& name, method& m){
+	return expression_ptr(new method_expression(that, name, m));
 }
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params){
-	return expression_ptr(new constructor_call_expression(type_name, params));
+expression_ptr build_constructor_call_expression(const std::string& module_name, const std::string& type_name, const std::vector<expression_ptr>& params){
+	return expression_ptr(new constructor_call_expression(module_name, type_name, params));
 }
 
 expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){

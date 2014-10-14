@@ -247,7 +247,7 @@ expression_ptr build_const_function_expression(code_address addr);
 
 expression_ptr build_local_variable_expression(size_t idx);
 
-expression_ptr build_global_variable_expression(size_t idx);
+expression_ptr build_global_variable_expression(size_t module_idx, size_t var_idx);
 
 expression_ptr build_unary_expression(oper op, expression_ptr e1, int line_number);
 
@@ -257,10 +257,11 @@ expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_p
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member);
 
-expression_ptr build_field_expression(expression_ptr that, const std::string& type, size_t idx);
-expression_ptr build_method_expression(expression_ptr that, const std::string& type, method& m);
+expression_ptr build_field_expression(expression_ptr that, const std::string& name, size_t idx);
 
-expression_ptr build_constructor_call_expression(const std::string& type_name, const std::vector<expression_ptr>& params);
+expression_ptr build_method_expression(expression_ptr that, const std::string& name, method& m);
+
+expression_ptr build_constructor_call_expression(const std::string& module_name, const std::string& type_name, const std::vector<expression_ptr>& params);
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 
