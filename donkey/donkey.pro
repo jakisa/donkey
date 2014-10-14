@@ -17,7 +17,16 @@ SOURCES += main.cpp \
     core_vtables.cpp \
     runtime_context.cpp \
     donkey_object.cpp \
-    variables.cpp
+    variables.cpp \
+    loop_compilers.cpp \
+    statement_compiler.cpp \
+    expression_compiler.cpp \
+    variable_compiler.cpp \
+    jump_compilers.cpp \
+    branch_compilers.cpp \
+    class_compiler.cpp \
+    function_compiler.cpp \
+    scope_compiler.cpp
 
 HEADERS += \
     errors.hpp \
@@ -53,7 +62,18 @@ HEADERS += \
     sequential_expressions.hpp \
     stack.hpp \
     null_check_expressions.hpp \
-    item_expressions.hpp
+    item_expressions.hpp \
+    compiler.hpp \
+    loop_compilers.hpp \
+    statement_compiler.hpp \
+    function_compiler.hpp \
+    variable_compiler.hpp \
+    jump_compilers.hpp \
+    branch_compilers.hpp \
+    scope_compiler.hpp \
+    expression_compiler.hpp \
+    class_compiler.hpp \
+    compiler_helpers.hpp
 
 OTHER_FILES += \
     examples.txt \

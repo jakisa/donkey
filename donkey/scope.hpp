@@ -8,6 +8,7 @@
 #include "statements.hpp"
 #include "function.hpp"
 #include "vtable.hpp"
+#include "tokenizer.hpp"
 
 namespace donkey{
 

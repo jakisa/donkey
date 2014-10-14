@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stack>
 #include "helpers.hpp"
+#include "compiler.hpp"
 
 namespace donkey{
 
@@ -474,7 +475,6 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 	}
 }
 
-bool is_keyword(const std::string& name); //donkey.cpp
 
 static std::pair<std::string, std::string> get_member_name(part_ptr tree, const identifier_lookup& lookup, bool self, int line_number){
 	std::string classname;
