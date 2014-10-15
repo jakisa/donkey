@@ -105,9 +105,9 @@ public:
 				_public_variables[name] = _var_index;
 			}
 			if(is_global()){
-				_variables[name].reset(new global_variable_identifier(_module_index, _var_index++));
+				_variables[name].reset(new global_variable_identifier(name, _module_index, _var_index++));
 			}else{
-				_variables[name].reset(new local_variable_identifier(_var_index++));
+				_variables[name].reset(new local_variable_identifier(name, _var_index++));
 			}
 			return true;
 		}
@@ -148,12 +148,8 @@ public:
 		return _var_index - _initial_index;
 	}
 	
-	virtual std::string full_class_name(std::string name) const override{
-		return _parent ? _parent->full_class_name(name) : "";
-	}
-	
-	virtual vtable* get_vtable(std::string name) const override{
-		return _parent ? _parent->get_vtable(name) : nullptr;
+	virtual vtable* get_vtable(std::string module, std::string name) const override{
+		return _parent ? _parent->get_vtable(module, name) : nullptr;
 	}
 	
 	virtual std::string get_current_class() const override{
@@ -188,7 +184,7 @@ public:
 	}
 	
 	bool import(std::string name, const module& m){
-		return _import.emplace(name, identifier_ptr(new module_identifier(m))).second;
+		return _import.emplace(name, identifier_ptr(new module_identifier(name, m))).second;
 	}
 	
 	bool has_function(std::string name) const{
@@ -204,7 +200,7 @@ public:
 		if(_functions.find(name) != _functions.end()){
 			return;
 		}
-		_functions[name].reset(new function_identifier(code_address(get_module_index(), _definitions.size())));
+		_functions[name].reset(new function_identifier(name, code_address(get_module_index(), _definitions.size())));
 		if(is_public){
 			_public_functions[name] = _definitions.size();
 		}
@@ -217,7 +213,7 @@ public:
 		if(ptr){
 			_definitions[ptr->get_function().get_function_index()] = std::move(f);
 		}else{
-			ptr.reset(new function_identifier(code_address(get_module_index(), _definitions.size())));
+			ptr.reset(new function_identifier(name, code_address(get_module_index(), _definitions.size())));
 			_definitions.push_back(std::move(f));
 		}
 	}
@@ -252,7 +248,7 @@ public:
 		if(cit == _vtables.end()){
 			cit = _vtables.find(_module_name + "::" + name);
 		}
-		return cit != _vtables.end() ? identifier_ptr(new class_identifier(cit->second->get_full_name())) : scope::get_identifier(name);
+		return cit != _vtables.end() ? identifier_ptr(new class_identifier(cit->second->get_full_name(), cit->second.get(), _module_name)) : scope::get_identifier(name);
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
@@ -266,21 +262,17 @@ public:
 		return _vtables.emplace(vt->get_full_name(), vt).second;
 	}
 	
-	virtual vtable* get_vtable(std::string name) const override{
-		if(name == "object"){
-			return _bundle.get_vtable("", "object");
+	virtual vtable* get_vtable(std::string module, std::string name) const override{
+		if(module.empty() || module == _module_name){
+			if(name == "object"){
+				return _bundle.get_vtable("", "object");
+			}
+			
+			auto it = _vtables.find(name);
+			return it != _vtables.end() ? it->second.get() : scope::get_vtable(module, name);
+		}else{
+			return _bundle.get_vtable(module, name);
 		}
-		
-		auto it = _vtables.find(name);
-		return it != _vtables.end() ? it->second.get() : scope::get_vtable(name);
-	}
-	
-	virtual std::string full_class_name(std::string name) const override{
-		auto cit = _vtables.find(name);
-		if(cit == _vtables.end()){
-			cit = _vtables.find(_module_name + "::"+ name);
-		}
-		return cit == _vtables.end() ? "" : cit->second->get_full_name();
 	}
 	
 	virtual const std::string& get_module_name() const override{
@@ -359,27 +351,16 @@ public:
 		return true;
 	}
 	
-	vtable_ptr create_vtable(const std::vector<std::string>& bases, bool is_public) const{
+	vtable_ptr create_vtable(const std::vector<std::pair<std::string, std::string> >& bases, bool is_public) const{
 		auto name = _name;
 		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
 		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public));
-		for(const std::string& base: bases){
-			ret->derive_from(*get_vtable(base));
+		for(const auto& base: bases){
+			ret->derive_from(*get_vtable(base.first, base.second));
 		}
 		return ret;
-	}
-	
-	virtual identifier_ptr get_identifier(std::string name) const override{
-		if(name == _name || name == get_module_name() + "::" + name){
-			return identifier_ptr(new class_identifier(get_module_name() + "::" + name));
-		}
-		return scope::get_identifier(name);
-	}
-	
-	virtual std::string full_class_name(std::string name) const override{
-		return name == _name  || name == get_module_name() + "::" + name ? get_module_name() + "::" + name : scope::full_class_name(name);
 	}
 	
 	virtual std::string get_current_class() const override{

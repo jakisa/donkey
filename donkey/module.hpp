@@ -52,25 +52,31 @@ public:
 		return _functions[idx](ctx, prms);
 	}
 	
-	vtable* get_vtable(std::string name) const{
+	vtable* get_vtable(std::string module_name, std::string name) const{
+		if(!module_name.empty() && module_name != _module_name){
+			return nullptr;
+		}
 		auto it = _vtables.find(name);
 		return it == _vtables.end() ? nullptr : it->second.get();
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
 		auto cit = _vtables.find(name);
+		if(cit == _vtables.end()){
+			cit = _vtables.find(_module_name + "::" + name);
+		}
 		if(cit != _vtables.end() && cit->second->is_public()){
-			return identifier_ptr(new class_identifier(cit->second->get_full_name()));
+			return identifier_ptr(new class_identifier(cit->second->get_full_name(), cit->second.get(), _module_name));
 		}
 		
 		auto fit = _public_functions.find(name);
 		if(fit != _public_functions.end()){
-			return identifier_ptr(new function_identifier(code_address(_module_index, fit->second)));
+			return identifier_ptr(new function_identifier(fit->first, code_address(_module_index, fit->second)));
 		}
 		
 		auto git = _public_globals.find(name);
 		if(git != _public_globals.end()){
-			return identifier_ptr(new global_variable_identifier(_module_index, git->second));
+			return identifier_ptr(new global_variable_identifier(git->first, _module_index, git->second));
 		}
 		
 		return identifier_ptr();
@@ -85,19 +91,6 @@ public:
 	}
 	
 	virtual std::string get_current_class() const override{
-		return "";
-	}
-	
-	virtual std::string full_class_name(std::string name) const override{
-		auto cit = _vtables.find(name);
-		if(cit != _vtables.end() && cit->second->is_public()){
-			return name;
-		}
-		
-		cit = _vtables.find(_module_name + "::" + name);
-		if(cit != _vtables.end() && cit->second->is_public()){
-			return _module_name + "::" + name;
-		}
 		return "";
 	}
 	

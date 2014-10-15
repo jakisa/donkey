@@ -1,3 +1,10 @@
 import other;
 
 var out;
+
+
+{
+    var a = new other::C();
+}
+
+out = other::count;

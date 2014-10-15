@@ -111,8 +111,7 @@ public:
 
 class constructor_call_expression final: public expression{
 private:
-	std::string _module_name;
-	std::string _type_name;
+	vtable* _vt;
 	std::vector<expression_ptr> _params;
 	
 	void init(variable& that, vtable* vt, runtime_context& ctx){
@@ -126,16 +125,14 @@ private:
 	}
 	
 public:
-	constructor_call_expression(std::string module_name, std::string type_name, std::vector<expression_ptr> params):
-		expression(string_to_type(type_name)),
-		_module_name(module_name),
-		_type_name(type_name),
+	constructor_call_expression(vtable* vt, std::vector<expression_ptr> params):
+		expression(expression_type::variant),
+		_vt(vt),
 		_params(std::move(params)){
 	}
 	virtual variable as_param(runtime_context& ctx) override{
-		vtable* vt = get_vtable(ctx, _module_name, _type_name);
-		variable ret(vt, ctx);
-		init(ret, vt, ctx);
+		variable ret(_vt, ctx);
+		init(ret, _vt, ctx);
 		return ret;
 	}
 	virtual number as_number(runtime_context& ctx) final override{

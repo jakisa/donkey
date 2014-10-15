@@ -1,20 +1,24 @@
+public var count = 0;
+
 class A{
     A(){
     }
     function f(){
 	return 100;
     }
-    
+    ~A(){
+	++count;
+    }
 }
 
 public class C: A{
     var x;
     C(x){
-	self.x = x;
+	self.x = x ?? 42;
     }
     
     function f(){
-	return 200 + this.C::x;
+	return this.x;
     }
 }
 
@@ -28,9 +32,6 @@ class D: C, A{
     }
 }
 
-public var c = new D();
-
 public function f(){
     return 42;
 }
-

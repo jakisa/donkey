@@ -276,8 +276,8 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& n
 	return expression_ptr(new method_expression(that, name, m));
 }
 
-expression_ptr build_constructor_call_expression(const std::string& module_name, const std::string& type_name, const std::vector<expression_ptr>& params){
-	return expression_ptr(new constructor_call_expression(module_name, type_name, params));
+expression_ptr build_constructor_call_expression(vtable* vt, const std::vector<expression_ptr>& params){
+	return expression_ptr(new constructor_call_expression(vt, params));
 }
 
 expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){

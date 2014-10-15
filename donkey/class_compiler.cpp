@@ -131,16 +131,19 @@ inline const vtable* add_table(std::unordered_set<const vtable*>& tables, const 
 	return nullptr;
 }
 
-inline std::string check_diamond(const std::vector<std::string>& bases, const global_scope& scope){
+inline void check_diamond(const std::vector<std::pair<std::string, std::string> >& bases, const global_scope& scope, const std::string& classname){
 	std::unordered_set<const vtable*> tables;
 	
-	for(const std::string& base: bases){
-		const vtable* ret = add_table(tables, scope.get_vtable(base));
+	for(const auto& module_base: bases){
+		const vtable* vt = scope.get_vtable(module_base.first, module_base.second);
+		if(!vt){
+			semantic_error("unknown class " + module_base.second);
+		}
+		const vtable* ret = add_table(tables, vt);
 		if(ret){
-			return ret->get_name();
+			semantic_error("non-empty diaamond base " + ret->get_name() + " found for " + classname);
 		}
 	}
-	return "";
 }
 
 void compile_class(scope& target, tokenizer& parser, bool is_public){
@@ -154,39 +157,23 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 	
 	class_scope ctarget(name, &target);
 	
-	std::vector<std::string> bases;
+	std::vector<std::pair<std::string, std::string> > bases;
 	
 	if(*parser == ":"){
 		++parser;
 		do{
-			if(parser.get_token_type() != tokenizer::tt_word){
-				unexpected_error(*parser);
-			}
-			std::string base = *parser;
-			if(base == "number" || base == "string" || base == "function" || base == "null"){
-				semantic_error("cannot inherit from " + name);
-			}
-			std::string fullbase = target.full_class_name(base);
-			if(fullbase.empty()){
-				semantic_error("class " + base + " is undefined");
-			}
-			bases.push_back(fullbase);
-			++parser;
+			bases.push_back(get_class(target.get_module_name(), parser));
 			if(*parser == ","){
 				++parser;
 			}
-		}while(*parser != "{");
+		}while(parser && *parser != "{");
 	}
 	
-	bases.push_back("object");
+	bases.emplace_back("", "object");
 	
 	global_scope& gtarget = static_cast<global_scope&>(target);
 	
-	std::string diamond_base = check_diamond(bases, gtarget);
-	
-	if(!diamond_base.empty()){
-		semantic_error("non-empty diamond base " + diamond_base + " detected for class " + name);
-	}
+	check_diamond(bases, gtarget, name);
 	
 	parse("{", parser);
 	
@@ -208,24 +195,25 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 			if(destructor_defined){
 				semantic_error("destructor is already defined");
 			}
+			++stub_parser;
+			if(*stub_parser != name){
+				semantic_error("invalid destructor");
+			}
 			skip_destructor(stub_parser);
 			destructor_defined = true;
 		}
 	}
 	
+	std::vector<vtable*> bases_vt;
+	for(const std::pair<std::string, std::string>& module_base: bases){
+		bases_vt.push_back(gtarget.get_vtable(module_base.first, module_base.second));
+	}
+	
 	if(!constructor_defined){
-		std::vector<vtable*> bases_vt;
-		for(const std::string& base: bases){
-			bases_vt.push_back(gtarget.get_vtable(base));
-		}
 		ctarget.define_constructor(std::bind(&default_constructor, bases_vt, _1, _2, _3));
 	}
 	
 	if(!destructor_defined){
-		std::vector<vtable*> bases_vt;
-		for(const std::string& base: bases){
-			bases_vt.push_back(gtarget.get_vtable(base));
-		}
 		ctarget.define_destructor(std::bind(&default_destructor, bases_vt, _1, _2, _3));
 	}
 	

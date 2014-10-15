@@ -398,6 +398,33 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 	return parts.front();
 }
 
+static expression_ptr identifier_to_expression(identifier_ptr id){
+	switch(id->get_type()){
+		case identifier_type::global_variable:
+			{
+				return build_global_variable_expression(
+					static_cast<global_variable_identifier&>(*id).get_module_index(),
+					static_cast<global_variable_identifier&>(*id).get_var_index()
+				);
+			}
+		case identifier_type::local_variable:
+			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
+		case identifier_type::function:
+			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
+		case identifier_type::classname:
+			semantic_error("unexpected class " + id->get_name());
+			break;
+		case identifier_type::module:
+			semantic_error("unexpected module " + id->get_name());
+		case identifier_type::method:
+			semantic_error("unexpected method" + id->get_name());
+		case identifier_type::field:
+			semantic_error("unexpected field" + id->get_name());
+	}
+	
+	return expression_ptr();
+}
+
 static expression_ptr str_to_expression(const std::string& str, const identifier_lookup& lookup){
 	if(isdigit(str.front())){
 		double n = parse_number(str);
@@ -427,26 +454,7 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 		semantic_error("unknown identifier " + str);
 	}
 	
-	switch(id->get_type()){
-		case identifier_type::global_variable:
-			{
-				return build_global_variable_expression(
-					static_cast<global_variable_identifier&>(*id).get_module_index(),
-					static_cast<global_variable_identifier&>(*id).get_var_index()
-				);
-			}
-		case identifier_type::local_variable:
-			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
-		case identifier_type::function:
-			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
-		case identifier_type::classname:
-			semantic_error("unexpected class " + str);
-			break;
-		case identifier_type::module:
-			semantic_error("unexpected module " + str);
-	}
-	
-	return expression_ptr();
+	return identifier_to_expression(id);
 }
 
 static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup);
@@ -485,24 +493,49 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 	}
 }
 
-
-static std::pair<std::string, std::string> get_member_name(part_ptr tree, const identifier_lookup& lookup, bool self){
-	std::string classname;
-	if(self){
-		classname = lookup.get_current_class();
-	}else if(tree->op == oper::scope){
-		classname = lookup.full_class_name(tree->first_child->str);
-		if(classname.empty()){
-			semantic_error("unknown class name " + tree->first_child->str);
-		}
-		tree = tree->first_child->next_sibling;
+static identifier_ptr tree_to_identifier(part_ptr tree, const identifier_lookup& lookup){
+	switch(tree->op){
+		case oper::none:
+			{
+				identifier_ptr ret = lookup.get_identifier(tree->str);
+				if(!ret){
+					semantic_error("unknown identifier " + tree->str);
+				}
+				return ret;
+			}
+		case oper::scope:
+			{
+				identifier_ptr l = tree_to_identifier(tree->first_child, lookup);
+				switch(l->get_type()){
+					case identifier_type::global_variable:
+					case identifier_type::local_variable:
+					case identifier_type::method:
+					case identifier_type::field:
+					case identifier_type::function:
+						semantic_error(l->get_name() + " is not module nor class");
+						return identifier_ptr();
+					case identifier_type::module:
+						return tree_to_identifier(tree->first_child->next_sibling, static_cast<module_identifier&>(*l).get_lookup());
+					case identifier_type::classname:
+					{
+						class_identifier& c = static_cast<class_identifier&>(*l);
+						std::string r = tree->first_child->next_sibling->str;
+						if(c.get_vtable()->has_method(r)){
+							return identifier_ptr(new method_identifier(r, *(c.get_vtable()->get_method(r)), c.get_name()));
+						}else if(c.get_vtable()->has_field(r)){
+							return identifier_ptr(new field_identifier(r, c.get_vtable()->get_field_index(r), c.get_name()));
+						}else{
+							semantic_error("class " + c.get_name() + " doesn't have member " + r);
+							return identifier_ptr();
+						}
+					}
+				}		
+			}
+			break;
+		default:
+			syntax_error("invalid expression");
 	}
-	
-	std::string membername = tree->str;
-	if(membername.empty() || membername[0] == '"' || isdigit(membername[0]) || is_keyword(membername)){
-		semantic_error("invalid member name");
-	}
-	return std::pair<std::string, std::string>(classname, membername);
+	return identifier_ptr();
 }
 
 static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup){
@@ -514,37 +547,30 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 			return str_to_expression(tree->str, lookup);
 		case oper::construct:
 			{
+				
 				if(tree->first_child->op != oper::call){
 					syntax_error("invalid constructor call");
 				}
 				
-				part_ptr f = tree->first_child->first_child;
+				identifier_ptr id = tree_to_identifier(tree->first_child->first_child, lookup);
 				
-				identifier_ptr classname = lookup.get_identifier(f->str);
+				std::string name = id->get_name();
 				
-				if(!classname){
-					semantic_error("unknown identifier " + f->str);
-				}
-				if(classname->get_type() != identifier_type::classname){
-					semantic_error("cannot construct " + f->str);
-				}
-				
-				std::string name = static_cast<class_identifier&>(*classname).get_name();
-				
-				if(name == "object" || name == "number" || name == "string" || name == "function" || name == "null"){
+				if(id->get_type() != identifier_type::classname ||
+				   name == "object" || name == "number" || name == "string" || name == "function" || name == "null"){
 					semantic_error("cannot construct " + name);
 				}
-				
 				
 				std::vector<expression_ptr> params;
 				std::vector<size_t> byref;
 				
-				fetch_params(f, lookup, params, byref);
+				fetch_params(tree->first_child->first_child, lookup, params, byref);
 				
 				if(!byref.empty()){
 					syntax_error("cannot pass constructor parameters as reference");
 				}
-				return build_constructor_call_expression(lookup.get_module_name(), static_cast<class_identifier&>(*classname).get_name(), params);
+				return build_constructor_call_expression(static_cast<class_identifier&>(*id).get_vtable(), params);
+				
 			}
 			break;
 		case oper::dot:
@@ -561,23 +587,35 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 					that = tree_to_expression(tree->first_child, lookup);
 				}
 				
-				std::pair<std::string, std::string> member = get_member_name(tree->first_child->next_sibling, lookup, self);
-				
-				if(member.first.empty()){
-					return build_member_expression(that, member.second);
+				if(self){
+					if(!lookup.in_class()){
+						semantic_error("self is only allowed in class method");
+					}
+					vtable* vt = lookup.get_vtable("", lookup.get_current_class());
+					std::string member = tree->first_child->next_sibling->str;
+					if(vt->has_method(member)){
+						return build_method_expression(that, lookup.get_current_class(), *vt->get_method(member));
+					}else if(vt->has_field(member)){
+						return build_field_expression(that, lookup.get_current_class(), vt->get_field_index(member));
+					}else{
+						semantic_error(lookup.get_current_class() + " doesn't have member " + member);
+					}
+				}else if(tree->first_child->next_sibling->op == oper::scope){
+					identifier_ptr id = tree_to_identifier(tree->first_child->next_sibling, lookup);
+					if(id->get_type() == identifier_type::method){
+						return build_method_expression(that, static_cast<method_identifier&>(*id).get_classname(), static_cast<method_identifier&>(*id).get_method());
+					}else if(id->get_type() == identifier_type::field){
+						return build_field_expression(that, static_cast<field_identifier&>(*id).get_classname(), static_cast<field_identifier&>(*id).get_field());
+					}else{
+						semantic_error("invalid member");
+						return expression_ptr();
+					}
 				}else{
-					vtable* vt = lookup.get_vtable(member.first);
-					
-					if(vt->has_method(member.second)){
-						return build_method_expression(that, member.first, *(vt->get_method(member.second)));
+					std::string member_name = tree->first_child->next_sibling->str;
+					if(member_name.empty() || is_keyword(member_name) || isdigit(member_name[0]) || member_name[0] == '"'){
+						syntax_error("invalid member name " + member_name);
 					}
-					if(vt->has_field(member.second)){
-						return build_field_expression(that, member.first, vt->get_field_index(member.second));
-					}
-					
-					semantic_error("class " + member.first + " doesn't have field " + member.second);
-					
-					return expression_ptr();
+					return build_member_expression(that, member_name);
 				}
 				
 			}
@@ -597,6 +635,11 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				tree_to_expression(tree->first_child, lookup),
 				tree_to_expression(tree->first_child->next_sibling, lookup)
 			);
+		case oper::scope:
+			{
+				return identifier_to_expression(tree_to_identifier(tree, lookup));
+			}
+			break;
 		default:
 			switch(get_number_of_operands(tree->op)){
 				case 1:

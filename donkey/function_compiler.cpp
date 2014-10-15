@@ -143,33 +143,32 @@ inline bool has_constructor(std::string){
 	return false;
 }
 
-inline void compile_pre_constructor(const std::vector<std::string>& bases, scope& inner, tokenizer& parser){
+inline void compile_pre_constructor(const std::vector<std::pair<std::string, std::string > >& bases, scope& inner, tokenizer& parser){
 	std::unordered_map<std::string, bool> constructed;
 	
-	for(const std::string& base_name: bases){
-		constructed.emplace(base_name, false);
+	for(const auto& base_name: bases){
+		constructed.emplace(base_name.second, false);
 	}
 	
 	if(*parser == ":"){
 		++parser;
 		while(parser && *parser != "{"){
-			std::string base_name = parse_allowed_name(parser);
-			std::string full_base_name = inner.full_class_name(base_name);
+			std::pair<std::string, std::string> base_name = get_class(inner.get_module_name(), parser);
 			
-			auto it = constructed.find(full_base_name);
+			auto it = constructed.find(base_name.second);
 			
 			if(it == constructed.end()){
-				semantic_error(base_name + " is not base of this class");
+				semantic_error(base_name.second + " is not base of this class");
 			}
 			
 			if(it->second){
-				semantic_error(base_name + " is already constructed");
+				semantic_error(base_name.second + " is already constructed");
 			}
 			
 			parse("(", parser);
 			
 			if(*parser == ")"){
-				inner.add_statement(base_default_constructor_statement(inner.get_vtable(full_base_name)));
+				inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name.first, base_name.second)));
 			}else{
 				std::vector<expression_ptr> params;
 				while(parser && *parser != ")"){
@@ -178,7 +177,7 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 						++parser;
 					}
 				}
-				inner.add_statement(base_constructor_statement(inner.get_vtable(full_base_name), std::move(params)));
+				inner.add_statement(base_constructor_statement(inner.get_vtable(base_name.first, base_name.second), std::move(params)));
 			}
 			
 			parse(")", parser);
@@ -191,15 +190,15 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 		}
 	}
 	
-	for(const std::string& base_name: bases){
-		if(!constructed[base_name]){
-			inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name)));
+	for(const auto& base_name: bases){
+		if(!constructed[base_name.second]){
+			inner.add_statement(base_default_constructor_statement(inner.get_vtable(base_name.first, base_name.second)));
 		}
 	}
 	
 }
 
-void compile_constructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases){
+void compile_constructor(class_scope& target, tokenizer& parser, const std::vector<std::pair<std::string, std::string> >& bases){
 	++parser;
 	
 	compile_function_helper("", target, parser,
@@ -216,13 +215,13 @@ inline void declare_destructor(tokenizer&, std::string, bool forward){
 	}
 }
 
-inline void define_destructor(class_scope& target, tokenizer&, const std::vector<std::string>& bases, std::string, scope& function_scope, size_t params_size){
+inline void define_destructor(class_scope& target, tokenizer&, const std::vector<std::pair<std::string, std::string> >& bases, std::string, scope& function_scope, size_t params_size){
 	if(params_size){
 		syntax_error("destructor cannot have parameters");
 	}
 	
 	for(size_t i = bases.size(); i != 0; --i){
-		function_scope.add_statement(base_destructor_statement(target.get_vtable(bases[i-1])));
+		function_scope.add_statement(base_destructor_statement(target.get_vtable(bases[i-1].first, bases[i-1].second)));
 	}
 	
 	target.define_destructor(donkey_method(params_size, function_scope.get_block()));
@@ -232,11 +231,8 @@ inline bool has_destructor(std::string){
 	return false;
 }
 
-void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases){
+void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::pair<std::string, std::string> >& bases){
 	++parser;
-	if(*parser != target.get_current_class()){
-		unexpected_error(*parser);
-	}
 	++parser;
 	
 	compile_function_helper("", target, parser,

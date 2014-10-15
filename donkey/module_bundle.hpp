@@ -67,7 +67,7 @@ public:
 	}
 	
 	vtable* get_vtable(const std::string& module_name, const std::string& type_name){
-		return module_name.empty() ? _core_vtables[type_name].get() : _modules[_modules_map[module_name]]->get_vtable(type_name);
+		return module_name.empty() ? _core_vtables[type_name].get() : _modules[_modules_map[module_name]]->get_vtable("", type_name);
 	}
 	
 	~module_bundle(){

@@ -41,9 +41,10 @@ public:
 	}
 	
 	void pop(size_t cnt){
-		for(size_t i = 0; i < cnt; ++i){
-			_v[--_sz].reset();
+		for(size_t i = 1; i <= cnt; ++i){
+			_v[_sz-i].reset();
 		}
+		_sz -= cnt;
 	}
 	
 	variable& top(size_t idx){

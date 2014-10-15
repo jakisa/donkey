@@ -8,9 +8,9 @@ namespace donkey{
 
 void compile_function(scope& target, tokenizer& parser, bool is_public = false);
 
-void compile_constructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases);
+void compile_constructor(class_scope& target, tokenizer& parser, const std::vector<std::pair<std::string, std::string> >& bases);
 
-void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases);
+void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::pair<std::string, std::string> >& bases);
 
 
 }//donkey
