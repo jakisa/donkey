@@ -19,17 +19,26 @@ private:
 	size_t _module_index;
 	size_t _globals_count;
 	
-	std::unordered_map<std::string, size_t> _public_globals;
 	std::unordered_map<std::string, size_t> _public_functions;
+	std::unordered_map<std::string, size_t> _public_globals;
 	
 public:
-	module(statement&& s, std::string module_name, size_t module_index, size_t globals_count, std::vector<function>&& functions, std::unordered_map<std::string, vtable_ptr>&& vtables):
+	module(statement&& s,
+	       std::string module_name,
+	       size_t module_index,
+	       size_t globals_count,
+	       std::vector<function>&& functions,
+	       std::unordered_map<std::string, vtable_ptr>&& vtables,
+	       std::unordered_map<std::string, size_t>&& public_functions,
+	       std::unordered_map<std::string, size_t>&& public_globals):
 		_functions(std::move(functions)),
 		_vtables(std::move(vtables)),
 		_s(std::move(s)),
 		_module_name(std::move(module_name)),
 		_module_index(module_index),
-		_globals_count(globals_count){
+		_globals_count(globals_count),
+		_public_functions(std::move(public_functions)),
+		_public_globals(std::move(public_globals)){
 	}
 	void load(runtime_context& ctx){
 		_s(ctx);

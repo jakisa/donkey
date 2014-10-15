@@ -163,6 +163,10 @@ public:
 	virtual const std::string& get_module_name() const{
 		return _parent->get_module_name();
 	}
+	
+	std::unordered_map<std::string, size_t> get_public_vars() const{
+		return _public_variables;
+	}
 };
 
 class global_scope: public scope{
@@ -174,12 +178,19 @@ private:
 	std::string _module_name;
 	
 	std::unordered_map<std::string, size_t> _public_functions;
+	
+	std::unordered_map<std::string, identifier_ptr> _import;
 public:
 	global_scope(module_bundle& bundle, std::string&& module_name, size_t module_index):
 		scope(module_index),
 		_bundle(bundle),
 		_module_name(module_name){
 	}
+	
+	bool import(std::string name, const module& m){
+		return _import.emplace(name, identifier_ptr(new module_identifier(m))).second;
+	}
+	
 	bool has_function(std::string name) const{
 		auto it = _functions.find(name);
 		if(it == _functions.end()){
@@ -229,9 +240,13 @@ public:
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
-		auto it = _functions.find(name);
-		if(it != _functions.end()){
-			return it->second;
+		auto mit = _import.find(name);
+		if(mit != _import.end()){
+			return mit->second;
+		}
+		auto fit = _functions.find(name);
+		if(fit != _functions.end()){
+			return fit->second;
 		}
 		auto cit = _vtables.find(name);
 		if(cit == _vtables.end()){
@@ -241,11 +256,10 @@ public:
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
-		auto it = _functions.find(name);
-		if(it != _functions.end() && !_definitions[it->second->get_function().get_function_index()] ){
-			return false;
-		}
-		return _vtables.find(_module_name + "::" + name) == _vtables.end() && scope::is_allowed(name);
+		return _vtables.find(_module_name + "::" + name) == _vtables.end() &&
+		       _import.find(name) == _import.end() &&
+		       _functions.find(name) == _functions.end() &&
+		       scope::is_allowed(name);
 	}
 
 	bool add_vtable(vtable_ptr vt){
@@ -271,6 +285,10 @@ public:
 	
 	virtual const std::string& get_module_name() const override{
 		return _module_name;
+	}
+	
+	std::unordered_map<std::string, size_t> get_public_functions() const{
+		return _public_functions;
 	}
 };
 

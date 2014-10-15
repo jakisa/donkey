@@ -10,7 +10,7 @@ class A{
     
 }
 
-class C: A{
+public class C: A{
     var x;
     C(x){
 	self.x = x;
@@ -31,6 +31,13 @@ class D: C, A{
     }
 }
 
-var c = new D();
+public var c = new D();
+
+public function f(){
+    return 42;
+}
+
+
 
 out = c.toString();
+

@@ -33,7 +33,9 @@ private:
 			idx,
 			target.get_number_of_variables(),
 			target.get_functions(),
-			target.get_vtables()
+			target.get_vtables(),
+			target.get_public_functions(),
+			target.get_public_vars()
 		)));
 	}
 public:

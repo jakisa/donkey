@@ -97,7 +97,13 @@ void compile_function(scope& target, tokenizer& parser, bool is_public){
 		global_scope& gtarget = static_cast<global_scope&>(target);
 		
 		++parser;
-		std::string name = parse_allowed_name(target, parser);
+		std::string name = parse_allowed_name(parser);
+		
+		auto id = target.get_identifier(name);
+		
+		if(id && id->get_type() != identifier_type::function){
+			semantic_error(parser.get_line_number(), name + " is already declared");
+		}
 		
 		compile_function_helper(name, target, parser,
 								std::bind(&declare_function, std::ref(gtarget), _1, _2, is_public),
