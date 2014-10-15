@@ -38,7 +38,6 @@ HEADERS += \
     helpers.hpp \
     identifiers.hpp \
     statements.hpp \
-    donkey_function.h \
     expression_builder.hpp \
     unary_expressions.hpp \
     arithmetic_expressions.hpp \
@@ -74,7 +73,8 @@ HEADERS += \
     expression_compiler.hpp \
     class_compiler.hpp \
     compiler_helpers.hpp \
-    module_bundle.hpp
+    module_bundle.hpp \
+    donkey_function.hpp
 
 OTHER_FILES += \
     examples.txt \

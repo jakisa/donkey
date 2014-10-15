@@ -1,7 +1,7 @@
 #include "function_compiler.hpp"
 #include "compiler.hpp"
 #include "statement_compiler.hpp"
-#include "donkey_function.h"
+#include "donkey_function.hpp"
 #include "compiler_helpers.hpp"
 #include "expression_builder.hpp"
 
