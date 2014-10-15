@@ -55,17 +55,17 @@ inline bool is_keyword(const std::string& name){
 
 inline void parse(const std::string& token, tokenizer& parser){
 	if(*parser != token){
-		syntax_error(parser.get_line_number(), token + " expected");
+		syntax_error(token + " expected");
 	}
 	++parser;
 }
 
 inline std::string parse_allowed_name(tokenizer& parser){
 	if(parser.get_token_type() != tokenizer::tt_word){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	if(is_keyword(*parser)){
-		syntax_error(parser.get_line_number(), *parser + " is keyword");
+		syntax_error(*parser + " is keyword");
 	}
 	return *(parser++);
 }

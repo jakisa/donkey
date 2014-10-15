@@ -6,7 +6,7 @@ namespace donkey{
 
 expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public){
 	if(target.is_switch()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 
 	expression_ptr ret;
@@ -36,8 +36,7 @@ expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public
 			ret = build_binary_expression(
 				oper::assignment,
 				e,
-				build_expression(target, parser, false, true),
-				parser.get_line_number()
+				build_expression(target, parser, false, true)
 			);
 			target.add_statement(expression_statement(ret));
 		}else{

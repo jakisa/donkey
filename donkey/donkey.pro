@@ -78,5 +78,6 @@ HEADERS += \
 
 OTHER_FILES += \
     examples.txt \
-    test.dky
+    test.dky \
+    other.dky
 

@@ -7,7 +7,7 @@ namespace donkey {
 
 void compile_break(scope& target, tokenizer& parser){
 	if(!target.can_break()){
-		semantic_error(parser.get_line_number(), "unexpected break");
+		semantic_error("unexpected break");
 	}
 	++parser;
 	target.add_statement(break_statement);
@@ -16,7 +16,7 @@ void compile_break(scope& target, tokenizer& parser){
 
 void compile_continue(scope& target, tokenizer& parser){
 	if(!target.can_break()){
-		semantic_error(parser.get_line_number(), "unexpected continue");
+		semantic_error("unexpected continue");
 	}
 	++parser;
 	target.add_statement(continue_statement);
@@ -25,7 +25,7 @@ void compile_continue(scope& target, tokenizer& parser){
 
 void compile_return(scope& target, tokenizer& parser){
 	if(!target.in_function()){
-		semantic_error(parser.get_line_number(), "unexpected return");
+		semantic_error("unexpected return");
 	}
 	++parser;
 	target.add_statement(return_statement(build_expression(target, parser, true)));

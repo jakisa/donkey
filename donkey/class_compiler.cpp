@@ -26,7 +26,7 @@ inline void compile_field(class_scope& target, tokenizer& parser){
 	while(parser && *parser != ";"){
 		std::string name = parse_allowed_name(parser);
 		if(!target.is_allowed_member(name)){
-			semantic_error(parser.get_line_number(), *parser + " is already defined");
+			semantic_error(*parser + " is already defined");
 		}
 		target.add_field(name);
 		if(*parser == ","){
@@ -51,7 +51,7 @@ inline void skip_field(tokenizer& parser){
 inline void compile_method_stub(class_scope& target, tokenizer& parser){
 	++parser;
 	if(!target.is_allowed_member(*parser)){
-		semantic_error(parser.get_line_number(), *parser + " is already defined");
+		semantic_error(*parser + " is already defined");
 	}
 	std::string name = parse_allowed_name(parser);
 	
@@ -145,7 +145,7 @@ inline std::string check_diamond(const std::vector<std::string>& bases, const gl
 
 void compile_class(scope& target, tokenizer& parser, bool is_public){
 	if(!target.is_global()){
-		syntax_error(parser.get_line_number(), "local classes are not supported");
+		syntax_error("local classes are not supported");
 	}
 	
 	++parser;
@@ -160,15 +160,15 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 		++parser;
 		do{
 			if(parser.get_token_type() != tokenizer::tt_word){
-				unexpected_error(parser.get_line_number(), *parser);
+				unexpected_error(*parser);
 			}
 			std::string base = *parser;
 			if(base == "number" || base == "string" || base == "function" || base == "null"){
-				semantic_error(parser.get_line_number(), "cannot inherit from " + name);
+				semantic_error("cannot inherit from " + name);
 			}
 			std::string fullbase = target.full_class_name(base);
 			if(fullbase.empty()){
-				semantic_error(parser.get_line_number(), "class " + base + " is undefined");
+				semantic_error("class " + base + " is undefined");
 			}
 			bases.push_back(fullbase);
 			++parser;
@@ -185,7 +185,7 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 	std::string diamond_base = check_diamond(bases, gtarget);
 	
 	if(!diamond_base.empty()){
-		semantic_error(parser.get_line_number(), "non-empty diamond base " + diamond_base + " detected for class " + name);
+		semantic_error("non-empty diamond base " + diamond_base + " detected for class " + name);
 	}
 	
 	parse("{", parser);
@@ -200,13 +200,13 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 			compile_method_stub(ctarget, stub_parser);
 		}else if(*stub_parser == name){
 			if(constructor_defined){
-				semantic_error(parser.get_line_number(), "constructor is already defined");
+				semantic_error("constructor is already defined");
 			}
 			skip_constructor(stub_parser);
 			constructor_defined = true;
 		}else if(*stub_parser == "~"){
 			if(destructor_defined){
-				semantic_error(parser.get_line_number(), "destructor is already defined");
+				semantic_error("destructor is already defined");
 			}
 			skip_destructor(stub_parser);
 			destructor_defined = true;

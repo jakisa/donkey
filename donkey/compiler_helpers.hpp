@@ -10,7 +10,7 @@ namespace donkey {
 
 inline std::string parse_allowed_name(identifier_lookup& lookup, tokenizer& parser){
 	if(!lookup.is_allowed(*parser)){
-		syntax_error(parser.get_line_number(), *parser + " is already declared");
+		syntax_error(*parser + " is already declared");
 	}
 	return parse_allowed_name(parser);
 }

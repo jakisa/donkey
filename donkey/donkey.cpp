@@ -3,10 +3,12 @@
 #include "scope.hpp"
 #include "statement_compiler.hpp"
 #include "module.hpp"
+#include "compiler.hpp"
 #include <unordered_map>
 #include "module_bundle.hpp"
 
 namespace donkey{
+
 
 class compiler::priv{
 private:
@@ -17,14 +19,39 @@ private:
 	void compile_module(tokenizer& parser, std::string module_name){
 		size_t idx = _modules.reserve_module(module_name);
 		
+		
 		global_scope target(_modules, std::move(module_name), idx);
+		
+		while(*parser == "import"){
+			++parser;
+			std::string import_name = *parser;
+			
+			++parser;
+			
+			module_ptr m = _modules.get_module(import_name);
+			
+			if(!m){	
+				if(_modules.module_in_progress(import_name)){
+					semantic_error("circular import detected for " + import_name);
+				}
+				if(!compile_module(import_name.c_str())){
+					semantic_error("unknown module " + import_name);
+				}
+				m = _modules.get_module(import_name);
+			}
+			
+			target.import(import_name, *m);
+			
+			parse(";", parser);
+		}
+		
 		for(; parser;){
 			compile_statement(target, parser);
 		}
 		
 		std::string not_defined = target.get_undefined_function();
 		if(not_defined != ""){
-			semantic_error(parser.get_line_number(), not_defined + " is not defined");
+			semantic_error(not_defined + " is not defined");
 		}
 		
 		_modules.add_module(module_name, module_ptr(new module(
@@ -64,14 +91,17 @@ public:
 		}
 
 		fclose(fp);
-
-		//try{
-			tokenizer parser (&v[0], &v[0] + len);
-			compile_module(parser, module_name);
+		
+		std::unique_ptr<tokenizer> parser;
+		
+		try{
+			parser.reset(new tokenizer(module_name, &v[0], &v[0] + len));
+			compile_module(*parser, module_name);
 			return true;
-		//}catch(const exception&){
-		//	return false;
-		//}
+		}catch(const exception_raw& e){
+			e.throw_formatted(parser->get_file_name(), parser->get_line_number());
+		}
+		return false;
 	}
 	
 };

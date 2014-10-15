@@ -227,7 +227,7 @@ inline bool matching_brackets(oper opening, oper closing){
 
 inline void check_left_operand(bool is_left_operand, tokenizer& parser, bool should_be){
 	if(is_left_operand != should_be){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 }
 
@@ -242,13 +242,13 @@ struct expression_part{
 	part_ptr next_sibling;
 };
 
-static void consume_stack(oper op, int line_number, std::stack<oper>& stack, std::vector<part_ptr>& parts){
+static void consume_stack(oper op, std::stack<oper>& stack, std::vector<part_ptr>& parts){
 	while(!stack.empty() && !bigger_precedence(op, stack.top())){
 		part_ptr first_child;
 		int number_of_operands = get_number_of_operands(stack.top());
 		for(int i = 0; i < number_of_operands; ++i){
 			if(parts.empty()){
-				semantic_error(line_number, "invalid expression");
+				semantic_error("invalid expression");
 			}
 			parts.back()->next_sibling = first_child;
 			first_child = parts.back();
@@ -257,7 +257,7 @@ static void consume_stack(oper op, int line_number, std::stack<oper>& stack, std
 		if(first_child){
 			parts.push_back(part_ptr(new expression_part{stack.top(), "", first_child, part_ptr()}));
 		}else{
-			syntax_error(line_number, "invalid expression");
+			syntax_error("invalid expression");
 		}
 		stack.pop();
 	}
@@ -268,7 +268,7 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 		if(can_be_empty){
 			return part_ptr();
 		}
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 		return part_ptr();
 	}
 	
@@ -286,12 +286,12 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 			
 			if(opening == oper::conditional_question){
 				check_left_operand(is_left_operand, parser, true);
-				consume_stack(oper::conditional_question, parser.get_line_number(), stack, parts);
+				consume_stack(oper::conditional_question, stack, parts);
 			}else if(opening == oper::bracket_open){
 				function_call = is_left_operand;
 			}else if(opening == oper::subscript_open){
 				check_left_operand(is_left_operand, parser, true);
-				consume_stack(oper::subscript, parser.get_line_number(), stack, parts);
+				consume_stack(oper::subscript, stack, parts);
 				subscript = true;
 			}
 			
@@ -300,7 +300,7 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 			part_ptr inner;
 			
 			if(function_call){
-				consume_stack(oper::call, parser.get_line_number(), stack, parts);
+				consume_stack(oper::call, stack, parts);
 				
 				inner = part_ptr(new expression_part{oper::call, "", parts.back(), part_ptr()});
 				
@@ -339,7 +339,7 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 			oper closing = string_to_oper(*parser);
 			
 			if(!matching_brackets(opening, closing)){
-				unexpected_error(parser.get_line_number(), *parser);
+				unexpected_error(*parser);
 			}
 			
 			parts.push_back(inner);
@@ -366,14 +366,14 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 						if(is_left_operand){
 							op = bin_post_variant(op);
 						}else if(get_operator_type(op) != operator_type::unary_prefix){
-							unexpected_error(parser.get_line_number(), *parser);
+							unexpected_error(*parser);
 						}
 						
 						if(op == oper::none){
-							unexpected_error(parser.get_line_number(), *parser);
+							unexpected_error(*parser);
 						}
 						
-						consume_stack(op, parser.get_line_number(), stack, parts);
+						consume_stack(op, stack, parts);
 						stack.push(op);
 						
 						is_left_operand = (get_operator_type(op) == operator_type::unary_postfix);
@@ -386,28 +386,28 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 	}
 	
 	if(!is_left_operand){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	
-	consume_stack(oper::none, parser.get_line_number(), stack, parts);
+	consume_stack(oper::none, stack, parts);
 	
 	if(parts.size() != 1){
-		syntax_error(parser.get_line_number(), "invalid expression");
+		syntax_error("invalid expression");
 	}
 	
 	return parts.front();
 }
 
-static expression_ptr str_to_expression(const std::string& str, const identifier_lookup& lookup, int line_number){
+static expression_ptr str_to_expression(const std::string& str, const identifier_lookup& lookup){
 	if(isdigit(str.front())){
 		double n = parse_number(str);
 		if(isnan(n)){
-			syntax_error(line_number, "invalid number constant");
+			syntax_error("invalid number constant");
 		}
 		return build_const_number_expression(n);
 	}
 	if(str.front() == '"'){
-		return build_const_string_expression(tokenizer::unquoted_string(str, line_number));
+		return build_const_string_expression(tokenizer::unquoted_string(str));
 	}
 	
 	if(str == "null"){
@@ -416,7 +416,7 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 	
 	if(str == "this"){
 		if(!lookup.in_class()){
-			semantic_error(line_number, "this is only allowed in class methods");
+			semantic_error("this is only allowed in class methods");
 		}
 		return build_this_expression();
 	}
@@ -424,7 +424,7 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 	identifier_ptr id = lookup.get_identifier(str);
 	
 	if(!id){
-		semantic_error(line_number, "unknown identifier " + str);
+		semantic_error("unknown identifier " + str);
 	}
 	
 	switch(id->get_type()){
@@ -440,23 +440,23 @@ static expression_ptr str_to_expression(const std::string& str, const identifier
 		case identifier_type::function:
 			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
 		case identifier_type::classname:
-			semantic_error(line_number, "unexpected class " + str);
+			semantic_error("unexpected class " + str);
 			break;
 		case identifier_type::module:
-			semantic_error(line_number, "unexpected module " + str);
+			semantic_error("unexpected module " + str);
 	}
 	
 	return expression_ptr();
 }
 
-static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup, int line_number);
+static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup);
 
-static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::vector<expression_ptr>& params, std::vector<size_t>& byref, int line_number){
+static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::vector<expression_ptr>& params, std::vector<size_t>& byref){
 	for(part_ptr p = head->next_sibling; p; p = p->next_sibling){
 		if(p->op == oper::ref){
 			byref.push_back(params.size());
 			if(p->first_child->op != oper::none || p->first_child->first_child || p->first_child->next_sibling){
-				syntax_error(line_number, "only variables can be passed by reference");
+				syntax_error("only variables can be passed by reference");
 			}
 			identifier_ptr id = lookup.get_identifier(p->first_child->str);
 			
@@ -474,48 +474,48 @@ static void fetch_params(part_ptr head, const identifier_lookup& lookup, std::ve
 					e =  build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
 					break;
 				default:
-					semantic_error(line_number, "only variables can be passed by reference");
+					semantic_error("only variables can be passed by reference");
 					break;
 			}
 			
 			params.push_back(e);
 		}else{
-			params.push_back(tree_to_expression(p, lookup, line_number));
+			params.push_back(tree_to_expression(p, lookup));
 		}
 	}
 }
 
 
-static std::pair<std::string, std::string> get_member_name(part_ptr tree, const identifier_lookup& lookup, bool self, int line_number){
+static std::pair<std::string, std::string> get_member_name(part_ptr tree, const identifier_lookup& lookup, bool self){
 	std::string classname;
 	if(self){
 		classname = lookup.get_current_class();
 	}else if(tree->op == oper::scope){
 		classname = lookup.full_class_name(tree->first_child->str);
 		if(classname.empty()){
-			semantic_error(line_number, "unknown class name " + tree->first_child->str);
+			semantic_error("unknown class name " + tree->first_child->str);
 		}
 		tree = tree->first_child->next_sibling;
 	}
 	
 	std::string membername = tree->str;
 	if(membername.empty() || membername[0] == '"' || isdigit(membername[0]) || is_keyword(membername)){
-		semantic_error(line_number, "invalid member name");
+		semantic_error("invalid member name");
 	}
 	return std::pair<std::string, std::string>(classname, membername);
 }
 
-static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup, int line_number){
+static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup& lookup){
 	if(!tree){
 		return expression_ptr();
 	}
 	switch(tree->op){
 		case oper::none:
-			return str_to_expression(tree->str, lookup, line_number);
+			return str_to_expression(tree->str, lookup);
 		case oper::construct:
 			{
 				if(tree->first_child->op != oper::call){
-					syntax_error(line_number, "invalid constructor call");
+					syntax_error("invalid constructor call");
 				}
 				
 				part_ptr f = tree->first_child->first_child;
@@ -523,26 +523,26 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				identifier_ptr classname = lookup.get_identifier(f->str);
 				
 				if(!classname){
-					semantic_error(line_number, "unknown identifier " + f->str);
+					semantic_error("unknown identifier " + f->str);
 				}
 				if(classname->get_type() != identifier_type::classname){
-					semantic_error(line_number, "cannot construct " + f->str);
+					semantic_error("cannot construct " + f->str);
 				}
 				
 				std::string name = static_cast<class_identifier&>(*classname).get_name();
 				
 				if(name == "object" || name == "number" || name == "string" || name == "function" || name == "null"){
-					semantic_error(line_number, "cannot construct " + name);
+					semantic_error("cannot construct " + name);
 				}
 				
 				
 				std::vector<expression_ptr> params;
 				std::vector<size_t> byref;
 				
-				fetch_params(f, lookup, params, byref, line_number);
+				fetch_params(f, lookup, params, byref);
 				
 				if(!byref.empty()){
-					syntax_error(line_number, "cannot pass constructor parameters as reference");
+					syntax_error("cannot pass constructor parameters as reference");
 				}
 				return build_constructor_call_expression(lookup.get_module_name(), static_cast<class_identifier&>(*classname).get_name(), params);
 			}
@@ -553,15 +553,15 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				bool self = false;
 				if(tree->first_child->str == "self"){
 					if(!lookup.in_class()){
-						semantic_error(line_number, "self is only allowed inside class");
+						semantic_error("self is only allowed inside class");
 					}
 					self = true;
 					that = build_this_expression();
 				}else{
-					that = tree_to_expression(tree->first_child, lookup, line_number);
+					that = tree_to_expression(tree->first_child, lookup);
 				}
 				
-				std::pair<std::string, std::string> member = get_member_name(tree->first_child->next_sibling, lookup, self, line_number);
+				std::pair<std::string, std::string> member = get_member_name(tree->first_child->next_sibling, lookup, self);
 				
 				if(member.first.empty()){
 					return build_member_expression(that, member.second);
@@ -575,7 +575,7 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 						return build_field_expression(that, member.first, vt->get_field_index(member.second));
 					}
 					
-					semantic_error(line_number, "class " + member.first + " doesn't have field " + member.second);
+					semantic_error("class " + member.first + " doesn't have field " + member.second);
 					
 					return expression_ptr();
 				}
@@ -583,63 +583,57 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 			}
 		case oper::call:
 			{
-				expression_ptr f = tree_to_expression(tree->first_child, lookup, line_number);
+				expression_ptr f = tree_to_expression(tree->first_child, lookup);
 				std::vector<expression_ptr> params;
 				std::vector<size_t> byref;
 				
-				fetch_params(tree->first_child, lookup, params, byref, line_number);
+				fetch_params(tree->first_child, lookup, params, byref);
 				
 				return build_function_call_expression(f, params, byref);
 			}
 			break;
 		case oper::subscript:
 			return build_index_expression(
-				tree_to_expression(tree->first_child, lookup, line_number),
-				tree_to_expression(tree->first_child->next_sibling, lookup, line_number)
+				tree_to_expression(tree->first_child, lookup),
+				tree_to_expression(tree->first_child->next_sibling, lookup)
 			);
 		default:
 			switch(get_number_of_operands(tree->op)){
 				case 1:
 					return build_unary_expression(
 						tree->op,
-						tree_to_expression(tree->first_child, lookup, line_number),
-						line_number
+						tree_to_expression(tree->first_child, lookup)
 					);
 				case 2:
 					return build_binary_expression(
 						tree->op,
-						tree_to_expression(tree->first_child, lookup, line_number),
-						tree_to_expression(tree->first_child->next_sibling, lookup, line_number),
-						line_number
+						tree_to_expression(tree->first_child, lookup),
+						tree_to_expression(tree->first_child->next_sibling, lookup)
 					);
 				case 3:
 					return build_ternary_expression(
 						tree->op,
-						tree_to_expression(tree->first_child, lookup, line_number),
-						tree_to_expression(tree->first_child->next_sibling, lookup, line_number),
-						tree_to_expression(tree->first_child->next_sibling->next_sibling, lookup, line_number),
-						line_number
+						tree_to_expression(tree->first_child, lookup),
+						tree_to_expression(tree->first_child->next_sibling, lookup),
+						tree_to_expression(tree->first_child->next_sibling->next_sibling, lookup)
 					);
 				default:
-					semantic_error(line_number, "invalid expression");
+					semantic_error("invalid expression");
 			}
 	}
 	return expression_ptr();
 }
 
 expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& parser, bool can_be_empty, bool declaration){
-	int line_number = parser.get_line_number();
-	
-	
 	part_ptr tree = create_expression_tree(parser, declaration, can_be_empty);
 
-	expression_ptr ret = tree_to_expression(tree, lookup, line_number);
+	expression_ptr ret = tree_to_expression(tree, lookup);
 
 	if(!ret){
 		if(can_be_empty){
 			return build_null_expression();
 		}
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	
 	return ret;

@@ -5,7 +5,7 @@ namespace donkey{
 
 void compile_local_scope(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	scope s(&target);
 	for(++parser; parser;){
@@ -16,7 +16,7 @@ void compile_local_scope(scope& target, tokenizer& parser){
 		}
 		compile_statement(s, parser);
 	}
-	syntax_error(parser.get_line_number(), "'}' expected");
+	syntax_error("'}' expected");
 }
 
 }//donkey

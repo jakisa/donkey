@@ -249,11 +249,11 @@ expression_ptr build_local_variable_expression(size_t idx);
 
 expression_ptr build_global_variable_expression(size_t module_idx, size_t var_idx);
 
-expression_ptr build_unary_expression(oper op, expression_ptr e1, int line_number);
+expression_ptr build_unary_expression(oper op, expression_ptr e1);
 
-expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, int line_number);
+expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2);
 
-expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, int line_number);
+expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3);
 
 expression_ptr build_member_expression(expression_ptr that, const std::string& member);
 

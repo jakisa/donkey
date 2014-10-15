@@ -44,7 +44,7 @@ void compile_c_for(scope& target, tokenizer& parser){
 
 void compile_for(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	++parser;
 	
@@ -59,7 +59,7 @@ void compile_for(scope& target, tokenizer& parser){
 
 void compile_while(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	++parser;
 	parse("(", parser);
@@ -72,7 +72,7 @@ void compile_while(scope& target, tokenizer& parser){
 
 void compile_do(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	++parser;
 	scope s(&target, false, false, true, true);

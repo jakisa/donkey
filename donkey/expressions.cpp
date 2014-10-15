@@ -26,14 +26,14 @@ inline item_expression_ptr to_item(expression_ptr e){
 }
 
 template<class E>
-inline expression_ptr build_unary(expression_ptr e1, int){
+inline expression_ptr build_unary(expression_ptr e1){
 	return expression_ptr(new E(e1));
 }
 
 template<class E>
-inline expression_ptr build_unary_l(expression_ptr e1, int line_number){
+inline expression_ptr build_unary_l(expression_ptr e1){
 	if(e1->get_type() != expression_type::lvalue){
-		semantic_error(line_number, "l-value expected");
+		semantic_error("l-value expected");
 	}
 	return expression_ptr(new E(to_l(e1)));
 }
@@ -44,14 +44,14 @@ inline expression_ptr build_unary_item(expression_ptr e1){
 }
 
 template<class E>
-inline expression_ptr build_binary(expression_ptr e1, expression_ptr e2, int){
+inline expression_ptr build_binary(expression_ptr e1, expression_ptr e2){
 	return expression_ptr(new E(e1, e2));
 }
 
 template<class E>
-inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2, int line_number){
+inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2){
 	if(e1->get_type() != expression_type::lvalue){
-		semantic_error(line_number, "l-value expected");
+		semantic_error("l-value expected");
 	}
 	return expression_ptr(new E(to_l(e1), e2));
 }
@@ -62,11 +62,11 @@ inline expression_ptr build_binary_item(expression_ptr e1, expression_ptr e2){
 }
 
 template<class E>
-inline expression_ptr build_ternary(expression_ptr e1, expression_ptr e2, expression_ptr e3, int){
+inline expression_ptr build_ternary(expression_ptr e1, expression_ptr e2, expression_ptr e3){
 	return expression_ptr(new E(e1, e2, e3));
 }
 
-expression_ptr build_unary_expression(oper op, expression_ptr e, int line_number){
+expression_ptr build_unary_expression(oper op, expression_ptr e){
 	if(e->get_type() == expression_type::item){
 		switch(op){
 			case oper::pre_dec:
@@ -83,27 +83,27 @@ expression_ptr build_unary_expression(oper op, expression_ptr e, int line_number
 	}
 	switch(op){
 		case oper::logical_not:
-			return build_unary<logical_not_expression>(e, line_number);
+			return build_unary<logical_not_expression>(e);
 		case oper::bitwise_not:
-			return build_unary<bitwise_not_expression>(e, line_number);
+			return build_unary<bitwise_not_expression>(e);
 		case oper::unary_minus:
-			return build_unary<unary_minus_expression>(e, line_number);
+			return build_unary<unary_minus_expression>(e);
 		case oper::unary_plus:
-			return build_unary<unary_plus_expression>(e, line_number);
+			return build_unary<unary_plus_expression>(e);
 		case oper::pre_dec:
-			return build_unary_l<pre_dec_expression>(e, line_number);
+			return build_unary_l<pre_dec_expression>(e);
 		case oper::pre_inc:
-			return build_unary_l<pre_inc_expression>(e, line_number);
+			return build_unary_l<pre_inc_expression>(e);
 		case oper::post_dec:
-			return build_unary_l<post_dec_expression>(e, line_number);
+			return build_unary_l<post_dec_expression>(e);
 		case oper::post_inc:
-			return build_unary_l<post_inc_expression>(e, line_number);
+			return build_unary_l<post_inc_expression>(e);
 		default:
 			return expression_ptr();
 	}
 }
 
-expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2, int line_number){
+expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2){
 	if(e1->get_type() == expression_type::item){
 		switch(op){
 			case oper::fallback_assignment:
@@ -140,87 +140,87 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 	}
 	switch(op){
 		case oper::comma:
-			return build_binary<comma_expression>(e1, e2, line_number);
+			return build_binary<comma_expression>(e1, e2);
 		case oper::fallback_assignment:
-			return build_binary_l<fallback_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<fallback_assignment_expression>(e1, e2);
 		case oper::or_assignment:
-			return build_binary_l<or_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<or_assignment_expression>(e1, e2);
 		case oper::xor_assignment:
-			return build_binary_l<xor_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<xor_assignment_expression>(e1, e2);
 		case oper::and_assignment:
-			return build_binary_l<and_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<and_assignment_expression>(e1, e2);
 		case oper::shiftr_assignment:
-			return build_binary_l<shiftr_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<shiftr_assignment_expression>(e1, e2);
 		case oper::shiftl_assignment:
-			return build_binary_l<shiftl_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<shiftl_assignment_expression>(e1, e2);
 		case oper::concat_assignment:
-			return build_binary_l<concat_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<concat_assignment_expression>(e1, e2);
 		case oper::minus_assignment:
-			return build_binary_l<minus_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<minus_assignment_expression>(e1, e2);
 		case oper::plus_assignment:
-			return build_binary_l<plus_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<plus_assignment_expression>(e1, e2);
 		case oper::mod_assignment:
-			return build_binary_l<mod_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<mod_assignment_expression>(e1, e2);
 		case oper::idiv_assignment:
-			return build_binary_l<idiv_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<idiv_assignment_expression>(e1, e2);
 		case oper::div_assignment:
-			return build_binary_l<div_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<div_assignment_expression>(e1, e2);
 		case oper::mul_assignment:
-			return build_binary_l<mul_assignment_expression>(e1, e2, line_number);
+			return build_binary_l<mul_assignment_expression>(e1, e2);
 		case oper::assignment:
-			return build_binary_l<assignment_expression>(e1, e2, line_number);
+			return build_binary_l<assignment_expression>(e1, e2);
 		case oper::fallback:
-			return build_binary<fallback_expression>(e1, e2, line_number);
+			return build_binary<fallback_expression>(e1, e2);
 		case oper::logical_or:
-			return build_binary<logical_or_expression>(e1, e2, line_number);
+			return build_binary<logical_or_expression>(e1, e2);
 		case oper::logical_and:
-			return build_binary<logical_and_expression>(e1, e2, line_number);
+			return build_binary<logical_and_expression>(e1, e2);
 		case oper::unequal:
-			return build_binary<unequal_expression>(e1, e2, line_number);
+			return build_binary<unequal_expression>(e1, e2);
 		case oper::equal:
-			return build_binary<equal_expression>(e1, e2, line_number);
+			return build_binary<equal_expression>(e1, e2);
 		case oper::greater_equal:
-			return build_binary<greater_equal_expression>(e1, e2, line_number);
+			return build_binary<greater_equal_expression>(e1, e2);
 		case oper::less_equal:
-			return build_binary<less_equal_expression>(e1, e2, line_number);
+			return build_binary<less_equal_expression>(e1, e2);
 		case oper::greater:
-			return build_binary<greater_expression>(e1, e2, line_number);
+			return build_binary<greater_expression>(e1, e2);
 		case oper::less:
-			return build_binary<less_expression>(e1, e2, line_number);
+			return build_binary<less_expression>(e1, e2);
 		case oper::shiftr:
-			return build_binary<shiftr_expression>(e1, e2, line_number);
+			return build_binary<shiftr_expression>(e1, e2);
 		case oper::shiftl:
-			return build_binary<shiftl_expression>(e1, e2, line_number);
+			return build_binary<shiftl_expression>(e1, e2);
 		case oper::bitwise_or:
-			return build_binary<bitwise_or_expression>(e1, e2, line_number);
+			return build_binary<bitwise_or_expression>(e1, e2);
 		case oper::bitwise_xor:
-			return build_binary<bitwise_xor_expression>(e1, e2, line_number);
+			return build_binary<bitwise_xor_expression>(e1, e2);
 		case oper::concat:
-			return build_binary<concat_expression>(e1, e2, line_number);
+			return build_binary<concat_expression>(e1, e2);
 		case oper::minus:
-			return build_binary<minus_expression>(e1, e2, line_number);
+			return build_binary<minus_expression>(e1, e2);
 		case oper::plus:
-			return build_binary<plus_expression>(e1, e2, line_number);
+			return build_binary<plus_expression>(e1, e2);
 		case oper::bitwise_and:
-			return build_binary<bitwise_and_expression>(e1, e2, line_number);
+			return build_binary<bitwise_and_expression>(e1, e2);
 		case oper::mod:
-			return build_binary<mod_expression>(e1, e2, line_number);
+			return build_binary<mod_expression>(e1, e2);
 		case oper::idiv:
-			return build_binary<idiv_expression>(e1, e2, line_number);
+			return build_binary<idiv_expression>(e1, e2);
 		case oper::div:
-			return build_binary<div_expression>(e1, e2, line_number);
+			return build_binary<div_expression>(e1, e2);
 		case oper::mul:
-			return build_binary<mul_expression>(e1, e2, line_number);
+			return build_binary<mul_expression>(e1, e2);
 		default:
 			return expression_ptr();
 	}
 }
 
 
-expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3, int line_number){
+expression_ptr build_ternary_expression(oper op, expression_ptr e1, expression_ptr e2, expression_ptr e3){
 	switch(op){
 		case oper::conditional_question:
-			return build_ternary<conditional_expression>(e1, e2, e3, line_number);
+			return build_ternary<conditional_expression>(e1, e2, e3);
 		default:
 			return expression_ptr();
 	}

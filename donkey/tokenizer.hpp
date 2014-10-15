@@ -22,13 +22,15 @@ private:
 	const char* _current;
 	token_type _tt;
 	std::string _token;
+	std::string _filename;
 	
 	void _fetch_next_token();
 	
 public:
-	tokenizer(const char* begin, const char* end):
+	tokenizer(const char* filename, const char* begin, const char* end):
 		_begin(begin),
-		_end(end){
+		_end(end),
+		_filename(filename){
 		reset();
 	}
 	
@@ -66,7 +68,11 @@ public:
 	
 	int get_line_number() const;
 	
-	static std::string unquoted_string(const std::string& token, int line_number);
+	static std::string unquoted_string(const std::string& token);
+	
+	const std::string& get_file_name() const{
+		return _filename;
+	}
 };
 
 }//namespace donkey

@@ -7,7 +7,7 @@ namespace donkey{
 
 void compile_if(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	std::vector<expression_ptr> es;
 	std::vector<statement> ss;
@@ -44,7 +44,7 @@ void compile_if(scope& target, tokenizer& parser){
 
 void compile_switch(scope& target, tokenizer& parser){
 	if(target.is_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	std::unordered_map<number, size_t> cases;
 	size_t dflt = 0;
@@ -75,11 +75,11 @@ void compile_switch(scope& target, tokenizer& parser){
 			++parser;
 			number d = parse_number(*parser);
 			if(isnan(d)){
-				unexpected_error(parser.get_line_number(), *parser);
+				unexpected_error(*parser);
 			}
 			
 			if(cases.find(d) != cases.end()){
-				semantic_error(parser.get_line_number(), "duplicated case " + *parser);
+				semantic_error("duplicated case " + *parser);
 			}
 			++parser;
 			parse(":", parser);
@@ -87,7 +87,7 @@ void compile_switch(scope& target, tokenizer& parser){
 		}else if(*parser == "default"){
 			++parser;
 			if(has_dflt){
-				semantic_error(parser.get_line_number(), "duplicated default");
+				semantic_error("duplicated default");
 			}
 			parse(":", parser);
 			dflt = s.get_number_of_statements();
@@ -97,7 +97,7 @@ void compile_switch(scope& target, tokenizer& parser){
 			compile_statement(s, parser);
 		}			
 	}
-	syntax_error(parser.get_line_number(), "'}' expected");
+	syntax_error("'}' expected");
 }
 	
 }//donkey;

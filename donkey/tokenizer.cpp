@@ -85,9 +85,9 @@ static int get_line_number(const char* begin, const char*, const char* current){
 	return std::count(begin, current, '\n');
 }
 
-#define PARSE_ERROR(str) parse_error(get_line_number(begin, end, current), str)
+#define PARSE_ERROR(str) parse_error(str)
 
-static void skip_line_comment(const char*, const char* end, const char*& current){
+static void skip_line_comment(const char* end, const char*& current){
 	for(current += 2; current != end && *current != '\n'; ++current);
 	
 	if(current != end){
@@ -95,7 +95,7 @@ static void skip_line_comment(const char*, const char* end, const char*& current
 	}
 }
 
-static void skip_block_comment(const char* begin, const char* end, const char*& current){
+static void skip_block_comment(const char* end, const char*& current){
 	for(current += 2; current != end; ++current){
 		if(test_two(current, end, '*', '/')){
 			current += 2;
@@ -105,7 +105,7 @@ static void skip_block_comment(const char* begin, const char* end, const char*& 
 	PARSE_ERROR("block comment is not closed");
 }
 
-static std::string fetch_string(const char* begin, const char* end, const char*& current){
+static std::string fetch_string(const char* end, const char*& current){
 	std::string ret;
 	bool escape = false;
 	for(++current; current != end; ++current){
@@ -129,7 +129,7 @@ static std::string fetch_string(const char* begin, const char* end, const char*&
 	return "";
 }
 
-std::string tokenizer::unquoted_string(const std::string& token, int line_number){
+std::string tokenizer::unquoted_string(const std::string& token){
 	std::string ret;
 	bool escape = false;
 	for(size_t i=1; i + 1 < token.size(); ++i){
@@ -153,7 +153,7 @@ std::string tokenizer::unquoted_string(const std::string& token, int line_number
 					ret += '\0';
 					break;
 				default:
-					parse_error(line_number, "unknown escape sequence");
+					parse_error("unknown escape sequence");
 					break;
 			}
 			escape = false;
@@ -163,11 +163,11 @@ std::string tokenizer::unquoted_string(const std::string& token, int line_number
 					escape = true;
 					break;
 				case '\t':
-					parse_error(line_number, "tab character in string literal");
+					parse_error("tab character in string literal");
 					break;
 				case '\r':
 				case '\n':
-					parse_error(line_number, "newline in string literal");
+					parse_error("newline in string literal");
 					break;
 				default:
 					ret += token[i];
@@ -179,7 +179,7 @@ std::string tokenizer::unquoted_string(const std::string& token, int line_number
 }
 
 
-static std::string fetch_number(const char*, const char* end, const char*& current){
+static std::string fetch_number(const char* end, const char*& current){
 	const char* old = current;
 	for(++current; current != end; ++current){
 		if(*current == '.'){
@@ -193,7 +193,7 @@ static std::string fetch_number(const char*, const char* end, const char*& curre
 	return std::string(old, current);
 }
 
-static std::string fetch_word(const char*, const char* end, const char*& current){
+static std::string fetch_word(const char* end, const char*& current){
 	const char* old = current;
 	for(++current; current != end; ++current){
 		if(!is_anu(*current)){
@@ -203,7 +203,7 @@ static std::string fetch_word(const char*, const char* end, const char*& current
 	return std::string(old, current);
 }
 
-static std::string fetch_operator(const char*, const char* end, const char*& current){
+static std::string fetch_operator(const char* end, const char*& current){
 	if(current < end - 2){
 		if(std::binary_search(
 				three_letter_operators,
@@ -245,10 +245,10 @@ void tokenizer::_fetch_next_token(){
 		_tt = get_next_token_type(_current, _end);
 		switch(_tt){
 			case tt_line_comment:
-				skip_line_comment(_begin, _end, _current);
+				skip_line_comment(_end, _current);
 				break;
 			case tt_block_comment:
-				skip_block_comment(_begin, _end, _current);
+				skip_block_comment(_end, _current);
 				break;
 			default:
 				skip = false;
@@ -256,19 +256,19 @@ void tokenizer::_fetch_next_token(){
 	}
 	switch(_tt){
 		case tt_string:
-			_token = fetch_string(_begin, _end, _current);
+			_token = fetch_string(_end, _current);
 			break;
 		case tt_number:
-			_token = fetch_number(_begin, _end, _current);
+			_token = fetch_number(_end, _current);
 			break;
 		case tt_word:
-			_token = fetch_word(_begin, _end, _current);
+			_token = fetch_word(_end, _current);
 			if(_token == "new"){
 				_tt = tt_operator;
 			}
 			break;
 		case tt_operator:
-			_token = fetch_operator(_begin, _end, _current);
+			_token = fetch_operator(_end, _current);
 			break;
 		default:
 			_token = "";

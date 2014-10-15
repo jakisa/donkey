@@ -37,7 +37,7 @@ void compile_statement(scope& target, tokenizer& parser){
 		compile_class(target, parser);
 	}else if(*parser == "public"){
 		if(!target.is_global()){
-			unexpected_error(parser.get_line_number(), *parser);
+			unexpected_error(*parser);
 		}
 		++parser;
 		if(*parser == "var"){
@@ -47,11 +47,11 @@ void compile_statement(scope& target, tokenizer& parser){
 		}else if(*parser == "class"){
 			compile_class(target, parser, true);
 		}else{
-			unexpected_error(parser.get_line_number(), *parser);
+			unexpected_error(*parser);
 		}
 	}else{
 		if(is_keyword(*parser) && *parser != "this" && *parser != "self" && *parser != "new" && *parser != "self"){
-			unexpected_error(parser.get_line_number(), *parser);
+			unexpected_error(*parser);
 		}
 		compile_expression_statement(target, parser);
 	}

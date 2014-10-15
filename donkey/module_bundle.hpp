@@ -33,6 +33,18 @@ public:
 		_core_vtables.emplace(function_vtable->get_name(), function_vtable);
 	}
 	
+	bool module_in_progress(std::string name){
+		return _modules_map.find(name) != _modules_map.end();
+	}
+	
+	module_ptr get_module(std::string name){
+		auto it = _modules_map.find(name);
+		if(it == _modules_map.end()){
+			return module_ptr();
+		}
+		return _modules[it->second];
+	}
+	
 	size_t reserve_module(std::string name){
 		_modules_map[name] = _modules.size();
 		_modules.push_back(module_ptr());

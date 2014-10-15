@@ -38,7 +38,7 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 	++parser;
 	
 	if(is_defined(name)){
-		semantic_error(parser.get_line_number(), name + " is already defined");
+		semantic_error(name + " is already defined");
 	}
 	
 	declare(name, false);
@@ -47,7 +47,7 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 	
 	for(const std::string& prm: params){
 		if(!function_scope.add_variable(prm, false)){
-			semantic_error(parser.get_line_number(), prm + " is already defined");
+			semantic_error(prm + " is already defined");
 		}
 	}
 	
@@ -68,7 +68,7 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 		}
 		compile_statement(inner_scope, parser);
 	}
-	syntax_error(parser.get_line_number(), "'}' expected");
+	syntax_error("'}' expected");
 }
 
 inline void declare_function(global_scope& target, std::string name, bool, bool is_public){
@@ -79,9 +79,9 @@ inline void define_function(global_scope& target, std::string name, scope& funct
 	target.define_function(name, donkey_function(params_size, function_scope.get_block()));
 }
 
-inline void declare_method(tokenizer& parser, std::string, bool forward){
+inline void declare_method(tokenizer&, std::string, bool forward){
 	if(forward){
-		syntax_error(parser.get_line_number(), "forward declarations are not supported nor useful in class");
+		syntax_error("forward declarations are not supported nor useful in class");
 	}
 }
 
@@ -102,7 +102,7 @@ void compile_function(scope& target, tokenizer& parser, bool is_public){
 		auto id = target.get_identifier(name);
 		
 		if(id && id->get_type() != identifier_type::function){
-			semantic_error(parser.get_line_number(), name + " is already declared");
+			semantic_error(name + " is already declared");
 		}
 		
 		compile_function_helper(name, target, parser,
@@ -126,12 +126,12 @@ void compile_function(scope& target, tokenizer& parser, bool is_public){
 		return;
 	}
 
-	unexpected_error(parser.get_line_number(), *parser);
+	unexpected_error(*parser);
 }
 
-inline void declare_constructor(tokenizer& parser, std::string, bool forward){
+inline void declare_constructor(tokenizer&, std::string, bool forward){
 	if(forward){
-		syntax_error(parser.get_line_number(), "forward declaration of constructor is not supported not useful");
+		syntax_error("forward declaration of constructor is not supported not useful");
 	}
 }
 
@@ -159,11 +159,11 @@ inline void compile_pre_constructor(const std::vector<std::string>& bases, scope
 			auto it = constructed.find(full_base_name);
 			
 			if(it == constructed.end()){
-				semantic_error(parser.get_line_number(), base_name + " is not base of this class");
+				semantic_error(base_name + " is not base of this class");
 			}
 			
 			if(it->second){
-				semantic_error(parser.get_line_number(), base_name + " is already constructed");
+				semantic_error(base_name + " is already constructed");
 			}
 			
 			parse("(", parser);
@@ -210,15 +210,15 @@ void compile_constructor(class_scope& target, tokenizer& parser, const std::vect
 	);
 }
 
-inline void declare_destructor(tokenizer& parser, std::string, bool forward){
+inline void declare_destructor(tokenizer&, std::string, bool forward){
 	if(forward){
-		syntax_error(parser.get_line_number(), "forward declaration of destructor is not supported not useful");
+		syntax_error("forward declaration of destructor is not supported not useful");
 	}
 }
 
-inline void define_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases, std::string, scope& function_scope, size_t params_size){
+inline void define_destructor(class_scope& target, tokenizer&, const std::vector<std::string>& bases, std::string, scope& function_scope, size_t params_size){
 	if(params_size){
-		syntax_error(parser.get_line_number(), "destructor cannot have parameters");
+		syntax_error("destructor cannot have parameters");
 	}
 	
 	for(size_t i = bases.size(); i != 0; --i){
@@ -235,7 +235,7 @@ inline bool has_destructor(std::string){
 void compile_destructor(class_scope& target, tokenizer& parser, const std::vector<std::string>& bases){
 	++parser;
 	if(*parser != target.get_current_class()){
-		unexpected_error(parser.get_line_number(), *parser);
+		unexpected_error(*parser);
 	}
 	++parser;
 	

@@ -1,0 +1,36 @@
+class A{
+    A(){
+    }
+    function f(){
+	return 100;
+    }
+    
+}
+
+public class C: A{
+    var x;
+    C(x){
+	self.x = x;
+    }
+    
+    function f(){
+	return 200 + this.C::x;
+    }
+}
+
+class D: C, A{
+    var y;
+    D():
+	C(1){
+    }
+    function f(){
+	return 300 + this.C::x;
+    }
+}
+
+public var c = new D();
+
+public function f(){
+    return 42;
+}
+
