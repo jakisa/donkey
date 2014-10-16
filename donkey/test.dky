@@ -1,8 +1,6 @@
-import other;
+using other;
 
 var out;
-
-using other;
 
 
 {

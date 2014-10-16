@@ -22,7 +22,8 @@ private:
 		
 		global_scope target(_modules, std::move(module_name), idx);
 		
-		while(*parser == "import"){
+		while(*parser == "import" || *parser == "using"){
+			bool use = (*parser == "using");
 			++parser;
 			std::string import_name = *parser;
 			
@@ -41,6 +42,10 @@ private:
 			}
 			
 			target.import(import_name, *m);
+			
+			if(use){
+				target.add_using(target.get_identifier(import_name));
+			}
 			
 			parse(";", parser);
 		}
