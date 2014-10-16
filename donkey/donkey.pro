@@ -27,7 +27,9 @@ SOURCES += main.cpp \
     class_compiler.cpp \
     function_compiler.cpp \
     scope_compiler.cpp \
-    using_compiler.cpp
+    using_compiler.cpp \
+    module_bundle.cpp \
+    module.cpp
 
 HEADERS += \
     errors.hpp \

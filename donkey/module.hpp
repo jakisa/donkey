@@ -30,19 +30,9 @@ public:
 	       std::vector<function>&& functions,
 	       std::unordered_map<std::string, vtable_ptr>&& vtables,
 	       std::unordered_map<std::string, size_t>&& public_functions,
-	       std::unordered_map<std::string, size_t>&& public_globals):
-		_functions(std::move(functions)),
-		_vtables(std::move(vtables)),
-		_s(std::move(s)),
-		_module_name(std::move(module_name)),
-		_module_index(module_index),
-		_globals_count(globals_count),
-		_public_functions(std::move(public_functions)),
-		_public_globals(std::move(public_globals)){
-	}
-	void load(runtime_context& ctx){
-		_s(ctx);
-	}
+	       std::unordered_map<std::string, size_t>&& public_globals);
+	       
+	void load(runtime_context& ctx);
 	
 	size_t get_globals_count() const{
 		return _globals_count;
@@ -57,27 +47,7 @@ public:
 		return it == _vtables.end() ? nullptr : it->second.get();
 	}
 	
-	virtual identifier_ptr get_identifier(std::string name) const override{
-		if(name == _module_name){
-			return identifier_ptr(new module_identifier(_module_name, *this));
-		}
-		auto cit = _vtables.find(name);
-		if(cit != _vtables.end() && cit->second->is_public()){
-			return identifier_ptr(new class_identifier(cit->second->get_name(), cit->second.get(), _module_name));
-		}
-		
-		auto fit = _public_functions.find(name);
-		if(fit != _public_functions.end()){
-			return identifier_ptr(new function_identifier(fit->first, code_address(_module_index, fit->second)));
-		}
-		
-		auto git = _public_globals.find(name);
-		if(git != _public_globals.end()){
-			return identifier_ptr(new global_variable_identifier(git->first, _module_index, git->second));
-		}
-		
-		return identifier_ptr();
-	}
+	virtual identifier_ptr get_identifier(std::string name) const override;
 	
 	virtual bool is_allowed(std::string) const override{
 		return false;
@@ -99,21 +69,7 @@ public:
 		return _module_name;
 	}
 	
-	virtual std::vector<identifier_ptr> get_all_public() const override{
-		std::vector<identifier_ptr> ret;
-		for(const auto& p: _public_globals){
-			ret.push_back(identifier_ptr(new global_variable_identifier(p.first, _module_index, p.second)));
-		}
-		for(const auto& p: _public_functions){
-			ret.push_back(identifier_ptr(new function_identifier(p.first, code_address(_module_index, p.second))));
-		}
-		for(const auto& p: _vtables){
-			if(p.second->is_public()){
-				ret.push_back(identifier_ptr(new class_identifier(p.first, p.second.get(), _module_name )));
-			}
-		}
-		return ret;
-	}
+	virtual std::vector<identifier_ptr> get_all_public() const override;
 };
 
 typedef std::shared_ptr<module> module_ptr;

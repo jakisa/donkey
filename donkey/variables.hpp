@@ -28,11 +28,11 @@ public:
 		return _module_index == oth._module_index && _function_index == oth._function_index;
 	}
 
-	uint32_t get_module_index() const{
+	size_t get_module_index() const{
 		return _module_index;
 	}
 
-	uint32_t get_function_index() const{
+	size_t get_function_index() const{
 		return _function_index;
 	}
 };

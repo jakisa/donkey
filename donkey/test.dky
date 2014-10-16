@@ -1,21 +1,17 @@
-using other;
-
-var out;
-
-
-{
-    var a = new C();
-    out = a.C::x;
-}
-
-class D: C{
-    D():C(17){
+function fib(n){
+    if(n < 2){
+	return n;
     }
+    return fib(n-2) + fib(n-1);
 }
 
 
-var b = new D(18);
+var a = fib(30);
 
 
+//first: 0.75
+//make_shared: 0.65
 
-out = count;
+//variable: 0.28
+
+//local ref: 0.23

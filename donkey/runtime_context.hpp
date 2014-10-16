@@ -133,12 +133,16 @@ private:
 public:
 	stack_remover(runtime_context& ctx, size_t remove_cnt):
 		_ctx(ctx){
-		_removed.reserve(remove_cnt);
-		_ctx.store_stack(_removed, remove_cnt);
+		if(remove_cnt){
+			_removed.reserve(remove_cnt);
+			_ctx.store_stack(_removed, remove_cnt);
+		}
 	}
 	
 	~stack_remover(){
-		_ctx.restore_stack(_removed);
+		if(_removed.size()){
+			_ctx.restore_stack(_removed);
+		}
 	}
 };
 
