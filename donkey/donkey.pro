@@ -18,18 +18,18 @@ SOURCES += main.cpp \
     runtime_context.cpp \
     donkey_object.cpp \
     variables.cpp \
-    loop_compilers.cpp \
-    statement_compiler.cpp \
-    expression_compiler.cpp \
-    variable_compiler.cpp \
-    jump_compilers.cpp \
-    branch_compilers.cpp \
-    class_compiler.cpp \
-    function_compiler.cpp \
-    scope_compiler.cpp \
-    using_compiler.cpp \
     module_bundle.cpp \
-    module.cpp
+    module.cpp \
+    compilers/branch_compilers.cpp \
+    compilers/class_compiler.cpp \
+    compilers/expression_compiler.cpp \
+    compilers/function_compiler.cpp \
+    compilers/jump_compilers.cpp \
+    compilers/loop_compilers.cpp \
+    compilers/scope_compiler.cpp \
+    compilers/statement_compiler.cpp \
+    compilers/using_compiler.cpp \
+    compilers/variable_compiler.cpp
 
 HEADERS += \
     errors.hpp \
@@ -42,46 +42,47 @@ HEADERS += \
     identifiers.hpp \
     statements.hpp \
     expression_builder.hpp \
-    unary_expressions.hpp \
-    arithmetic_expressions.hpp \
-    string_expressions.hpp \
-    logical_expressions.hpp \
-    relation_expressions.hpp \
-    ternary_expressions.hpp \
-    assignment_expressions.hpp \
-    functional_expressions.hpp \
     scope.hpp \
     module.hpp \
     function.hpp \
     string_functions.hpp \
     vtable.hpp \
-    core_expressions.hpp \
-    native_function.hpp \
     config.hpp \
-    native_converter.hpp \
     donkey_callback.hpp \
     donkey_object.hpp \
-    sequential_expressions.hpp \
     stack.hpp \
-    null_check_expressions.hpp \
-    item_expressions.hpp \
     compiler.hpp \
-    loop_compilers.hpp \
-    statement_compiler.hpp \
-    function_compiler.hpp \
-    variable_compiler.hpp \
-    jump_compilers.hpp \
-    branch_compilers.hpp \
-    scope_compiler.hpp \
-    expression_compiler.hpp \
-    class_compiler.hpp \
     compiler_helpers.hpp \
     module_bundle.hpp \
     donkey_function.hpp \
-    using_compiler.hpp
+    expressions/arithmetic_expressions.hpp \
+    compilers/branch_compilers.hpp \
+    compilers/class_compiler.hpp \
+    compilers/expression_compiler.hpp \
+    compilers/function_compiler.hpp \
+    compilers/jump_compilers.hpp \
+    compilers/loop_compilers.hpp \
+    compilers/scope_compiler.hpp \
+    compilers/statement_compiler.hpp \
+    compilers/using_compiler.hpp \
+    compilers/variable_compiler.hpp \
+    expressions/assignment_expressions.hpp \
+    expressions/core_expressions.hpp \
+    expressions/functional_expressions.hpp \
+    expressions/item_expressions.hpp \
+    expressions/logical_expressions.hpp \
+    expressions/null_check_expressions.hpp \
+    expressions/relation_expressions.hpp \
+    expressions/sequential_expressions.hpp \
+    expressions/string_expressions.hpp \
+    expressions/ternary_expressions.hpp \
+    expressions/unary_expressions.hpp \
+    cpp/donkey_callback.hpp \
+    cpp/native_converter.hpp \
+    cpp/native_function.hpp
 
 OTHER_FILES += \
     examples.txt \
-    test.dky \
-    other.dky
+    dky/test.dky \
+    dky/other.dky
 

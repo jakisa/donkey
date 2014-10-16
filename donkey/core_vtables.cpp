@@ -1,5 +1,5 @@
 #include "vtable.hpp"
-#include "native_function.hpp"
+#include "cpp/native_function.hpp"
 
 #include <memory>
 

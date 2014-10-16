@@ -1,7 +1,7 @@
 #include "donkey.hpp"
 #include "tokenizer.hpp"
 #include "scope.hpp"
-#include "statement_compiler.hpp"
+#include "compilers/statement_compiler.hpp"
 #include "module.hpp"
 #include "compiler.hpp"
 #include <unordered_map>
