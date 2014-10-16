@@ -26,7 +26,8 @@ SOURCES += main.cpp \
     branch_compilers.cpp \
     class_compiler.cpp \
     function_compiler.cpp \
-    scope_compiler.cpp
+    scope_compiler.cpp \
+    using_compiler.cpp
 
 HEADERS += \
     errors.hpp \
@@ -74,7 +75,8 @@ HEADERS += \
     class_compiler.hpp \
     compiler_helpers.hpp \
     module_bundle.hpp \
-    donkey_function.hpp
+    donkey_function.hpp \
+    using_compiler.hpp
 
 OTHER_FILES += \
     examples.txt \

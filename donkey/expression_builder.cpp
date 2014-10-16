@@ -521,11 +521,11 @@ static identifier_ptr tree_to_identifier(part_ptr tree, const identifier_lookup&
 						class_identifier& c = static_cast<class_identifier&>(*l);
 						std::string r = tree->first_child->next_sibling->str;
 						if(c.get_vtable()->has_method(r)){
-							return identifier_ptr(new method_identifier(r, *(c.get_vtable()->get_method(r)), c.get_name()));
+							return identifier_ptr(new method_identifier(r, *(c.get_vtable()->get_method(r)), c.get_vtable()->get_full_name()));
 						}else if(c.get_vtable()->has_field(r)){
-							return identifier_ptr(new field_identifier(r, c.get_vtable()->get_field_index(r), c.get_name()));
+							return identifier_ptr(new field_identifier(r, c.get_vtable()->get_field_index(r), c.get_vtable()->get_full_name()));
 						}else{
-							semantic_error("class " + c.get_name() + " doesn't have member " + r);
+							semantic_error("class " + c.get_vtable()->get_full_name() + " doesn't have member " + r);
 							return identifier_ptr();
 						}
 					}
@@ -591,7 +591,7 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 					if(!lookup.in_class()){
 						semantic_error("self is only allowed in class method");
 					}
-					vtable* vt = lookup.get_vtable("", lookup.get_current_class());
+					vtable* vt = lookup.get_current_vtable();
 					std::string member = tree->first_child->next_sibling->str;
 					if(vt->has_method(member)){
 						return build_method_expression(that, lookup.get_current_class(), *vt->get_method(member));

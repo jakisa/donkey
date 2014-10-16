@@ -66,18 +66,30 @@ public:
 		return _globals[module_idx][var_idx];
 	}
 	
+	vtable* get_core_vtable(const std::string& type_name){
+		auto it = _core_vtables.find(type_name);
+		return it != _core_vtables.end() ? it->second.get() : nullptr;
+	}
+	
 	vtable* get_vtable(const std::string& module_name, const std::string& type_name){
-		return module_name.empty() ? _core_vtables[type_name].get() : _modules[_modules_map[module_name]]->get_vtable("", type_name);
+		return module_name.empty() ? get_core_vtable(type_name) : _modules[_modules_map[module_name]]->get_vtable(type_name);
 	}
 	
 	~module_bundle(){
 		std::cout << _globals[0][0].to_string() << std::endl;
-	
+	/*
 		for(size_t i = _modules.size(); i; --i){
 			for(size_t j = _modules[i-1]->get_globals_count(); j; --j){
 				_globals[i-1][j-1].reset();
 			}
 			delete[] _globals[i-1];
+		}
+	*/
+		for(size_t i = 0; i < _modules.size(); ++i){
+			for(size_t j = _modules[i]->get_globals_count(); j; --j){
+				_globals[i][j-1].reset();
+			}
+			delete[] _globals[i];
 		}
 	}
 };

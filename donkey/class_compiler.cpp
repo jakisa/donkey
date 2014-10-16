@@ -131,15 +131,11 @@ inline const vtable* add_table(std::unordered_set<const vtable*>& tables, const 
 	return nullptr;
 }
 
-inline void check_diamond(const std::vector<std::pair<std::string, std::string> >& bases, const global_scope& scope, const std::string& classname){
+inline void check_diamond(const std::vector<vtable*>& bases, const std::string& classname){
 	std::unordered_set<const vtable*> tables;
 	
-	for(const auto& module_base: bases){
-		const vtable* vt = scope.get_vtable(module_base.first, module_base.second);
-		if(!vt){
-			semantic_error("unknown class " + module_base.second);
-		}
-		const vtable* ret = add_table(tables, vt);
+	for(auto base: bases){
+		const vtable* ret = add_table(tables, base);
 		if(ret){
 			semantic_error("non-empty diaamond base " + ret->get_name() + " found for " + classname);
 		}
@@ -157,23 +153,21 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 	
 	class_scope ctarget(name, &target);
 	
-	std::vector<std::pair<std::string, std::string> > bases;
+	std::vector<vtable*> bases;
 	
 	if(*parser == ":"){
 		++parser;
 		do{
-			bases.push_back(get_class(target.get_module_name(), parser));
+			bases.push_back(get_class(target, parser));
 			if(*parser == ","){
 				++parser;
 			}
 		}while(parser && *parser != "{");
 	}
 	
-	bases.emplace_back("", "object");
+	bases.push_back(static_cast<class_identifier&>(*target.get_identifier("object")).get_vtable());
 	
-	global_scope& gtarget = static_cast<global_scope&>(target);
-	
-	check_diamond(bases, gtarget, name);
+	check_diamond(bases, name);
 	
 	parse("{", parser);
 	
@@ -204,20 +198,15 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 		}
 	}
 	
-	std::vector<vtable*> bases_vt;
-	for(const std::pair<std::string, std::string>& module_base: bases){
-		bases_vt.push_back(gtarget.get_vtable(module_base.first, module_base.second));
-	}
-	
 	if(!constructor_defined){
-		ctarget.define_constructor(std::bind(&default_constructor, bases_vt, _1, _2, _3));
+		ctarget.define_constructor(std::bind(&default_constructor, bases, _1, _2, _3));
 	}
 	
 	if(!destructor_defined){
-		ctarget.define_destructor(std::bind(&default_destructor, bases_vt, _1, _2, _3));
+		ctarget.define_destructor(std::bind(&default_destructor, bases, _1, _2, _3));
 	}
 	
-	gtarget.add_vtable(ctarget.create_vtable(bases, is_public));
+	static_cast<global_scope&>(target).add_vtable(ctarget.create_vtable(bases, is_public));
 	
 	while(*parser != "}"){
 		if(*parser == "var"){

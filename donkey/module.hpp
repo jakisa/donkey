@@ -52,21 +52,18 @@ public:
 		return _functions[idx](ctx, prms);
 	}
 	
-	vtable* get_vtable(std::string module_name, std::string name) const{
-		if(!module_name.empty() && module_name != _module_name){
-			return nullptr;
-		}
+	vtable* get_vtable(std::string name) const{
 		auto it = _vtables.find(name);
 		return it == _vtables.end() ? nullptr : it->second.get();
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
-		auto cit = _vtables.find(name);
-		if(cit == _vtables.end()){
-			cit = _vtables.find(_module_name + "::" + name);
+		if(name == _module_name){
+			return identifier_ptr(new module_identifier(_module_name, *this));
 		}
+		auto cit = _vtables.find(name);
 		if(cit != _vtables.end() && cit->second->is_public()){
-			return identifier_ptr(new class_identifier(cit->second->get_full_name(), cit->second.get(), _module_name));
+			return identifier_ptr(new class_identifier(cit->second->get_name(), cit->second.get(), _module_name));
 		}
 		
 		auto fit = _public_functions.find(name);
@@ -94,8 +91,28 @@ public:
 		return "";
 	}
 	
+	virtual vtable* get_current_vtable() const override{
+		return nullptr;
+	}
+	
 	virtual const std::string& get_module_name() const override{
 		return _module_name;
+	}
+	
+	virtual std::vector<identifier_ptr> get_all_public() const override{
+		std::vector<identifier_ptr> ret;
+		for(const auto& p: _public_globals){
+			ret.push_back(identifier_ptr(new global_variable_identifier(p.first, _module_index, p.second)));
+		}
+		for(const auto& p: _public_functions){
+			ret.push_back(identifier_ptr(new function_identifier(p.first, code_address(_module_index, p.second))));
+		}
+		for(const auto& p: _vtables){
+			if(p.second->is_public()){
+				ret.push_back(identifier_ptr(new class_identifier(p.first, p.second.get(), _module_name )));
+			}
+		}
+		return ret;
 	}
 };
 

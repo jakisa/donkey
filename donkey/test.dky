@@ -2,9 +2,22 @@ import other;
 
 var out;
 
+using other;
+
 
 {
-    var a = new other::C();
+    var a = new C();
+    out = a.C::x;
 }
 
-out = other::count;
+class D: C{
+    D():C(17){
+    }
+}
+
+
+var b = new test::D(18);
+
+
+
+out = count;

@@ -184,9 +184,11 @@ public:
 	
 	virtual std::string get_current_class() const = 0;
 	
-	virtual vtable* get_vtable(std::string module, std::string name) const = 0;
+	virtual vtable* get_current_vtable() const = 0;
 	
 	virtual const std::string& get_module_name() const = 0;
+	
+	virtual std::vector<identifier_ptr> get_all_public() const = 0;
 	
 	virtual ~identifier_lookup(){
 	}

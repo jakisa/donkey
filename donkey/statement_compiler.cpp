@@ -8,6 +8,7 @@
 #include "expression_compiler.hpp"
 #include "function_compiler.hpp"
 #include "variable_compiler.hpp"
+#include "using_compiler.hpp"
 #include "errors.hpp"
 
 namespace donkey{
@@ -49,6 +50,8 @@ void compile_statement(scope& target, tokenizer& parser){
 		}else{
 			unexpected_error(*parser);
 		}
+	}else if(*parser == "using"){
+		compile_using(target, parser);
 	}else{
 		if(is_keyword(*parser) && *parser != "this" && *parser != "self" && *parser != "new" && *parser != "self"){
 			unexpected_error(*parser);

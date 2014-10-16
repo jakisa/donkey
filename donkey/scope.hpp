@@ -15,6 +15,7 @@ namespace donkey{
 
 class scope: public identifier_lookup{
 private:
+	std::unordered_map<std::string, identifier_ptr> _usings;
 	std::unordered_map<std::string, identifier_ptr> _variables;
 	std::unordered_map<std::string, size_t> _public_variables;
 	std::vector<statement> _statements;
@@ -61,10 +62,28 @@ public:
 	size_t get_module_index() const{
 		return _module_index;
 	}
+	
+	virtual void add_using(identifier_ptr id){
+		if(id->get_type() == identifier_type::module){
+			std::vector<identifier_ptr> all = static_cast<module_identifier&>(*id).get_lookup().get_all_public();
+			for(identifier_ptr pid: all){
+				add_using(pid);
+			}
+		}else{
+			_usings[id->get_name()] = id;
+		}
+	}
 
 	virtual identifier_ptr get_identifier(std::string name) const override{
-		auto it = _variables.find(name);
-		return it != _variables.end() ? it->second : _parent ? _parent->get_identifier(name) : identifier_ptr();
+		auto vit = _variables.find(name);
+		if(vit != _variables.end()){
+			return vit->second;
+		}
+		auto uit = _usings.find(name);
+		if(uit != _usings.end()){
+			return uit->second;
+		}
+		return _parent ? _parent->get_identifier(name) : identifier_ptr();
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
@@ -148,10 +167,6 @@ public:
 		return _var_index - _initial_index;
 	}
 	
-	virtual vtable* get_vtable(std::string module, std::string name) const override{
-		return _parent ? _parent->get_vtable(module, name) : nullptr;
-	}
-	
 	virtual std::string get_current_class() const override{
 		return _parent ? _parent->get_current_class() : "";
 	}
@@ -162,6 +177,18 @@ public:
 	
 	std::unordered_map<std::string, size_t> get_public_vars() const{
 		return _public_variables;
+	}
+	
+	virtual vtable* get_current_vtable() const override{
+		return _parent ? _parent->get_current_vtable() : nullptr;
+	}
+	
+	virtual std::vector<identifier_ptr> get_all_public() const override{
+		std::vector<identifier_ptr> ret;
+		for(const auto& p: _public_variables){
+			ret.push_back(identifier_ptr(new global_variable_identifier(p.first, _module_index, p.second)));
+		}
+		return ret;
 	}
 };
 
@@ -236,6 +263,16 @@ public:
 	}
 	
 	virtual identifier_ptr get_identifier(std::string name) const override{
+		if(name == _module_name){
+			return identifier_ptr(new module_identifier(_module_name, *this));
+		}
+		
+		vtable* core_vt = _bundle.get_core_vtable(name);
+		
+		if(core_vt){
+			return identifier_ptr(new class_identifier(name, core_vt, ""));
+		}
+		
 		auto mit = _import.find(name);
 		if(mit != _import.end()){
 			return mit->second;
@@ -244,35 +281,20 @@ public:
 		if(fit != _functions.end()){
 			return fit->second;
 		}
+		
 		auto cit = _vtables.find(name);
-		if(cit == _vtables.end()){
-			cit = _vtables.find(_module_name + "::" + name);
-		}
-		return cit != _vtables.end() ? identifier_ptr(new class_identifier(cit->second->get_full_name(), cit->second.get(), _module_name)) : scope::get_identifier(name);
+		return cit != _vtables.end() ? identifier_ptr(new class_identifier(name, cit->second.get(), _module_name)) : scope::get_identifier(name);
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
-		return _vtables.find(_module_name + "::" + name) == _vtables.end() &&
+		return _vtables.find(name) == _vtables.end() &&
 		       _import.find(name) == _import.end() &&
 		       _functions.find(name) == _functions.end() &&
 		       scope::is_allowed(name);
 	}
 
 	bool add_vtable(vtable_ptr vt){
-		return _vtables.emplace(vt->get_full_name(), vt).second;
-	}
-	
-	virtual vtable* get_vtable(std::string module, std::string name) const override{
-		if(module.empty() || module == _module_name){
-			if(name == "object"){
-				return _bundle.get_vtable("", "object");
-			}
-			
-			auto it = _vtables.find(name);
-			return it != _vtables.end() ? it->second.get() : scope::get_vtable(module, name);
-		}else{
-			return _bundle.get_vtable(module, name);
-		}
+		return _vtables.emplace(vt->get_name(), vt).second;
 	}
 	
 	virtual const std::string& get_module_name() const override{
@@ -281,6 +303,19 @@ public:
 	
 	std::unordered_map<std::string, size_t> get_public_functions() const{
 		return _public_functions;
+	}
+	
+	virtual std::vector<identifier_ptr> get_all_public() const override{
+		std::vector<identifier_ptr> ret = scope::get_all_public();
+		for(const auto& p: _public_functions){
+			ret.push_back(identifier_ptr(new function_identifier(p.first, code_address(get_module_index(), p.second))));
+		}
+		for(const auto& p: _vtables){
+			if(p.second->is_public()){
+				ret.push_back(identifier_ptr(new class_identifier(p.first, p.second.get(), get_module_name())));
+			}
+		}
+		return ret;
 	}
 };
 
@@ -292,6 +327,7 @@ private:
 	method_ptr _constructor;
 	method_ptr _destructor;
 	std::string _name;
+	vtable* _vt;
 	size_t _fields_size;
 	
 	static variable variable_strong(variable& that, runtime_context&, size_t){
@@ -351,20 +387,25 @@ public:
 		return true;
 	}
 	
-	vtable_ptr create_vtable(const std::vector<std::pair<std::string, std::string> >& bases, bool is_public) const{
+	vtable_ptr create_vtable(const std::vector<vtable*>& bases, bool is_public){
 		auto name = _name;
 		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
 		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public));
-		for(const auto& base: bases){
-			ret->derive_from(*get_vtable(base.first, base.second));
+		for(auto base: bases){
+			ret->derive_from(*base);
 		}
+		_vt = ret.get();
 		return ret;
 	}
 	
 	virtual std::string get_current_class() const override{
 		return get_module_name() + "::" + _name;
+	}
+	
+	virtual vtable* get_current_vtable() const{
+		return _vt;
 	}
 };
 
