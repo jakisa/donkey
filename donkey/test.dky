@@ -14,7 +14,7 @@ class D: C{
 }
 
 
-var b = new test::D(18);
+var b = new D(18);
 
 
 
