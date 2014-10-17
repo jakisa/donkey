@@ -10,6 +10,7 @@ namespace donkey{
 
 struct donkey_object::data{
 	std::vector<variable> fields;
+	std::unordered_map<std::string, void*> handles;
 	vtable* vt;
 	
 	data(vtable* vt):
@@ -49,8 +50,17 @@ donkey_object::~donkey_object(){
 	delete _data;
 }
 
-void donkey_object::dispose(const variable &v, runtime_context &ctx){
+void donkey_object::dispose(const variable& v, runtime_context& ctx){
 	_data->vt->call_destructor(v, ctx);
+}
+
+void donkey_object::set_handle(const std::string& name, void* handle){
+	_data->handles[name] = handle;
+}
+
+void* donkey_object::get_handle(const std::string& name) const{
+	auto it = _data->handles.find(name);
+	return it != _data->handles.end() ? it->second : nullptr;
 }
 
 }//donkey

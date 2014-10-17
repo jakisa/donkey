@@ -16,6 +16,8 @@ private:
 	
 	module_bundle _modules;
 	
+	std::unordered_map<std::string, module_loader> _loaders;
+	
 	void compile_module(tokenizer& parser, std::string module_name){
 		size_t idx = _modules.reserve_module(module_name);
 		
@@ -70,13 +72,34 @@ private:
 			target.get_public_vars()
 		)));
 	}
+	
+	void load_native_module(const std::string& name, const module_loader& loader){
+		size_t idx = _modules.reserve_module(name);
+		
+		module_ptr module = loader(idx);
+		
+		_modules.add_module(name, module);
+	}
+	
 public:
 	priv(const char* root, size_t stack_size):
 		_root(root),
 		_modules(stack_size){
 	}
+	
+	void add_module_loader(const char* module_name, const module_loader& loader){
+		_loaders.emplace(module_name, loader);
+	}
+	
 
 	bool compile_module(const char* module_name){
+		auto it = _loaders.find(module_name);
+		
+		if(it != _loaders.end()){
+			load_native_module(it->first, it->second);
+			return true;
+		}
+	
 		FILE* fp = fopen((_root + module_name + ".dky").c_str(), "rb");
 
 		if(!fp){
@@ -113,6 +136,10 @@ public:
 
 compiler::compiler(const char* root, size_t stack_size):
 	_private(new priv(root, stack_size)){
+}
+
+void compiler::add_module_loader(const char* module_name, const module_loader& loader){
+	_private->add_module_loader(module_name, loader);
 }
 
 bool compiler::compile_module(const char* module_name){

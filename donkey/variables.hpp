@@ -37,26 +37,6 @@ public:
 	}
 };
 
-/*
-enum struct data_type: char{
-	nothing      = 0x00,
-	number       = 0x01,
-	code_address = 0x02,
-	string       = 0x03,
-	function     = 0x04,
-	object       = 0x05,
-};
-
-enum struct mem_type: char{
-	nothing        = 0x00,
-	shared_pointer = 0x10,
-	value          = 0x20,
-	weak_pointer   = 0x30,
-};
-
-enum{
-	mem_type_smartptr_mask = 0x10
-};*/
 
 enum struct var_type: char{
 	nothing        = 0x00,
@@ -301,7 +281,7 @@ public:
 		_vt = var_type::function;
 	}
 	
-	explicit variable(vtable* vt, runtime_context& ctx){
+	variable(vtable* vt, runtime_context& ctx){
 		donkey_object* p = new donkey_object(vt);
 		if(!p){
 			runtime_error("out of memory");
@@ -494,6 +474,21 @@ public:
 	
 	heap_header* as_reference_unsafe() const{
 		return _h_ptr;
+	}
+	
+	void* as_handle_unsafe(const std::string& handle_name) const{
+		return _h_ptr->as_t<donkey_object>()->get_handle(handle_name);
+	}
+	
+	void* as_handle(const std::string& handle_name) const{
+		if(get_data_type() != var_type::object){
+			_runtime_error(handle_name + " expected");
+		}
+		void* ret = _h_ptr->as_t<donkey_object>()->get_handle(handle_name);
+		if(!ret){
+			_runtime_error(handle_name + " expected");
+		}
+		return ret;
 	}
 	
 	bool operator==(const variable& oth) const{

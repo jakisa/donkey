@@ -1,9 +1,9 @@
 #ifndef __native_converter_hpp__
 #define __native_converter_hpp__
 
-#include <variables.hpp>
-#include <runtime_context.hpp>
-#include <function.hpp>
+#include "runtime_context.hpp"
+#include "function.hpp"
+#include "variables.hpp"
 
 namespace donkey{
 
@@ -24,7 +24,7 @@ namespace detail{
 		static number to_native(const variable& v, runtime_context&){
 			return v.as_number();
 		}
-		static variable from_native(number n){
+		static variable from_native(number n, runtime_context&){
 			return variable(n);
 		}
 	};
@@ -41,7 +41,7 @@ namespace detail{
 		static integer to_native(const variable& v, runtime_context&){
 			return v.as_integer();
 		}
-		static variable from_native(integer n){
+		static variable from_native(integer n, runtime_context&){
 			return variable(n);
 		}
 	};
@@ -51,7 +51,7 @@ namespace detail{
 		static std::string to_native(const variable& v, runtime_context&){
 			return v.to_string();
 		}
-		static variable from_native(const std::string& s){
+		static variable from_native(const std::string& s, runtime_context&){
 			return variable(s);
 		}
 	};
@@ -61,9 +61,40 @@ namespace detail{
 		static const char* to_native(const variable& v, runtime_context&){
 			return v.as_string();
 		}
-		static variable from_native(const char* s){
+		static variable from_native(const char* s, runtime_context&){
 			return variable(s);
 		}
+	};
+	
+	template<typename Derived>
+	static void set_base_handle(typename Derived::base_type*, donkey_object* that, void* handle){
+		typedef typename Derived::base_type Base;
+		that->set_handle(Base::handle_name(), handle);
+		set_base_handle<Base>(0, that, handle);
+	}
+	
+	template<typename>
+	static void set_base_handle(...){
+	}
+	
+	template<class T>
+	struct param_converter<T*>{
+		static T* to_native(const variable& v, runtime_context&){
+			return v.as_handle(T::handle_name());
+		}
+		
+		static variable from_native(T* t, runtime_context& ctx){
+			variable ret(t->get_vtable(), ctx);
+			
+			donkey_object* obj = ret.as_reference_unsafe()->as_t<donkey_object>();
+			
+			obj->set_handle(T::handle_name, t);
+			
+			set_base_handle<T>(nullptr, obj, t);
+			
+			return ret;
+		}
+		
 	};
 	
 	template<class T>
@@ -82,6 +113,14 @@ namespace detail{
 			return v.as_string_unsafe();
 		}
 	};
+	
+	template<class T>
+	struct this_converter<T*>{
+		static T* to_native(const variable& v, runtime_context&){
+			return v.as_handle_unsafe(T::handle_name());
+		}
+	};
+	
 }//detail
 
 }//donkey

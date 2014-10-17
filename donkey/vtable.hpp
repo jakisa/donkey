@@ -30,6 +30,7 @@ private:
 	method_ptr _destructor;
 	size_t _fields_size;
 	bool _is_public;
+	bool _is_native;
 
 	
 	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
@@ -43,7 +44,7 @@ private:
 public:
 	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor,
 	       std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields,
-	       size_t fields_size, bool is_public):
+	       size_t fields_size, bool is_public, bool is_native):
 		_full_name(module_name.empty() ? name : module_name + "::" + name),
 		_module_name(std::move(module_name)),
 		_name(std::move(name)),
@@ -52,7 +53,8 @@ public:
 		_constructor(constructor),
 		_destructor(destructor),
 		_fields_size(fields_size),
-		_is_public(is_public){
+		_is_public(is_public),
+		_is_native(is_native){
 	}
 	
 	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
@@ -203,15 +205,19 @@ public:
 	bool is_public() const{
 		return _is_public;
 	}
+	
+	bool is_native() const{
+		return _is_native;
+	}
 };
 
 typedef std::shared_ptr<vtable> vtable_ptr;
 
-vtable_ptr create_object_vtable();
-vtable_ptr create_string_vtable(const vtable& base);
-vtable_ptr create_number_vtable(const vtable& base);
-vtable_ptr create_function_vtable(const vtable& base);
-vtable_ptr create_null_vtable(const vtable& base);
+vtable_ptr object_vtable();
+vtable_ptr string_vtable();
+vtable_ptr number_vtable();
+vtable_ptr function_vtable();
+vtable_ptr null_vtable();
 
 }//donkey
 

@@ -120,7 +120,7 @@ inline const vtable* add_table(std::unordered_set<const vtable*>& tables, const 
 	
 	for(const vtable* base: bases){
 		if(tables.find(base) != tables.end()){
-			if(base->get_fields_size()){
+			if(base->get_fields_size() || base->is_native()){
 				return base;
 			}
 		}else{

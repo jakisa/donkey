@@ -392,7 +392,7 @@ public:
 		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public));
+		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public, false));
 		for(auto base: bases){
 			ret->derive_from(*base);
 		}

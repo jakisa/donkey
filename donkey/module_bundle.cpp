@@ -7,17 +7,11 @@ namespace donkey{
 module_bundle::module_bundle(size_t sz):
 	runtime_context(sz){
 	
-	vtable_ptr object_vtable = create_object_vtable();
-	vtable_ptr string_vtable = create_string_vtable(*object_vtable);
-	vtable_ptr number_vtable = create_number_vtable(*object_vtable);
-	vtable_ptr null_vtable = create_null_vtable(*object_vtable);
-	vtable_ptr function_vtable = create_function_vtable(*object_vtable);
-	
-	_core_vtables.emplace(object_vtable->get_name(), object_vtable);
-	_core_vtables.emplace(string_vtable->get_name(), string_vtable);
-	_core_vtables.emplace(number_vtable->get_name(), number_vtable);
-	_core_vtables.emplace(null_vtable->get_name(), null_vtable);
-	_core_vtables.emplace(function_vtable->get_name(), function_vtable);
+	_core_vtables.emplace(object_vtable()->get_name(), object_vtable());
+	_core_vtables.emplace(string_vtable()->get_name(), string_vtable());
+	_core_vtables.emplace(number_vtable()->get_name(), number_vtable());
+	_core_vtables.emplace(null_vtable()->get_name(), null_vtable());
+	_core_vtables.emplace(function_vtable()->get_name(), function_vtable());
 }
 
 bool module_bundle::module_in_progress(std::string name){

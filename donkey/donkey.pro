@@ -29,7 +29,8 @@ SOURCES += main.cpp \
     compilers/scope_compiler.cpp \
     compilers/statement_compiler.cpp \
     compilers/using_compiler.cpp \
-    compilers/variable_compiler.cpp
+    compilers/variable_compiler.cpp \
+    modules/io/io_module.cpp
 
 HEADERS += \
     errors.hpp \
@@ -79,7 +80,10 @@ HEADERS += \
     expressions/unary_expressions.hpp \
     cpp/donkey_callback.hpp \
     cpp/native_converter.hpp \
-    cpp/native_function.hpp
+    cpp/native_function.hpp \
+    cpp/native_module.hpp \
+    cpp/native_object.hpp \
+    modules/io/io_module.hpp
 
 OTHER_FILES += \
     examples.txt \
