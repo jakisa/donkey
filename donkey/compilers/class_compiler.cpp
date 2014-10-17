@@ -120,7 +120,7 @@ inline const vtable* add_table(std::unordered_set<const vtable*>& tables, const 
 	
 	for(const vtable* base: bases){
 		if(tables.find(base) != tables.end()){
-			if(base->get_fields_size() || base->is_native()){
+			if(base->get_fields_size()){
 				return base;
 			}
 		}else{
@@ -142,7 +142,7 @@ inline void check_diamond(const std::vector<vtable*>& bases, const std::string& 
 	}
 }
 
-void compile_class(scope& target, tokenizer& parser, bool is_public){
+void compile_class(scope& target, tokenizer& parser, bool is_public, bool is_final){
 	if(!target.is_global()){
 		syntax_error("local classes are not supported");
 	}
@@ -158,7 +158,11 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 	if(*parser == ":"){
 		++parser;
 		do{
-			bases.push_back(get_class(target, parser));
+			vtable* base = get_class(target, parser);
+			if(base->is_final()){
+				semantic_error("cannot inherit from final class " + base->get_full_name());
+			}
+			bases.push_back(base);
 			if(*parser == ","){
 				++parser;
 			}
@@ -206,7 +210,7 @@ void compile_class(scope& target, tokenizer& parser, bool is_public){
 		ctarget.define_destructor(std::bind(&default_destructor, bases, _1, _2, _3));
 	}
 	
-	static_cast<global_scope&>(target).add_vtable(ctarget.create_vtable(bases, is_public));
+	static_cast<global_scope&>(target).add_vtable(ctarget.create_vtable(bases, is_public, is_final));
 	
 	while(*parser != "}"){
 		if(*parser == "var"){

@@ -61,7 +61,7 @@ vtable_ptr string_vtable(){
 		
 		methods.emplace("toString", method_ptr(new method(&string_to_string)));
 		
-		ret.reset(new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
+		ret.reset(new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());
 	}
 	return ret;
@@ -73,7 +73,7 @@ vtable_ptr number_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		ret.reset(new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
+		ret.reset(new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());
 	}
 	return ret;
@@ -85,7 +85,7 @@ vtable_ptr function_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		ret.reset(new vtable("", "function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
+		ret.reset(new vtable("", "function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());
 	}
 	return ret;
@@ -97,7 +97,7 @@ vtable_ptr null_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		ret.reset(new vtable("", "null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
+		ret.reset(new vtable("", "null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());
 	}
 	return ret;

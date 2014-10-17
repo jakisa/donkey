@@ -35,7 +35,13 @@ void compile_statement(scope& target, tokenizer& parser){
 	}else if(*parser == "continue"){	
 		compile_continue(target, parser);
 	}else if(*parser == "class"){
-		compile_class(target, parser);
+		compile_class(target, parser, false, false);
+	}else if(*parser == "final"){
+		++parser;
+		if(*parser != "class"){
+			unexpected_error(*parser);
+		}
+		compile_class(target, parser, false, true);
 	}else if(*parser == "public"){
 		if(!target.is_global()){
 			unexpected_error(*parser);
@@ -46,7 +52,13 @@ void compile_statement(scope& target, tokenizer& parser){
 		}else if(*parser == "function"){
 			compile_function(target, parser, true);
 		}else if(*parser == "class"){
-			compile_class(target, parser, true);
+			compile_class(target, parser, true, false);
+		}else if(*parser == "final"){
+			++parser;
+			if(*parser != "class"){
+				unexpected_error(*parser);
+			}
+			compile_class(target, parser, true, true);
 		}else{
 			unexpected_error(*parser);
 		}

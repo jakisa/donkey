@@ -387,12 +387,12 @@ public:
 		return true;
 	}
 	
-	vtable_ptr create_vtable(const std::vector<vtable*>& bases, bool is_public){
+	vtable_ptr create_vtable(const std::vector<vtable*>& bases, bool is_public, bool is_final){
 		auto name = _name;
 		auto module_name = get_module_name();
 		auto methods = _methods;
 		auto fields = _fields;
-		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public, false));
+		vtable_ptr ret(new vtable(std::move(module_name), std::move(name), _constructor, _destructor, std::move(methods), std::move(fields), _fields_size, is_public, is_final));
 		for(auto base: bases){
 			ret->derive_from(*base);
 		}

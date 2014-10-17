@@ -23,6 +23,7 @@ const char* tkeywords<dummy>::arr[] = {
 	"do",
 	"elif",
 	"else",
+	"final",
 	"for",
 	"function",
 	"if",

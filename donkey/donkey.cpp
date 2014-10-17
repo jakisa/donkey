@@ -132,7 +132,7 @@ public:
 				compile_module(*parser, module_name);
 				return true;
 			}catch(const exception_raw& e){
-				e.throw_formatted(parser->get_file_name(), parser->get_line_number());
+				e.throw_formatted(parser->get_file_name(), parser->get_line_number() + 1);
 			}
 		}catch(const exception& e){
 			_modules.unload_from(idx);
