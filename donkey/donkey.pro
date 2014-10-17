@@ -5,9 +5,9 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11
 
 
-#QMAKE_CXXFLAGS_RELEASE += -g
+QMAKE_CXXFLAGS_RELEASE += -g
 
-#QMAKE_LFLAGS_RELEASE += -g
+QMAKE_LFLAGS_RELEASE += -g
 
 SOURCES += main.cpp \
     tokenizer.cpp \

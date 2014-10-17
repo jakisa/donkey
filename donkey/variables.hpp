@@ -476,8 +476,12 @@ public:
 		return _h_ptr;
 	}
 	
+	donkey_object* as_donkey_object_unsafe() const{
+		return as_reference_unsafe()->as_t<donkey_object>();
+	}
+	
 	void* as_handle_unsafe(const std::string& handle_name) const{
-		return _h_ptr->as_t<donkey_object>()->get_handle(handle_name);
+		return as_donkey_object_unsafe()->get_handle(handle_name);
 	}
 	
 	void* as_handle(const std::string& handle_name) const{

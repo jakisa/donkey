@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include "module_bundle.hpp"
 
+#include <stdio.h>
+
 namespace donkey{
 
 
@@ -122,13 +124,20 @@ public:
 		
 		std::unique_ptr<tokenizer> parser;
 		
-		//try{
-			parser.reset(new tokenizer(module_name, &v[0], &v[0] + len));
-			compile_module(*parser, module_name);
-			return true;
-		//}catch(const exception_raw& e){
-		//	e.throw_formatted(parser->get_file_name(), parser->get_line_number());
-		//}
+		size_t idx = _modules.get_modules_count();
+		
+		try{
+			try{
+				parser.reset(new tokenizer(module_name, &v[0], &v[0] + len));
+				compile_module(*parser, module_name);
+				return true;
+			}catch(const exception_raw& e){
+				e.throw_formatted(parser->get_file_name(), parser->get_line_number());
+			}
+		}catch(const exception& e){
+			_modules.unload_from(idx);
+			printf("%s\n", e.what());
+		}
 		return false;
 	}
 	

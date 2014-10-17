@@ -19,6 +19,16 @@ namespace detail{
 	};
 	
 	
+	template<typename T>
+	struct param_converter<const T&>{
+		static T to_native(const variable& v, runtime_context& ctx){
+			return param_converter<T>::to_native(v, ctx);
+		}
+		static variable from_native(const T& t, runtime_context& ctx){
+			return param_converter<T>::from_native(t, ctx);
+		}
+	};
+	
 	template<>
 	struct param_converter<number>{
 		static number to_native(const variable& v, runtime_context&){
@@ -88,7 +98,7 @@ namespace detail{
 			
 			donkey_object* obj = ret.as_reference_unsafe()->as_t<donkey_object>();
 			
-			obj->set_handle(T::handle_name, t);
+			obj->set_handle(T::handle_name(), t);
 			
 			set_base_handle<T>(nullptr, obj, t);
 			
@@ -117,7 +127,7 @@ namespace detail{
 	template<class T>
 	struct this_converter<T*>{
 		static T* to_native(const variable& v, runtime_context&){
-			return v.as_handle_unsafe(T::handle_name());
+			return static_cast<T*>(v.as_handle_unsafe(T::handle_name()));
 		}
 	};
 	

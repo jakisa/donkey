@@ -7,7 +7,6 @@
 #include "module.hpp"
 
 #include <unordered_set>
-#include <unordered_map>
 #include <string>
 
 namespace donkey{
@@ -19,7 +18,7 @@ class native_module{
 private:
 	std::string _name;
 	size_t _idx;
-	std::unordered_set<std::string> _globals;
+	std::unordered_map<std::string, size_t> _globals;
 	std::unordered_map<std::string, function> _functions;
 	std::unordered_map<std::string, vtable_ptr> _vtables;
 	statement _init;
@@ -34,16 +33,18 @@ public:
 		_init = std::move(init);
 	}
 	
-	void add_global(std::string global){
-		_globals.insert(global);
+	size_t add_global(std::string global){
+		size_t ret = _globals.size();
+		_globals.emplace(global, ret);
+		return ret;
 	}
 	
 	void add_function(std::string name, function f){
 		_functions.emplace(name, f);
 	}
 	
-	void add_vtable(std::string name, vtable_ptr vt){
-		_vtables.emplace(name, vt);
+	void add_vtable(vtable_ptr vt){
+		_vtables.emplace(vt->get_name(), vt);
 	}
 	
 	
@@ -59,8 +60,8 @@ public:
 		
 		std::unordered_map<std::string, size_t> public_globals;
 		
-		for(const std::string& name: _globals){
-			public_globals.emplace(name, public_globals.size());
+		for(const auto& p: _globals){
+			public_globals.emplace(p.first, p.second);
 		}
 		
 		std::unordered_map<std::string, vtable_ptr> vtables = _vtables;

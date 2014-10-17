@@ -23,6 +23,12 @@ public:
 	
 	size_t reserve_module(std::string name);
 	
+	size_t get_modules_count() const{
+		return _modules.size();
+	}
+	
+	void unload_from(size_t idx);
+	
 	void add_module(std::string name, module_ptr m);
 	
 	variable call_function_by_address(code_address addr, size_t params_size){

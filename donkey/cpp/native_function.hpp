@@ -137,13 +137,13 @@ private:
 		dflts_size = std::tuple_size<D>::value
 	};
 
-	typedef native_constructor<T, Args...> this_type;
-	typedef std::function<void(const std::string&, const variable&, Args...)> F;
+	typedef native_constructor<D, T, Args...> this_type;
+	typedef std::function<void(const variable&, Args...)> F;
 		
 	
 	D _d;
 	
-	void _create_handle(const variable& that, Args... args){
+	static void _create_handle(const variable& that, Args... args){
 		void* handle = new T(args...);
 		
 		donkey_object* obj = that.as_reference_unsafe()->as_t<donkey_object>();
@@ -168,21 +168,18 @@ public:
 			detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
 			sz = sizeof...(Args);
 		}
-		return detail::caller<F, void, std::tuple<const variable&>, std::tuple<Args...> >::call(sz-1, std::bind(&this_type::_create_handle, this), ctx, that);
+		return detail::caller<F, void, std::tuple<const variable&>, std::tuple<Args...> >::call(sz-1, &this_type::_create_handle, ctx, that);
 	}
 };
 
 template<typename T>
 class native_destructor{
-private:
-	std::string _handle_name;
 public:
-	native_destructor(const std::string& handle_name):
-		_handle_name(handle_name){
+	native_destructor(){
 	}
 	
 	variable operator()(const variable& that, runtime_context&, size_t){
-		delete static_cast<T*>(that.as_handle_unsafe(_handle_name));
+		delete static_cast<T*>(that.as_handle_unsafe(T::handle_name()));
 		return variable();
 	}
 };
@@ -237,6 +234,11 @@ method_ptr create_native_method(R(*f)(T, Args...)){
 template<class D, typename R, typename T, typename... Args>
 method_ptr create_native_method(R(*f)(T, Args...), D d){
 	return method_ptr(new method(native_method<D, R, T, Args...>(f, d)));
+}
+
+template<typename R, typename T, typename... Args>
+method_ptr create_native_method(R (T::*f)(Args...)){
+	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(f)));
 }
 
 namespace detail{

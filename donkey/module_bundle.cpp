@@ -1,7 +1,5 @@
 #include "module_bundle.hpp"
 
-#include <iostream>
-
 namespace donkey{
 
 module_bundle::module_bundle(size_t sz):
@@ -39,9 +37,23 @@ void module_bundle::add_module(std::string name, module_ptr m){
 	m->load(*this);
 }
 
+void module_bundle::unload_from(size_t idx){
+	for(size_t i = idx; i < _modules.size(); ++i){
+		for(size_t j = _modules[i]->get_globals_count(); j; --j){
+			_globals[i][j-1].reset();
+		}
+		delete[] _globals[i];
+		
+		_modules_map.erase(_modules[idx]->get_module_name());
+	}
+	
+	_modules.resize(idx);
+	_globals.resize(idx);
+	
+	
+}
 
 module_bundle::~module_bundle(){
-	std::cout << _globals[0][0].to_string() << std::endl;
 	for(size_t i = 0; i < _modules.size(); ++i){
 		for(size_t j = _modules[i]->get_globals_count(); j; --j){
 			_globals[i][j-1].reset();
