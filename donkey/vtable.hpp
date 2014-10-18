@@ -31,7 +31,8 @@ private:
 	size_t _fields_size;
 	bool _is_public;
 	bool _is_final;
-
+	bool _is_native;
+	function _creator;
 	
 	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 		auto it = _fields.find(name);
@@ -54,7 +55,27 @@ public:
 		_destructor(destructor),
 		_fields_size(fields_size),
 		_is_public(is_public),
-		_is_final(is_final){
+		_is_final(is_final),
+		_is_native(false){
+	}
+	
+	vtable(std::string&& module_name, std::string&& name, function creator, std::unordered_map<std::string, method_ptr>&& methods, bool is_public):
+		_full_name(module_name.empty() ? name : module_name + "::" + name),
+		_module_name(std::move(module_name)),
+		_name(std::move(name)),
+		_methods(std::move(methods)),
+		_fields_size(0),
+		_is_public(is_public),
+		_is_final(true),
+		_is_native(true),
+		_creator(creator){
+	}
+	
+	variable create(runtime_context& ctx, size_t params_size) const{
+		if(_creator){
+			return _creator(ctx, params_size);
+		}
+		return variable();
 	}
 	
 	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
@@ -208,6 +229,10 @@ public:
 	
 	bool is_final() const{
 		return _is_final;
+	}
+	
+	bool is_native() const{
+		return _is_native;
 	}
 };
 

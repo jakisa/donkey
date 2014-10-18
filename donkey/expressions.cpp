@@ -277,7 +277,11 @@ expression_ptr build_method_expression(expression_ptr that, const std::string& n
 }
 
 expression_ptr build_constructor_call_expression(vtable* vt, const std::vector<expression_ptr>& params){
-	return expression_ptr(new constructor_call_expression(vt, params));
+	if(vt->is_native()){
+		return expression_ptr(new creator_call_expression(vt, params));
+	}else{
+		return expression_ptr(new constructor_call_expression(vt, params));
+	}
 }
 
 expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){

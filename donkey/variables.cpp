@@ -1,5 +1,5 @@
 #include "variables.hpp"
-
+#include "vtable.hpp"
 
 namespace donkey{
 
@@ -13,18 +13,18 @@ void variable::_runtime_error(std::string msg) const{
 
 void variable::_dec_counts_impl() const{
 	switch(_vt){
-		case var_type::string:
-			_h_ptr->remove_shared_array<char>();
-			break;
 		case var_type::object:
 			_h_ptr->remove_shared_object(*this);
 			break;
+		case var_type::native:
+		case var_type::string:
 		case var_type::function:
-			_h_ptr->remove_shared<function>();
+			_h_ptr->remove_shared();
 			break;
 		case var_type::weak_string:
 		case var_type::weak_object:
 		case var_type::weak_function:
+		case var_type::weak_native:
 			_h_ptr->remove_weak();
 			break;
 		default:
@@ -38,6 +38,24 @@ void variable::_inc_counts_impl() const{
 	}else{
 		_h_ptr->add_weak();
 	}
+}
+
+vtable* variable::get_vtable() const{	
+	var_type dt = get_data_type();
+	switch(dt){
+		case var_type::number:
+			return number_vtable().get();
+		case var_type::code_address:
+			return function_vtable().get();
+		case var_type::nothing:
+			return null_vtable().get();
+		default:
+			return _h_ptr->get_vtable();
+	}
+}
+
+std::string variable::get_full_type_name() const{
+	return get_vtable()->get_full_name();
 }
 
 

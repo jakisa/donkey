@@ -114,14 +114,14 @@ private:
 	vtable* _vt;
 	std::vector<expression_ptr> _params;
 	
-	void init(variable& that, vtable* vt, runtime_context& ctx){
+	void init(variable& that, runtime_context& ctx){
 		stack_pusher pusher(ctx);
 	
 		for(size_t i = 0; i < _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));
 		}
 		
-		vt->call_constructor(that, ctx, _params.size());
+		_vt->call_constructor(that, ctx, _params.size());
 	}
 	
 public:
@@ -132,8 +132,50 @@ public:
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		variable ret(_vt, ctx);
-		init(ret, _vt, ctx);
+		init(ret, ctx);
 		return ret;
+	}
+	virtual number as_number(runtime_context& ctx) final override{
+		return as_param(ctx).as_number();
+	}
+	
+	virtual std::string as_string(runtime_context& ctx) final override{
+		return as_param(ctx).to_string();
+	}
+
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return as_param(ctx).call(ctx, params_size);
+	}
+
+	virtual void as_void(runtime_context & ctx) final override{
+		as_param(ctx);
+	}
+};
+
+
+class creator_call_expression final: public expression{
+private:
+	vtable* _vt;
+	std::vector<expression_ptr> _params;
+	
+	variable create(runtime_context& ctx){
+		stack_pusher pusher(ctx);
+	
+		for(size_t i = 0; i < _params.size(); ++i){
+			pusher.push(_params[i]->as_param(ctx));
+		}
+		
+		return _vt->create(ctx, _params.size());
+	}
+	
+public:
+	creator_call_expression(vtable* vt, std::vector<expression_ptr> params):
+		expression(expression_type::variant),
+		_vt(vt),
+		_params(std::move(params)){
+	}
+	virtual variable as_param(runtime_context& ctx) override{
+		return create(ctx);
 	}
 	virtual number as_number(runtime_context& ctx) final override{
 		return as_param(ctx).as_number();

@@ -46,10 +46,12 @@ enum struct var_type: char{
 	string         = 0x13,
 	function       = 0x14,
 	object         = 0x15,
+	native         = 0x16,
 	
 	weak_string    = 0x23,
 	weak_function  = 0x24,
 	weak_object    = 0x25,
+	weak_native    = 0x26,
 };
 
 enum{
@@ -82,6 +84,10 @@ inline bool is_object(var_type vt){
 	return char(var_type::object) & char(vt);
 }
 
+inline bool is_native(var_type vt){
+	return char(var_type::native) & char(vt);
+}
+
 inline var_type shared_version(var_type vt){
 	return var_type((char(vt) & (~sharedptr_mask)) | weakptr_mask);
 }
@@ -95,20 +101,37 @@ class variable;
 
 class vtable;
 
+
+typedef void(*deleter_type)(void*);
+
+template<typename T>
+void deleter(void* p){
+	delete static_cast<T*>(p);
+}
+
+template<typename T>
+void array_deleter(void* p){
+	delete[] static_cast<T*>(p);
+}
+
+
+
 class heap_header{
 	heap_header(const heap_header&) = delete;
 	void operator=(const heap_header&) = delete;
 	friend class variable;
 private:
+	deleter_type _deleter;
 	size_t _s_count;
 	size_t _u_count;
-	runtime_context* _ctx;
 	void* _p;
-	heap_header(void* p, runtime_context* ctx = nullptr):
+	vtable* _vt;
+	heap_header(vtable* vt, void* p, deleter_type del):
+		_deleter(del),
 		_s_count(1),
 		_u_count(1),
-		_ctx(ctx),
-		_p(p){
+		_p(p),
+		_vt(vt){
 	}
 public:
 	void add_shared(){
@@ -116,24 +139,10 @@ public:
 		++_u_count;
 	}
 	
-	template<class T>
 	void remove_shared(){
 		--_s_count;
 		if(!_s_count){
-			delete static_cast<T*>(_p);
-			_p = nullptr;
-		}
-		--_u_count;
-		if(!_u_count){
-			delete this;
-		}
-	}
-	
-	template<class T>
-	void remove_shared_array(){
-		--_s_count;
-		if(!_s_count){
-			delete[] static_cast<T*>(_p);
+			_deleter(_p);
 			_p = nullptr;
 		}
 		--_u_count;
@@ -145,8 +154,8 @@ public:
 	void remove_shared_object(const variable& v){
 		--_s_count;
 		if(!_s_count){
-			static_cast<donkey_object*>(_p)->dispose(v, *_ctx);
-			delete static_cast<donkey_object*>(_p);
+			static_cast<donkey_object*>(_p)->dispose(v);
+			_deleter(_p);
 			_p = nullptr;
 		}
 		--_u_count;
@@ -173,6 +182,10 @@ public:
 		}
 		return static_cast<T*>(_p);
 	}
+	
+	vtable* get_vtable(){
+		return _vt;
+	}
 };
 
 inline constexpr size_t max(size_t x, size_t y){
@@ -188,6 +201,11 @@ inline constexpr size_t stack_var_union_size(){
 }
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
+
+typedef std::shared_ptr<vtable> vtable_ptr;
+
+vtable_ptr string_vtable(); //core_vtables.cpp
+vtable_ptr function_vtable(); //core_vtables.cpp
 
 class variable final{
 private:
@@ -242,7 +260,7 @@ public:
 		if(!p){
 			runtime_error("out of memory");
 		}
-		_h_ptr = new heap_header(p);
+		_h_ptr = new heap_header(string_vtable().get(), p, &array_deleter<char>);
 		if(!_h_ptr){
 			delete[] p;
 			runtime_error("out of memory");
@@ -260,7 +278,7 @@ public:
 		if(!p){
 			runtime_error("out of memory");
 		}
-		_h_ptr = new heap_header(p);
+		_h_ptr = new heap_header(string_vtable().get(), p, &array_deleter<char>);
 		if(!_h_ptr){
 			runtime_error("out of memory");
 		}
@@ -273,7 +291,7 @@ public:
 		if(!p){
 			runtime_error("out of memory");
 		}
-		_h_ptr = new heap_header(p);
+		_h_ptr = new heap_header(function_vtable().get(), p, &deleter<function>);
 		if(!_h_ptr){
 			delete p;
 			runtime_error("out of memory");
@@ -282,16 +300,26 @@ public:
 	}
 	
 	variable(vtable* vt, runtime_context& ctx){
-		donkey_object* p = new donkey_object(vt);
+		donkey_object* p = new donkey_object(vt, &ctx);
 		if(!p){
 			runtime_error("out of memory");
 		}
-		_h_ptr = new heap_header(p, &ctx);
+		_h_ptr = new heap_header(vt, p, &deleter<donkey_object>);
 		if(!_h_ptr){
 			delete p;
 			runtime_error("out of memory");
 		}
 		_vt = var_type::object;
+	}
+	
+	template<typename T>
+	explicit variable(T* p){
+		_h_ptr = new heap_header(p->get_vtable(), p, &deleter<T>);
+		if(!_h_ptr){
+			delete p;
+			runtime_error("out of memory");
+		}
+		_vt = var_type::native;
 	}
 		
 	
@@ -374,35 +402,6 @@ public:
 		return vt == var_type::code_address || vt == var_type::function;
 	}
 	
-	std::string get_type_name() const{
-		switch(get_data_type()){
-			case var_type::number:
-				return "number";
-			case var_type::code_address:
-			case var_type::function:
-				return "function";
-			case var_type::string:
-				return "string";
-			case var_type::nothing:
-				return "null";
-			case var_type::object:
-				return _h_ptr->as_t<donkey_object>()->get_type_name();
-			default:
-				return "";
-		}
-		return "";
-	}
-	
-	std::string get_module_name() const{
-		switch(get_data_type()){
-			case var_type::object:
-				return _h_ptr->as_t<donkey_object>()->get_module_name();
-			default:
-				return "";
-		}
-		return "";
-	}
-	
 	number as_number_unsafe() const{
 		return _n;
 	}
@@ -467,6 +466,8 @@ public:
 				return std::string("function");
 			case var_type::object:
 				return _h_ptr->as_t<donkey_object>()->to_string();
+			case var_type::native:
+				return "native object";
 			default:
 				return std::string("null");
 		}
@@ -480,20 +481,21 @@ public:
 		return as_reference_unsafe()->as_t<donkey_object>();
 	}
 	
-	void* as_handle_unsafe(const std::string& handle_name) const{
-		return as_donkey_object_unsafe()->get_handle(handle_name);
+	std::string get_full_type_name() const;
+	
+	template<typename T>
+	T* as_t_unsafe() const{
+		return as_reference_unsafe()->as_t<T>();
 	}
 	
-	void* as_handle(const std::string& handle_name) const{
-		if(get_data_type() != var_type::object){
-			_runtime_error(handle_name + " expected");
+	template<typename T>
+	T* as_t(const std::string& full_type_name) const{
+		if(get_full_type_name() != full_type_name){
+			_runtime_error(full_type_name + " expected");
 		}
-		void* ret = _h_ptr->as_t<donkey_object>()->get_handle(handle_name);
-		if(!ret){
-			_runtime_error(handle_name + " expected");
-		}
-		return ret;
+		return as_t_unsafe<T>();
 	}
+	
 	
 	bool operator==(const variable& oth) const{
 		var_type dt = get_data_type();
@@ -523,7 +525,7 @@ public:
 	bool operator<(const variable& oth) const{
 		var_type dt = get_data_type();
 		if(dt != oth.get_data_type()){
-			runtime_error("cannot compare " + get_type_name() + " and " + oth.get_type_name());
+			runtime_error("cannot compare " + get_full_type_name() + " and " + oth.get_full_type_name());
 		}
 		switch(dt){
 			case var_type::number:
@@ -531,7 +533,7 @@ public:
 			case var_type::string:
 				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) < 0;
 			default:
-				runtime_error("cannot compare " + get_type_name() + " and " + oth.get_type_name());
+				runtime_error("cannot compare " + get_full_type_name() + " and " + oth.get_full_type_name());
 				return false;
 		}
 	}
@@ -557,13 +559,7 @@ public:
 		return *static_cast<variable*>(nullptr);
 	}
 	
-	vtable* get_vtable() const{
-		if(get_data_type() == var_type::object){
-			return _h_ptr->as_t<donkey_object>()->get_vtable();
-		}
-	
-		return nullptr;
-	}
+	vtable* get_vtable() const;
 	
 };
 

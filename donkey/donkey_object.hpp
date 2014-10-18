@@ -18,15 +18,13 @@ class donkey_object{
 private:
 	data* _data;
 public:
-	donkey_object(vtable* vt);
+	donkey_object(vtable* vt, runtime_context* ctx);
 	vtable* get_vtable();
 	variable& get_field(size_t i);
-	void set_handle(const std::string& name, void* handle);
-	void* get_handle(const std::string& name) const;
 	const std::string& get_type_name() const;
 	const std::string& get_module_name() const;
 	std::string to_string() const;
-	void dispose(const variable& v, runtime_context& ctx);
+	void dispose(const variable& v);
 	~donkey_object();
 };
 

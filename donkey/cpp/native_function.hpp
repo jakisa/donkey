@@ -130,60 +130,6 @@ public:
 	}
 };
 
-template<typename D, typename T, typename... Args>
-class native_constructor{
-private:
-	enum{
-		dflts_size = std::tuple_size<D>::value
-	};
-
-	typedef native_constructor<D, T, Args...> this_type;
-	typedef std::function<void(const variable&, Args...)> F;
-		
-	
-	D _d;
-	
-	static void _create_handle(const variable& that, Args... args){
-		void* handle = new T(args...);
-		
-		donkey_object* obj = that.as_reference_unsafe()->as_t<donkey_object>();
-		obj->set_handle(T::handle_name(), handle);
-		
-		detail::set_base_handle<T>(nullptr, obj, handle);
-	}
-public:
-	native_constructor(D d = D()):
-		_d(d){
-	}
-	
-	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
-		stack_pusher pusher(ctx);
-		if(sz < sizeof...(Args)){
-			size_t missing = sizeof...(Args) - sz;
-			if(missing > dflts_size){
-				runtime_error("not enough function parameters provided");
-				return variable();
-			}
-			
-			detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
-			sz = sizeof...(Args);
-		}
-		return detail::caller<F, void, std::tuple<const variable&>, std::tuple<Args...> >::call(sz-1, &this_type::_create_handle, ctx, that);
-	}
-};
-
-template<typename T>
-class native_destructor{
-public:
-	native_destructor(){
-	}
-	
-	variable operator()(const variable& that, runtime_context&, size_t){
-		delete static_cast<T*>(that.as_handle_unsafe(T::handle_name()));
-		return variable();
-	}
-};
-
 template<typename R, typename... Args>
 function create_native_functions(R(*f)(Args...)){
 	return native_function<std::tuple<>, R, Args...>(f);

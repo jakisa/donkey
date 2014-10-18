@@ -16,9 +16,8 @@ variable& global_variable(runtime_context& ctx, uint32_t module_index, uint32_t 
 	return static_cast<module_bundle&>(ctx).global(module_index, var_index);
 }
 
-vtable* get_vtable(runtime_context& ctx, const variable& v){
-	vtable* vt = v.get_vtable();
-	return vt ? vt : get_vtable(ctx, v.get_module_name(), v.get_type_name());
+vtable* get_vtable(runtime_context&, const variable& v){
+	return v.get_vtable();
 }
 
 }//donkey;

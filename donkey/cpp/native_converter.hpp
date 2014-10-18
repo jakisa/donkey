@@ -18,6 +18,25 @@ namespace detail{
 		}
 	};
 	
+	template<>
+	struct param_converter<variable>{
+		static variable to_native(const variable& v, runtime_context&){
+			return v;
+		}
+		
+		static variable to_native(variable&& v, runtime_context&){
+			return v;
+		}
+		
+		static variable from_native(const variable& v, runtime_context&){
+			return v;
+		}
+		
+		static variable from_native(variable&& v, runtime_context&){
+			return v;
+		}
+	};
+	
 	
 	template<typename T>
 	struct param_converter<const T&>{
@@ -64,6 +83,10 @@ namespace detail{
 		static variable from_native(const std::string& s, runtime_context&){
 			return variable(s);
 		}
+		
+		static variable from_native(std::string&& s, runtime_context&){
+			return variable(std::move(s));
+		}
 	};
 	
 	template<>
@@ -76,39 +99,34 @@ namespace detail{
 		}
 	};
 	
-	template<typename Derived>
-	static void set_base_handle(typename Derived::base_type*, donkey_object* that, void* handle){
-		typedef typename Derived::base_type Base;
-		that->set_handle(Base::handle_name(), handle);
-		set_base_handle<Base>(0, that, handle);
-	}
-	
-	template<typename>
-	static void set_base_handle(...){
-	}
-	
 	template<class T>
 	struct param_converter<T*>{
 		static T* to_native(const variable& v, runtime_context&){
-			return v.as_handle(T::handle_name());
+			return v.as_t<T>(T::full_type_name());
 		}
 		
-		static variable from_native(T* t, runtime_context& ctx){
-			variable ret(t->get_vtable(), ctx);
-			
-			donkey_object* obj = ret.as_reference_unsafe()->as_t<donkey_object>();
-			
-			obj->set_handle(T::handle_name(), t);
-			
-			set_base_handle<T>(nullptr, obj, t);
-			
-			return ret;
+		static variable from_native(T* t, runtime_context&){
+			return variable(t);
 		}
 		
 	};
 	
 	template<class T>
 	struct this_converter;
+	
+	template<>
+	struct this_converter<variable>{
+		static variable to_native(const variable& v, runtime_context&){
+			return v;
+		}
+	};
+	
+	template<>
+	struct this_converter<const variable&>{
+		static variable to_native(const variable& v, runtime_context&){
+			return v;
+		}
+	};
 	
 	template<>
 	struct this_converter<std::string>{
@@ -127,7 +145,7 @@ namespace detail{
 	template<class T>
 	struct this_converter<T*>{
 		static T* to_native(const variable& v, runtime_context&){
-			return static_cast<T*>(v.as_handle_unsafe(T::handle_name()));
+			return v.as_t_unsafe<T>();
 		}
 	};
 	

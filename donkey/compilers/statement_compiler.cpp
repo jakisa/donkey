@@ -18,6 +18,8 @@ void compile_statement(scope& target, tokenizer& parser){
 		compile_function(target, parser);
 	}else if(*parser == "var"){
 		compile_variable(target, parser);
+	}else if(*parser == "for"){
+		compile_for(target, parser);
 	}else if(*parser == "while"){
 		compile_while(target, parser);
 	}else if(*parser == "do"){

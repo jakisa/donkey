@@ -34,12 +34,15 @@ public:
 		return "io:ConsoleStream";
 	}
 	
-	void write(const std::string& str){
-		stream::write(str);
+	static variable write(const variable& that, const std::string& str){
+		that.as_t_unsafe<console>()->stream::write(str);
+		return that;
 	}
 	
-	void writeln(const std::string& str){
-		stream::writeln(str);
+	
+	static variable writeln(const variable& that, const std::string& str){
+		that.as_t_unsafe<console>()->stream::writeln(str);
+		return that;
 	}
 	
 	static vtable_ptr vt(){
@@ -55,13 +58,9 @@ public:
 			ret.reset(new vtable(
 				"io",
 				"ConsoleStream",
-				method_ptr(new method(native_constructor<std::tuple<>, console>())),
-				method_ptr(new method(native_destructor<console>())),
+				function(),
 				std::move(methods),
-				std::move(fields),
-				fields.size(),
-				false,
-				true
+				false
 			));
 			ret->derive_from(*object_vtable());
 		}
@@ -76,9 +75,7 @@ public:
 static statement_retval init_io(runtime_context& ctx, size_t module_idx, size_t console_idx){
 	variable& v_console = global_variable(ctx, module_idx, console_idx);
 	
-	v_console = variable(console::vt().get(), ctx);
-	
-	v_console.as_donkey_object_unsafe()->set_handle(console::handle_name(), new console());
+	v_console = variable(new console());
 	
 	return statement_retval::nxt;
 }

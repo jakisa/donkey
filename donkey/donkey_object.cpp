@@ -10,17 +10,18 @@ namespace donkey{
 
 struct donkey_object::data{
 	std::vector<variable> fields;
-	std::unordered_map<std::string, void*> handles;
 	vtable* vt;
+	runtime_context* ctx;
 	
-	data(vtable* vt):
+	data(vtable* vt, runtime_context* ctx):
 		fields(vt->get_fields_size()),
-		vt(vt){
+		vt(vt),
+		ctx(ctx){
 	}
 };
 
-donkey_object::donkey_object(vtable* vt):
-	_data(new data(vt)){
+donkey_object::donkey_object(vtable* vt, runtime_context* ctx):
+	_data(new data(vt, ctx)){
 	if(!_data){
 		runtime_error("out of memory");
 	}
@@ -50,17 +51,9 @@ donkey_object::~donkey_object(){
 	delete _data;
 }
 
-void donkey_object::dispose(const variable& v, runtime_context& ctx){
-	_data->vt->call_destructor(v, ctx);
+void donkey_object::dispose(const variable& v){
+	_data->vt->call_destructor(v, *_data->ctx);
 }
 
-void donkey_object::set_handle(const std::string& name, void* handle){
-	_data->handles[name] = handle;
-}
-
-void* donkey_object::get_handle(const std::string& name) const{
-	auto it = _data->handles.find(name);
-	return it != _data->handles.end() ? it->second : nullptr;
-}
 
 }//donkey
