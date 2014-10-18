@@ -30,10 +30,6 @@ public:
 		stream(0){
 	}
 	
-	static std::string handle_name(){
-		return "io:ConsoleStream";
-	}
-	
 	static variable write(const variable& that, const std::string& str){
 		that.as_t_unsafe<console>()->stream::write(str);
 		return that;

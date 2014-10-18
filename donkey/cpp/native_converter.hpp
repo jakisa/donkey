@@ -131,7 +131,14 @@ namespace detail{
 	template<>
 	struct this_converter<std::string>{
 		static std::string to_native(const variable& v, runtime_context&){
-			return v.as_string();
+			return v.as_string_unsafe();
+		}
+	};
+	
+	template<>
+	struct this_converter<const std::string&>{
+		static std::string to_native(const variable& v, runtime_context&){
+			return v.as_string_unsafe();
 		}
 	};
 	

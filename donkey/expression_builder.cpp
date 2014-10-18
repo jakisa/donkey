@@ -283,25 +283,28 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 			oper opening = string_to_oper(*parser);
 			bool function_call = false;
 			bool subscript = false;
+			bool array = false;
 			
 			if(opening == oper::conditional_question){
 				check_left_operand(is_left_operand, parser, true);
 				consume_stack(oper::conditional_question, stack, parts);
 			}else if(opening == oper::bracket_open){
+				consume_stack(oper::call, stack, parts);
 				function_call = is_left_operand;
 			}else if(opening == oper::subscript_open){
-				check_left_operand(is_left_operand, parser, true);
 				consume_stack(oper::subscript, stack, parts);
-				subscript = true;
+				subscript = is_left_operand;
+				if(!subscript){
+					array = true;	
+					parts.push_back(part_ptr(new expression_part{oper::none, "array", part_ptr(), part_ptr()}));
+				}
 			}
 			
 			++parser;
 			
 			part_ptr inner;
 			
-			if(function_call){
-				consume_stack(oper::call, stack, parts);
-				
+			if(function_call || array){
 				inner = part_ptr(new expression_part{oper::call, "", parts.back(), part_ptr()});
 				
 				parts.pop_back();
@@ -327,6 +330,10 @@ static part_ptr create_expression_tree(tokenizer& parser, bool declaration, bool
 					last_param->next_sibling = param;
 					
 					last_param = param;
+				}
+				
+				if(array){
+					inner = part_ptr(new expression_part{oper::array_init, "", inner, part_ptr()});
 				}
 			}else if(subscript){
 				inner = part_ptr(new expression_part{oper::subscript, "", parts.back(), part_ptr()});
@@ -573,6 +580,19 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				
 			}
 			break;
+		case oper::array_init:
+			{
+				std::vector<expression_ptr> items;
+				std::vector<size_t> byref;
+				
+				fetch_params(tree->first_child->first_child, lookup, items, byref);
+				
+				if(!byref.empty()){
+					syntax_error("cannot pass array item as reference");
+				}
+				
+				return build_array_initializer(items);
+			}
 		case oper::dot:
 			{
 				expression_ptr that;

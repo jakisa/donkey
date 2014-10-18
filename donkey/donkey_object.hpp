@@ -23,7 +23,6 @@ public:
 	variable& get_field(size_t i);
 	const std::string& get_type_name() const;
 	const std::string& get_module_name() const;
-	std::string to_string() const;
 	void dispose(const variable& v);
 	~donkey_object();
 };

@@ -226,6 +226,7 @@ enum class oper{
 	pre_dec              = 244,
 	pre_inc              = 245,
 	construct            = 246,
+	array_init           = 247,
 	post_dec             = 260,
 	post_inc             = 261,
 	dot                  = 262,
@@ -262,6 +263,8 @@ expression_ptr build_field_expression(expression_ptr that, const std::string& na
 expression_ptr build_method_expression(expression_ptr that, const std::string& name, method& m);
 
 expression_ptr build_constructor_call_expression(vtable* vt, const std::vector<expression_ptr>& params);
+
+expression_ptr build_array_initializer(const std::vector<expression_ptr>& items);
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 

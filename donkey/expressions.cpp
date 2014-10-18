@@ -288,4 +288,8 @@ expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){
 	return expression_ptr(new index_expression(e1, e2));
 }
 
+expression_ptr build_array_initializer(const std::vector<expression_ptr>& items){
+	return expression_ptr(new array_creator_call_expression(items));
+}
+
 }//namespace donkey

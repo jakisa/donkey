@@ -59,4 +59,21 @@ std::string variable::get_full_type_name() const{
 }
 
 
+std::string variable::to_string() const{
+	switch(get_data_type()){
+		case var_type::string:
+			return std::string(as_string_unsafe());
+		case var_type::number:
+			return donkey::to_string(as_number());
+		case var_type::code_address:
+		case var_type::function:
+			return std::string("function");
+		case var_type::object:
+		case var_type::native:
+			return _h_ptr->get_vtable()->get_name();
+		default:
+			return std::string("null");
+	}
+}
+
 }//donkey

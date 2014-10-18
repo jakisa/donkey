@@ -15,6 +15,7 @@ struct tkeywords{
 
 template<int dummy>
 const char* tkeywords<dummy>::arr[] = {
+	"array",
 	"break",
 	"case",
 	"class",

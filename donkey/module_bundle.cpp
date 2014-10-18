@@ -12,6 +12,7 @@ module_bundle::module_bundle(size_t sz):
 	_core_vtables.emplace(number_vtable()->get_name(), number_vtable());
 	_core_vtables.emplace(null_vtable()->get_name(), null_vtable());
 	_core_vtables.emplace(function_vtable()->get_name(), function_vtable());
+	_core_vtables.emplace(array_vtable()->get_name(), array_vtable());
 }
 
 bool module_bundle::module_in_progress(std::string name){

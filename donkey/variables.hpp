@@ -286,6 +286,7 @@ public:
 		_vt = var_type::string;
 	}
 	
+	
 	explicit variable(function&& f){
 		function* p = new function(std::move(f));
 		if(!p){
@@ -455,23 +456,7 @@ public:
 		return as_string_unsafe();
 	}
 	
-	std::string to_string() const{
-		switch(get_data_type()){
-			case var_type::string:
-				return std::string(as_string_unsafe());
-			case var_type::number:
-				return donkey::to_string(as_number());
-			case var_type::code_address:
-			case var_type::function:
-				return std::string("function");
-			case var_type::object:
-				return _h_ptr->as_t<donkey_object>()->to_string();
-			case var_type::native:
-				return "native object";
-			default:
-				return std::string("null");
-		}
-	}
+	std::string to_string() const;
 	
 	heap_header* as_reference_unsafe() const{
 		return _h_ptr;

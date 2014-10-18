@@ -15,19 +15,16 @@ expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public
 	
 	while(parser && *parser != ";"){
 		std::string name = parse_allowed_name(target, parser);
-		target.add_variable(name, is_public);
-		
-		identifier_ptr id = target.get_identifier(name);
 		
 		expression_ptr e;
 		
 		if(target.is_global()){
 			e = build_global_variable_expression(
-				static_cast<global_variable_identifier&>(*id).get_module_index(),
-				static_cast<global_variable_identifier&>(*id).get_var_index()
+				target.get_module_index(),
+				target.get_next_var_index()
 			);
 		}else{
-			e = build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
+			e = build_local_variable_expression(target.get_next_var_index());
 		}
 		
 		
@@ -42,6 +39,9 @@ expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public
 		}else{
 			ret.reset();
 		}
+		
+		target.add_variable(name, is_public);
+		
 		if(*parser == ","){
 			++parser;
 		}

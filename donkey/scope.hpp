@@ -167,6 +167,10 @@ public:
 		return _var_index - _initial_index;
 	}
 	
+	size_t get_next_var_index() const{
+		return _var_index;
+	}
+	
 	virtual std::string get_current_class() const override{
 		return _parent ? _parent->get_current_class() : "";
 	}

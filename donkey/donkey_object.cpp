@@ -43,10 +43,6 @@ const std::string& donkey_object::get_module_name() const{
 	return _data->vt->get_module_name();
 }
 
-std::string donkey_object::to_string() const{
-	return "object";
-}
-
 donkey_object::~donkey_object(){
 	delete _data;
 }

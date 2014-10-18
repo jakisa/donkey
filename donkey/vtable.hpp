@@ -243,6 +243,9 @@ vtable_ptr string_vtable();
 vtable_ptr number_vtable();
 vtable_ptr function_vtable();
 vtable_ptr null_vtable();
+vtable_ptr array_vtable();
+
+variable create_initialized_array(variable* vars, size_t sz);
 
 }//donkey
 

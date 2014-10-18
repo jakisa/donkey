@@ -164,8 +164,12 @@ private:
 		for(size_t i = 0; i < _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));
 		}
-		
-		return _vt->create(ctx, _params.size());
+		try{
+			return _vt->create(ctx, _params.size());
+		}catch(const runtime_exception& e){
+			e.add_stack_trace(_vt->get_full_name() + "::" + _vt->get_name());
+		}
+		return variable();
 	}
 	
 public:
@@ -177,11 +181,11 @@ public:
 	virtual variable as_param(runtime_context& ctx) override{
 		return create(ctx);
 	}
-	virtual number as_number(runtime_context& ctx) final override{
+	virtual number as_number(runtime_context& ctx) override{
 		return as_param(ctx).as_number();
 	}
 	
-	virtual std::string as_string(runtime_context& ctx) final override{
+	virtual std::string as_string(runtime_context& ctx) override{
 		return as_param(ctx).to_string();
 	}
 
@@ -189,7 +193,49 @@ public:
 		return as_param(ctx).call(ctx, params_size);
 	}
 
-	virtual void as_void(runtime_context & ctx) final override{
+	virtual void as_void(runtime_context & ctx) override{
+		as_param(ctx);
+	}
+};
+
+
+class array_creator_call_expression final: public expression{
+private:
+	std::vector<expression_ptr> _items;
+	
+	variable create(runtime_context& ctx){
+		std::unique_ptr<variable[]> vars(new variable[_items.size()]);
+		
+		for(size_t i = 0; i < _items.size(); ++i){
+			vars[i] = _items[i]->as_param(ctx);
+		}
+		
+		variable ret(create_initialized_array(vars.get(), _items.size()));
+		vars.release();
+		return ret;
+	}
+	
+public:
+	array_creator_call_expression(std::vector<expression_ptr> items):
+		expression(expression_type::variant),
+		_items(std::move(items)){
+	}
+	virtual variable as_param(runtime_context& ctx) override{
+		return create(ctx);
+	}
+	virtual number as_number(runtime_context& ctx) override{
+		return as_param(ctx).as_number();
+	}
+	
+	virtual std::string as_string(runtime_context& ctx) override{
+		return as_param(ctx).to_string();
+	}
+
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		return as_param(ctx).call(ctx, params_size);
+	}
+
+	virtual void as_void(runtime_context & ctx) override{
 		as_param(ctx);
 	}
 };

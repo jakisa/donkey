@@ -30,7 +30,9 @@ SOURCES += main.cpp \
     compilers/statement_compiler.cpp \
     compilers/using_compiler.cpp \
     compilers/variable_compiler.cpp \
-    modules/io/io_module.cpp
+    modules/io/io_module.cpp \
+    string_vtable.cpp \
+    array_vtable.cpp
 
 HEADERS += \
     errors.hpp \
