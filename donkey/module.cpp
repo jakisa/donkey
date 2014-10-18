@@ -21,7 +21,11 @@ module::module(statement&& s,
 }
 
 void module::load(runtime_context& ctx){
-	_s(ctx);
+	try{
+		_s(ctx);
+	}catch(const runtime_exception& e){
+		e.add_stack_trace(_module_name + "::(global)");
+	}
 }
 	
 identifier_ptr module::get_identifier(std::string name) const{

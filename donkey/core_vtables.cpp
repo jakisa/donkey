@@ -55,9 +55,9 @@ vtable_ptr string_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		methods.emplace("length", create_native_method(&string_length));
+		methods.emplace("length", create_native_method("string::length", &string_length));
 		
-		methods.emplace("substr", create_native_method(&string_substr, std::make_tuple(0, integer(std::string::npos))));
+		methods.emplace("substr", create_native_method("string::substr", &string_substr, std::make_tuple(0, integer(std::string::npos))));
 		
 		methods.emplace("toString", method_ptr(new method(&string_to_string)));
 		

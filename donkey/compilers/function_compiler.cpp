@@ -76,7 +76,9 @@ inline void declare_function(global_scope& target, std::string name, bool, bool 
 }
 
 inline void define_function(global_scope& target, std::string name, scope& function_scope, size_t params_size){
-	target.define_function(name, donkey_function(params_size, function_scope.get_block()));
+	std::string function_name = target.get_module_name() + "::" + name;
+
+	target.define_function(name, donkey_function(function_name, params_size, function_scope.get_block()));
 }
 
 inline void declare_method(tokenizer&, std::string, bool forward){
@@ -86,7 +88,9 @@ inline void declare_method(tokenizer&, std::string, bool forward){
 }
 
 inline void define_method(class_scope& target, std::string name, scope& function_scope, size_t params_size){
-	target.define_method(name, donkey_method(params_size, function_scope.get_block()));
+	std::string method_name = target.get_current_class() + "::" + name;
+
+	target.define_method(name, donkey_method(method_name, params_size, function_scope.get_block()));
 }
 
 inline void ignore_pre_function(scope&, tokenizer&){
@@ -136,7 +140,8 @@ inline void declare_constructor(tokenizer&, std::string, bool forward){
 }
 
 inline void define_constructor(class_scope& target, std::string, scope& function_scope, size_t params_size){
-	target.define_constructor(donkey_method(params_size, function_scope.get_block()));
+	std::string method_name = target.get_current_class() + "::" + target.get_constructor_name();
+	target.define_constructor(donkey_method(method_name, params_size, function_scope.get_block()));
 }
 
 inline bool has_constructor(std::string){
@@ -224,7 +229,9 @@ inline void define_destructor(class_scope& target, tokenizer&, const std::vector
 		function_scope.add_statement(base_destructor_statement(bases[i-1]));
 	}
 	
-	target.define_destructor(donkey_method(params_size, function_scope.get_block()));
+	std::string method_name = target.get_current_class() + "::" + target.get_destructor_name();
+	
+	target.define_destructor(donkey_method(method_name, params_size, function_scope.get_block()));
 }
 
 inline bool has_destructor(std::string){

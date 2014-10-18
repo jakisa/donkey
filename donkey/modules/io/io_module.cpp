@@ -50,8 +50,8 @@ public:
 		if(!ret){
 			std::unordered_map<std::string, method_ptr> methods;
 			
-			methods.emplace("write", create_native_method(&console::write));
-			methods.emplace("writeln", create_native_method(&console::writeln));
+			methods.emplace("write", create_native_method("io::console.write", &console::write));
+			methods.emplace("writeln", create_native_method("io::console.writeln", &console::writeln));
 			
 			std::unordered_map<std::string, size_t> fields;
 		

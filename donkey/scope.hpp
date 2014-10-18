@@ -404,6 +404,14 @@ public:
 		return get_module_name() + "::" + _name;
 	}
 	
+	const std::string& get_constructor_name() const{
+		return _name;
+	}
+	
+	std::string get_destructor_name() const{
+		return "~"+_name;
+	}
+	
 	virtual vtable* get_current_vtable() const{
 		return _vt;
 	}

@@ -17,6 +17,10 @@ public:
 	virtual const char* what() const throw() override{
 		return _what.c_str();
 	}
+	
+	const std::string& what_str() const{
+		return _what;
+	}
 };
 
 class exception_raw: public std::exception{
@@ -48,6 +52,19 @@ public:
 	}
 };
 
+class runtime_exception: public exception{
+public:
+	runtime_exception(std::string what):
+		exception(std::move(what)){
+	}
+	
+	void add_stack_trace(std::string trace) const{
+		std::string str = what_str();
+		str += "\n\tat " + std::move(trace);
+		throw runtime_exception(std::move(str));
+	}
+};
+
 inline void error(std::string error_type, std::string message){
 	throw exception_raw(std::string(error_type) + " in %FILE%:%LINE%: " + message);
 }
@@ -69,7 +86,7 @@ inline void unexpected_error(std::string message){
 }
 
 inline void runtime_error(std::string message){
-	throw exception("Runtime error: " + message);
+	throw runtime_exception("Runtime error: " + std::move(message));
 }
 
 

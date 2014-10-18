@@ -72,28 +72,35 @@ private:
 		dflts_size = std::tuple_size<D>::value
 	};
 	typedef std::function<R(Args...)> F;
+	std::string _name;
 	F _f;
 	D _d;
 public:
-	native_function(F&& f, D d = D()):
+	native_function(std::string name, F&& f, D d = D()):
+		_name(std::move(name)),
 		_f(std::move(f)),
 		_d(d){
 	}
 
 	variable operator()(runtime_context& ctx, size_t sz){
-		stack_pusher pusher(ctx);
-		if(sz < sizeof...(Args)){
-			size_t missing = sizeof...(Args) - sz;
-			if(missing > dflts_size){
-				runtime_error("not enough function parameters provided");
-				return variable();
+		try{
+			stack_pusher pusher(ctx);
+			if(sz < sizeof...(Args)){
+				size_t missing = sizeof...(Args) - sz;
+				if(missing > dflts_size){
+					runtime_error("not enough function parameters provided");
+					return variable();
+				}
+				
+				detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
+				sz = sizeof...(Args);
 			}
-			
-			detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
-			sz = sizeof...(Args);
+		
+			return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz-1, _f, ctx);
+		}catch(const runtime_exception& e){
+			e.add_stack_trace(_name);
 		}
-	
-		return detail::caller<F, R, std::tuple<>, std::tuple<Args...> >::call(sz-1, _f, ctx);
+		return variable();
 	}
 };
 
@@ -104,119 +111,126 @@ private:
 		dflts_size = std::tuple_size<D>::value
 	};
 	typedef std::function<R(T,Args...)> F;
+	std::string _name;
 	F _f;
 	D _d;
 	
 public:
-	native_method(F&& f, D d = D()):
+	native_method(std::string name, F&& f, D d = D()):
+		_name(std::move(name)),
 		_f(std::move(f)),
 		_d(d){
 	}
 
 	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
-		stack_pusher pusher(ctx);
-		if(sz < sizeof...(Args)){
-			size_t missing = sizeof...(Args) - sz;
-			if(missing > dflts_size){
-				runtime_error("not enough function parameters provided");
-				return variable();
+		try{
+			stack_pusher pusher(ctx);
+			if(sz < sizeof...(Args)){
+				size_t missing = sizeof...(Args) - sz;
+				if(missing > dflts_size){
+					runtime_error("not enough function parameters provided");
+					return variable();
+				}
+				
+				detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
+				sz = sizeof...(Args);
 			}
-			
-			detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
-			sz = sizeof...(Args);
+		
+			return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz-1, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
+		}catch(const runtime_exception& e){
+			e.add_stack_trace(_name);
 		}
-	
-		return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz-1, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
+		return variable();
 	}
 };
 
 template<typename R, typename... Args>
-function create_native_functions(R(*f)(Args...)){
-	return native_function<std::tuple<>, R, Args...>(f);
+function create_native_functions(std::string name, R(*f)(Args...)){
+	return native_function<std::tuple<>, R, Args...>(std::move(name), f);
 }
 
 template<class D, typename R, typename... Args>
-function create_native_function(R(*f)(Args...), D d){
-	return native_function<D, R, Args...>(f, d);
+function create_native_function(std::string name, R(*f)(Args...), D d){
+	return native_function<D, R, Args...>(std::move(name), f, d);
 }
 
 namespace detail{
 	template<class F, typename R, typename... Args>
-	function create_native_function(F f, R(F::*)(Args...)){
-		return native_function<std::tuple<>, R, Args...>(std::forward<F>(f));
+	function create_native_function(std::string name, F f, R(F::*)(Args...)){
+		return native_function<std::tuple<>, R, Args...>(std::move(name), std::forward<F>(f));
 	}
 	
 	template<class F, typename R, typename... Args>
-	function create_native_function(F f, R(F::*)(Args...) const){
-		return native_function<std::tuple<>, R, Args...>(std::forward<F>(f));
+	function create_native_function(std::string name, F f, R(F::*)(Args...) const){
+		return native_function<std::tuple<>, R, Args...>(std::move(name), std::forward<F>(f));
 	}
 	
 	template<class D, class F, typename R, typename... Args>
-	function create_native_function(F f, D d, R(F::*)(Args...)){
-		return native_function<D, R, Args...>(std::forward<F>(f), d);
+	function create_native_function(std::string name, F f, D d, R(F::*)(Args...)){
+		return native_function<D, R, Args...>(std::move(name), std::forward<F>(f), d);
 	}
 	
 	template<class D, class F, typename R, typename... Args>
-	function create_native_function(F f, D d, R(F::*)(Args...) const){
-		return native_function<D, R, Args...>(std::forward<F>(f), d);
+	function create_native_function(std::string name, F f, D d, R(F::*)(Args...) const){
+		return native_function<D, R, Args...>(std::move(name), std::forward<F>(f), d);
 	}
 }
 
 template<class F>
-function create_native_function(F f){
-	return detail::create_native_function(f, &F::operator());
+function create_native_function(std::string name, F f){
+	return detail::create_native_function(std::move(name), f, &F::operator());
 }
 
 template<class F, class D>
-function create_native_function(F f, D d){
-	return detail::create_native_function(f, d, &F::operator());
+function create_native_function(std::string name, F f, D d){
+	return detail::create_native_function(std::move(name), f, d, &F::operator());
 }
 
 template<typename R, typename T, typename... Args>
-method_ptr create_native_method(R(*f)(T, Args...)){
-	return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(f)));
+method_ptr create_native_method(std::string name, R(*f)(T, Args...)){
+	return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(std::move(name), f)));
 }
 
 template<class D, typename R, typename T, typename... Args>
-method_ptr create_native_method(R(*f)(T, Args...), D d){
-	return method_ptr(new method(native_method<D, R, T, Args...>(f, d)));
+method_ptr create_native_method(std::string name, R(*f)(T, Args...), D d){
+	return method_ptr(new method(native_method<D, R, T, Args...>(std::move(name), f, d)));
 }
 
 template<typename R, typename T, typename... Args>
-method_ptr create_native_method(R (T::*f)(Args...)){
-	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(f)));
+method_ptr create_native_method(std::string name, R (T::*f)(Args...)){
+	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(std::move(name), f)));
 }
 
 namespace detail{
 	template<class F, typename R, typename T, typename... Args>
-	method_ptr create_native_method(F f, R(F::*)(T, Args...)){
-		return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(std::forward<F>(f))));
+	method_ptr create_native_method(std::string name, F f, R(F::*)(T, Args...)){
+		return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(std::move(name), std::forward<F>(f))));
 	}
 	
 	template<class F, typename R, typename T, typename... Args>
-	method_ptr create_native_method(F f, R(F::*)(T, Args...) const){
-		return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(std::forward<F>(f))));
+	method_ptr create_native_method(std::string name, F f, R(F::*)(T, Args...) const){
+		return method_ptr(new method(native_method<std::tuple<>, R, T, Args...>(std::move(name), std::forward<F>(f))));
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
-	method_ptr create_native_method(F f, D d, R(F::*)(T, Args...)){
-		return method_ptr(new method(native_method<D, R, T, Args...>(std::forward<F>(f), d)));
+	method_ptr create_native_method(std::string name, F f, D d, R(F::*)(T, Args...)){
+		return method_ptr(new method(native_method<D, R, T, Args...>(std::move(name), std::forward<F>(f), d)));
 	}
 	
 	template<class D, class F, typename R, typename T, typename... Args>
-	method_ptr create_native_method(F f, D d, R(F::*)(T, Args...) const){
-		return method_ptr(new method(native_method<D, R, T, Args...>(std::forward<F>(f), d)));
+	method_ptr create_native_method(std::string name, F f, D d, R(F::*)(T, Args...) const){
+		return method_ptr(new method(native_method<D, R, T, Args...>(std::move(name), std::forward<F>(f), d)));
 	}
 }
 
 template<class F>
-method_ptr create_native_method(F f){
-	return detail::create_native_method(f, &F::operator());
+method_ptr create_native_method(std::string name, F f){
+	return detail::create_native_method(std::move(name), f, &F::operator());
 }
 
 template<class F, class D>
-method_ptr create_native_method(F f, D d){
-	return detail::create_native_method(f, d, &F::operator());
+method_ptr create_native_method(std::string name, F f, D d){
+	return detail::create_native_method(std::move(name), f, d, &F::operator());
 }
 
 
