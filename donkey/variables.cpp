@@ -32,6 +32,10 @@ void variable::_dec_counts_impl() const{
 	}
 }
 
+variable variable::call_functor(runtime_context& ctx, size_t params_size) const{
+	return get_vtable()->call_member(*this, ctx, params_size, "call");
+}
+
 void variable::_inc_counts_impl() const{
 	if(is_shared(_vt)){
 		_h_ptr->add_shared();

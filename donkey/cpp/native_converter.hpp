@@ -156,6 +156,13 @@ namespace detail{
 		}
 	};
 	
+	template<class T>
+	struct this_converter<T&>{
+		static T& to_native(const variable& v, runtime_context& ctx){
+			return *this_converter<T*>(v, ctx);
+		}
+	};
+	
 }//detail
 
 }//donkey

@@ -49,8 +49,6 @@ public:
 			methods.emplace("write", create_native_method("io::console.write", &console::write));
 			methods.emplace("writeln", create_native_method("io::console.writeln", &console::writeln));
 			
-			std::unordered_map<std::string, size_t> fields;
-		
 			ret.reset(new vtable(
 				"io",
 				"ConsoleStream",

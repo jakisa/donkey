@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include "module_bundle.hpp"
 
-#include <stdio.h>
-
 namespace donkey{
 
 

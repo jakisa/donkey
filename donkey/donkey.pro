@@ -32,7 +32,9 @@ SOURCES += main.cpp \
     compilers/variable_compiler.cpp \
     modules/io/io_module.cpp \
     string_vtable.cpp \
-    array_vtable.cpp
+    array_vtable.cpp \
+    modules/containers/containers_module.cpp \
+    modules/containers/container.cpp
 
 HEADERS += \
     errors.hpp \
@@ -85,7 +87,9 @@ HEADERS += \
     cpp/native_function.hpp \
     cpp/native_module.hpp \
     cpp/native_object.hpp \
-    modules/io/io_module.hpp
+    modules/io/io_module.hpp \
+    modules/containers/containers_module.hpp \
+    modules/containers/container.hpp
 
 OTHER_FILES += \
     examples.txt \

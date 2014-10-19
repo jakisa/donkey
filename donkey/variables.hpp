@@ -433,6 +433,8 @@ public:
 		return _f;
 	}
 	
+	variable call_functor(runtime_context& ctx, size_t params_size) const;
+	
 	variable call(runtime_context& ctx, size_t params_size) const{
 		switch(get_data_type()){
 			case var_type::code_address:
@@ -440,9 +442,8 @@ public:
 			case var_type::function:
 				return (*_h_ptr->as_t<function>())(ctx, params_size);
 			default:
-				_runtime_error("function expected");
+				return call_functor(ctx, params_size);
 		}
-		return variable();
 	}
 	
 	const char* as_string_unsafe() const{

@@ -5,18 +5,21 @@
 
 namespace donkey{
 
-static variable variable_to_string(const variable& that, runtime_context&, size_t){
+static variable object_to_string(const variable& that, runtime_context&, size_t){
 	return variable(that.to_string());
 }
 
-static variable variable_strong(const variable& that, runtime_context&, size_t){
+static variable object_strong(const variable& that, runtime_context&, size_t){
 	return that.non_weak();
 }
 
-static variable variable_weak(const variable& that, runtime_context&, size_t){
+static variable object_weak(const variable& that, runtime_context&, size_t){
 	return that.non_shared();
 }
 
+static variable object_clone(const variable& that, runtime_context&, size_t){
+	return that;
+}
 
 
 vtable_ptr object_vtable(){
@@ -25,11 +28,13 @@ vtable_ptr object_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		methods.emplace("toString", method_ptr(new method(&variable_to_string)));
+		methods.emplace("toString", method_ptr(new method(&object_to_string)));
 		
-		methods.emplace("strong", method_ptr(new method(&variable_strong)));
+		methods.emplace("strong", method_ptr(new method(&object_strong)));
 		
-		methods.emplace("weak", method_ptr(new method(&variable_weak)));
+		methods.emplace("weak", method_ptr(new method(&object_weak)));
+		
+		methods.emplace("clone", method_ptr(new method(&object_clone)));
 		
 		ret.reset(new vtable("", "object", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
 	}

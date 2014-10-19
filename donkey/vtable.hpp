@@ -246,6 +246,7 @@ vtable_ptr null_vtable();
 vtable_ptr array_vtable();
 
 variable create_initialized_array(variable* vars, size_t sz);
+std::pair<variable*, size_t> get_array_data_unsafe(const variable& v);
 
 }//donkey
 

@@ -13,8 +13,6 @@
 #include "expressions/item_expressions.hpp"
 #include "identifiers.hpp"
 
-#include <algorithm>
-
 namespace donkey{
 
 inline lvalue_expression_ptr to_l(expression_ptr e){

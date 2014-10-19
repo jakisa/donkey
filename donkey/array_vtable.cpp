@@ -28,6 +28,10 @@ public:
 		return array_vtable().get();
 	}
 	
+	variable* get_data(){
+		return _data;
+	}
+	
 	integer size(){
 		return _cnt;
 	}
@@ -46,10 +50,32 @@ public:
 		}
 		set_item_unsafe(idx, v);
 	}
+	
+	static variable clone(const variable& that, runtime_context& ctx, size_t){
+		
+		array* arr = that.as_t_unsafe<array>();
+		
+		std::unique_ptr<variable[]> p(new variable[arr->_cnt]);
+		
+		for(integer i = 0; i < arr->_cnt; ++i){
+			p[i] = (*arr->_data[i].get_vtable()->get_method("clone"))(arr->_data[i], ctx, 0);
+		}
+		
+		variable ret(new array(p.get(), arr->_cnt));
+		
+		p.release();
+		
+		return ret;
+	}
 };
 
 variable create_initialized_array(variable* vars, size_t sz){
 	return variable(new array(vars, integer(sz)));
+}
+
+std::pair<variable*, size_t> get_array_data_unsafe(const variable& v){
+	array* arr =  v.as_t_unsafe<array>();
+	return std::make_pair(arr->get_data(), size_t(arr->size()));
 }
 
 static variable create_array_helper(runtime_context& ctx, size_t current_param){
