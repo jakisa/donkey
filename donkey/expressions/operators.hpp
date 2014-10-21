@@ -228,8 +228,9 @@ void op##_full(variable& l, runtime_context& ctx);\
 inline void op(variable& l, runtime_context& ctx){\
 	if(l.get_var_type() == var_type::number){\
 		cpp l.as_lnumber_unsafe();\
+	}else{\
+		op##_full(l, ctx);\
 	}\
-	return op##_full(l, ctx);\
 }\
 UN_OPERATOR_L(name, op)
 
@@ -275,7 +276,7 @@ void op##_full(variable& l, const variable& r, runtime_context& ctx);\
 \
 inline void op(variable& l, const variable& r, runtime_context& ctx) {\
 	if(l.get_var_type() == var_type::number && r.get_var_type() == var_type::number){\
-		l.as_lnumber_unsafe() cpp l.as_number_unsafe();\
+		l.as_lnumber_unsafe() cpp r.as_number_unsafe();\
 	}else{\
 		op##_full(l, r, ctx);\
 	}\

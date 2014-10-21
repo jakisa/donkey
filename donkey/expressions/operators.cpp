@@ -40,7 +40,7 @@ variable name##_full(const variable& l, const variable& r, runtime_context& ctx)
 		}\
 	}\
 \
-	runtime_error(std::string(#op) + " is not defined for " + l.get_full_type_name());\
+	runtime_error(std::string("op"#op) + " is not defined for " + l.get_full_type_name());\
 	return variable();\
 }
 
