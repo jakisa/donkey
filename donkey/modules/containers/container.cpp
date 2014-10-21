@@ -24,16 +24,30 @@ static void add_sequence_methods(const std::string& type, std::unordered_map<std
 
 template<typename T>
 static void add_sequence_iterator_methods(const std::string& type, std::unordered_map<std::string, method_ptr>& methods){
-	methods.emplace("value", create_native_method("containers::"+type+"::value", &T::value));
-	methods.emplace("inc", create_native_method("containers::"+type+"::inc", &T::inc));
-	methods.emplace("dec", create_native_method("containers::"+type+"::dec", &T::dec));
-	//methods.emplace("diff", create_native_method("containers::"+type+"::diff", &T::diff));
-	methods.emplace("eq", create_native_method("containers::"+type+"::eq", &T::eq));
-	methods.emplace("ne", create_native_method("containers::"+type+"::ne", &T::ne));
-	//methods.emplace("lt", create_native_method("containers::"+type+"::lt", &T::lt));
-	//methods.emplace("gt", create_native_method("containers::"+type+"::gt", &T::gt));
-	//methods.emplace("le", create_native_method("containers::"+type+"::le", &T::le));
-	//methods.emplace("ge", create_native_method("containers::"+type+"::ge", &T::ge));
+	methods.emplace("opGet", create_native_method("containers::"+type+"::opGet", &T::get_item));
+	methods.emplace("opSet", create_native_method("containers::"+type+"::opSet", &T::set_item));
+	methods.emplace("opPreInc", create_native_method("containers::"+type+"::preInc", &T::pre_inc));
+	methods.emplace("opPreDec", create_native_method("containers::"+type+"::preDec", &T::pre_dec));
+	methods.emplace("opPostInc", create_native_method("containers::"+type+"::postInc", &T::post_inc));
+	methods.emplace("opPostDec", create_native_method("containers::"+type+"::postDec", &T::post_dec));
+	methods.emplace("opEQ", create_native_method("containers::"+type+"::opEQ", &T::eq));
+	methods.emplace("opNE", create_native_method("containers::"+type+"::opNE", &T::ne));
+	
+	methods.emplace("toBool", create_native_method("containers::"+type+"::toBool", &T::to_bool));
+}
+
+template<typename T>
+static void add_random_iterator_methods(const std::string& type, std::unordered_map<std::string, method_ptr>& methods){
+	
+	methods.emplace("opLT", create_native_method("containers::"+type+"::opLT", &T::lt));
+	methods.emplace("opGT", create_native_method("containers::"+type+"::opGT", &T::gt));
+	methods.emplace("opLE", create_native_method("containers::"+type+"::opLE", &T::le));
+	methods.emplace("opGE", create_native_method("containers::"+type+"::opGE", &T::ge));
+	
+	methods.emplace("opSub", create_native_method("containers::"+type+"::opSub", &T::sub));
+	methods.emplace("opAdd", create_native_method("containers::"+type+"::opSub", &T::add));
+	methods.emplace("opAddSet", create_native_method("containers::"+type+"::opAddSet", &T::advance));
+	methods.emplace("opSubSet", create_native_method("containers::"+type+"::opSubSet", &T::advance_back));
 }
 
 template<typename T>
@@ -50,8 +64,8 @@ static void add_front_insertion_methods(const std::string& type, std::unordered_
 
 template<typename T>
 static void add_random_access_methods(const std::string& type, std::unordered_map<std::string, method_ptr>& methods){
-	methods.emplace("getItem", create_native_method("containers::"+type+"::getItem", &T::get_item));
-	methods.emplace("setItem", create_native_method("containers::"+type+"::setItem", &T::set_item));
+	methods.emplace("opGet", create_native_method("containers::"+type+"::opGet", &T::get_item));
+	methods.emplace("opSet", create_native_method("containers::"+type+"::opSet", &T::set_item));
 }
 
 
@@ -90,6 +104,7 @@ vtable_ptr vector_iterator_vt(){
 		std::unordered_map<std::string, method_ptr> methods;
 	
 		add_sequence_iterator_methods<iterator>("VectorIterator", methods);
+		add_random_iterator_methods<iterator>("VectorIterator", methods);
 		
 		ret.reset(new vtable(
 			"containers",
@@ -137,6 +152,7 @@ vtable_ptr deque_iterator_vt(){
 		std::unordered_map<std::string, method_ptr> methods;
 	
 		add_sequence_iterator_methods<iterator>("DequeIterator", methods);
+		add_random_iterator_methods<iterator>("DequeIterator", methods);
 		
 		ret.reset(new vtable(
 			"containers",

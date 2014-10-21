@@ -126,7 +126,7 @@ public:
 		_s(s){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		for(_e1->as_void(ctx); _e2->as_number(ctx); _e3->as_void(ctx)){
+		for(_e1->as_void(ctx); _e2->as_bool(ctx); _e3->as_void(ctx)){
 			switch(_s(ctx)){
 				case statement_retval::brk:
 					return statement_retval::nxt;
@@ -158,7 +158,7 @@ public:
 		_s(s){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		while(_e->as_number(ctx)){
+		while(_e->as_bool(ctx)){
 			switch(_s(ctx)){
 				case statement_retval::brk:
 					return statement_retval::nxt;
@@ -199,7 +199,7 @@ public:
 				default:
 					break;
 			}
-		}while(_e->as_number(ctx));
+		}while(_e->as_bool(ctx));
 		return statement_retval::nxt;
 	}
 };
@@ -224,7 +224,7 @@ public:
 	
 	statement_retval operator()(runtime_context& ctx) const{
 		for(size_t i = 0; i < _es.size(); ++i){
-			if(_es[i]->as_number(ctx)){
+			if(_es[i]->as_bool(ctx)){
 				return _ss[i](ctx);
 			}
 		}
@@ -251,7 +251,7 @@ public:
 	}
 	
 	statement_retval operator()(runtime_context& ctx) const{
-		if(_e->as_number(ctx)){
+		if(_e->as_bool(ctx)){
 			return _s(ctx);
 		}
 		return statement_retval::nxt;
@@ -281,7 +281,7 @@ public:
 	}
 	
 	statement_retval operator()(runtime_context& ctx) const{
-		if(_e->as_number(ctx)){
+		if(_e->as_bool(ctx)){
 			return _s(ctx);
 		}
 		_else(ctx);

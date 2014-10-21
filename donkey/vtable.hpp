@@ -114,6 +114,22 @@ public:
 		return (*it->second)(that, ctx, params_size);
 	}
 	
+	bool try_call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name, variable& rslt) const{
+		auto mit = _methods.find(name);
+		if(mit != _methods.end()){
+			rslt = (*mit->second)(that, ctx, params_size);
+			return true;
+		}
+		
+		auto fit = _fields.find(name);
+		if(fit != _fields.end()){
+			rslt = that.nth_field(fit->second).call(ctx, params_size);
+			return true;
+		}
+		
+		return false;
+	}
+	
 	variable& get_field(const variable& that, const std::string& name) const{
 		auto it = _fields.find(name);
 		if(it == _fields.end()){

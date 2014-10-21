@@ -34,7 +34,8 @@ SOURCES += main.cpp \
     string_vtable.cpp \
     array_vtable.cpp \
     modules/containers/containers_module.cpp \
-    modules/containers/container.cpp
+    modules/containers/container.cpp \
+    expressions/operators.cpp
 
 HEADERS += \
     errors.hpp \
@@ -89,7 +90,8 @@ HEADERS += \
     cpp/native_object.hpp \
     modules/io/io_module.hpp \
     modules/containers/containers_module.hpp \
-    modules/containers/container.hpp
+    modules/containers/container.hpp \
+    expressions/operators.hpp
 
 OTHER_FILES += \
     examples.txt \

@@ -13,6 +13,8 @@
 #include "expressions/item_expressions.hpp"
 #include "identifiers.hpp"
 
+#include "expressions/operators.hpp"
+
 namespace donkey{
 
 inline lvalue_expression_ptr to_l(expression_ptr e){
@@ -21,6 +23,15 @@ inline lvalue_expression_ptr to_l(expression_ptr e){
 
 inline item_expression_ptr to_item(expression_ptr e){
 	return std::static_pointer_cast<item_expression>(e);
+}
+
+template<template<typename> class E>
+inline expression_ptr build_unary(expression_ptr e1){
+	if(e1->get_type() == expression_type::lvalue){
+		return expression_ptr(new E<lvalue_expression_ptr>(to_l(e1)));
+	}else{
+		return expression_ptr(new E<expression_ptr>(e1));
+	}
 }
 
 template<class E>
@@ -41,9 +52,39 @@ inline expression_ptr build_unary_item(expression_ptr e1){
 	return expression_ptr(new E(to_item(e1)));
 }
 
+
+template<template<typename, typename> class E>
+inline expression_ptr build_binary(expression_ptr e1, expression_ptr e2){
+	if(e1->get_type() == expression_type::lvalue){
+		if(e2->get_type() == expression_type::lvalue){
+			return expression_ptr(new E<lvalue_expression_ptr, lvalue_expression_ptr>(to_l(e1), to_l(e2)));
+		}else{
+			return expression_ptr(new E<lvalue_expression_ptr, expression_ptr>(to_l(e1), e2));
+		}
+	}else if(e2->get_type() == expression_type::lvalue){
+		return expression_ptr(new E<expression_ptr, lvalue_expression_ptr>(e1, to_l(e2)));
+	}else{
+		return expression_ptr(new E<expression_ptr, expression_ptr>(e1, e2));
+	}
+}
+
 template<class E>
 inline expression_ptr build_binary(expression_ptr e1, expression_ptr e2){
 	return expression_ptr(new E(e1, e2));
+}
+
+template<template<typename> class E>
+inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2){
+	if(e1->get_type() == expression_type::lvalue){
+		if(e2->get_type() == expression_type::lvalue){
+			return expression_ptr(new E<lvalue_expression_ptr>(to_l(e1), to_l(e2)));
+		}else{
+			return expression_ptr(new E<expression_ptr>(to_l(e1), e2));
+		}
+	}else{
+		semantic_error("l-value expected");
+		return expression_ptr();
+	}
 }
 
 template<class E>
@@ -52,6 +93,15 @@ inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2){
 		semantic_error("l-value expected");
 	}
 	return expression_ptr(new E(to_l(e1), e2));
+}
+
+template<template<typename> class E>
+inline expression_ptr build_binary_item(expression_ptr e1, expression_ptr e2){
+	if(e2->get_type() == expression_type::lvalue){
+		return expression_ptr(new E<lvalue_expression_ptr>(to_item(e1), to_l(e2)));
+	}else{
+		return expression_ptr(new E<expression_ptr>(to_item(e1), e2));
+	}
 }
 
 template<class E>
@@ -96,6 +146,8 @@ expression_ptr build_unary_expression(oper op, expression_ptr e){
 			return build_unary_l<post_dec_expression>(e);
 		case oper::post_inc:
 			return build_unary_l<post_inc_expression>(e);
+		case oper::deref:
+			return build_unary<deref_expression>(e);
 		default:
 			return expression_ptr();
 	}
@@ -209,6 +261,8 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 			return build_binary<div_expression>(e1, e2);
 		case oper::mul:
 			return build_binary<mul_expression>(e1, e2);
+		case oper::subscript:
+			return build_binary<index_expression>(e1, e2);
 		default:
 			return expression_ptr();
 	}
@@ -280,10 +334,6 @@ expression_ptr build_constructor_call_expression(vtable* vt, const std::vector<e
 	}else{
 		return expression_ptr(new constructor_call_expression(vt, params));
 	}
-}
-
-expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2){
-	return expression_ptr(new index_expression(e1, e2));
 }
 
 expression_ptr build_array_initializer(const std::vector<expression_ptr>& items){

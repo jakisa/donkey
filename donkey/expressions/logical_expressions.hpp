@@ -17,7 +17,7 @@ public:
 	}
 
 	virtual number as_number(runtime_context& ctx) override{
-		return _e1->as_number(ctx) && _e2->as_number(ctx);
+		return as_bool(ctx) ? 1 : 0;
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -25,7 +25,10 @@ public:
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
-		as_number(ctx);
+		as_bool(ctx);
+	}
+	virtual bool as_bool(runtime_context& ctx) override{
+		return _e1->as_bool(ctx) && _e2->as_bool(ctx);
 	}
 };
 
@@ -41,7 +44,7 @@ public:
 	}
 
 	virtual number as_number(runtime_context& ctx) override{
-		return _e1->as_number(ctx) || _e2->as_number(ctx);
+		return as_bool(ctx) ? 1 : 0;
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
@@ -49,7 +52,10 @@ public:
 	}
 
 	virtual void as_void(runtime_context& ctx) override{
-		as_number(ctx);
+		as_bool(ctx);
+	}
+	virtual bool as_bool(runtime_context& ctx) override{
+		return _e1->as_bool(ctx) || _e2->as_bool(ctx);
 	}
 };
 

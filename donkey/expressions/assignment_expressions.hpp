@@ -2,69 +2,29 @@
 #define __assignment_expressions_hpp__
 
 #include "expressions.hpp"
+#include "operators.hpp"
 
 namespace donkey{
 
+template<class E2>
 class assignment_expression final: public lvalue_expression{
 private:
 	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
+	E2 _e2;
 public:
-	assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
+	assignment_expression(lvalue_expression_ptr e1, E2 e2):
 		_e1(e1),
 		_e2(e2){
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable v2 = _e2->as_param(ctx);
-		return _e1->as_lvalue(ctx) = v2;
-	}
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
+		auto v = _e2->as_var(ctx);
+		return _e1->as_lvalue(ctx) = v;
 	}
 };
 
-class mul_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	mul_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number v2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		v1.as_lnumber() *= v2;
-		return v1;
-	}
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class div_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	div_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		v1.as_lnumber() /= n2;
-		return v1;
-	}
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
+NUMBER_BINARY_L_CPP(mul_assignment, mul_assign, *=)
+NUMBER_BINARY_L_CPP(div_assignment, div_assign, /=)
 
 class idiv_assignment_expression final: public lvalue_expression{
 private:
@@ -80,197 +40,29 @@ public:
 		number n2 = _e2->as_number(ctx);
 		variable& v1 = _e1->as_lvalue(ctx);
 		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) / integer(n2);
+		n1 = integer(n1)/integer(n2);
 		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
 	}
 };
 
-class mod_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	mod_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
+variable& mod_assign_full(variable& l, const variable& r, runtime_context& ctx);
+inline variable& mod_assign(variable& l, const variable& r, runtime_context& ctx) {
+	if(l.get_var_type() == var_type::number && r.get_var_type() == var_type::number){
+		l.as_lnumber_unsafe() = fmod(l.as_number_unsafe(), r.as_number_unsafe());
 	}
+	return mod_assign_full(l, r, ctx);
+}
+BIN_OPERATOR_L(mod_assignment, mod_assign)
 
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = fmod(n1, n2);
-		return v1;
-		
-	}
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
+NUMBER_BINARY_L_CPP(plus_assignment, plus_assign, +=)
+NUMBER_BINARY_L_CPP(minus_assignment, minus_assign, -=)
 
-class plus_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	plus_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
+INTEGER_BINARY_ASSIGN_CPP(shiftl_assignment, shiftl_assign, <<)
+INTEGER_BINARY_ASSIGN_CPP(shiftr_assignment, shiftr_assign, >>)
+INTEGER_BINARY_ASSIGN_CPP(and_assignment, bitwise_and_assign, &)
+INTEGER_BINARY_ASSIGN_CPP(xor_assignment, bitwise_xor_assign, ^)
+INTEGER_BINARY_ASSIGN_CPP(or_assignment, bitwise_or_assign, ^)
 
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		v1.as_lnumber() += n2;
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class minus_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	minus_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		v1.as_lnumber() -= n2;
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-
-class shiftl_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	shiftl_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) << integer(n2);
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class shiftr_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	shiftr_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) >> integer(n2);
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class and_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	and_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) & integer(n2);
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class xor_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	xor_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) ^ integer(n2);
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
-
-class or_assignment_expression final: public lvalue_expression{
-private:
-	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
-public:
-	or_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
-		_e1(e1),
-		_e2(e2){
-	}
-
-	virtual variable& as_lvalue(runtime_context& ctx) override{
-		number n2 = _e2->as_number(ctx);
-		variable& v1 = _e1->as_lvalue(ctx);
-		number& n1 = v1.as_lnumber();
-		n1 = integer(n1) | integer(n2);
-		return v1;
-	}
-	
-	virtual void as_void(runtime_context& ctx) override{
-		as_lvalue(ctx);
-	}
-};
 
 }//donkey
 

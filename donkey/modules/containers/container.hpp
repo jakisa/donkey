@@ -19,16 +19,36 @@ private:
 	
 	variable _container;
 	IteratorType _it;
+
+	bool is_deleted(){
+		return _container.get_data_type() == var_type::nothing;
+	}
 	
 	void check_deleted(){
-		if(_container.get_data_type() == var_type::nothing){
+		if(is_deleted()){
 			runtime_error("container is deleted");
 		}
 	}
+
+	bool is_same(ThisType* oth){
+		return _container.as_reference_unsafe() == oth->_container.as_reference_unsafe();
+	}
 	
 	void check_same(ThisType* oth){
-		if(_container != oth->_container){
+		if(!is_same(oth)){
 			runtime_error("iterators to different containers detected");
+		}
+	}
+	
+	void check_not_begin(){
+		if(_it == get_container().begin()){
+			runtime_error("iterator points to begin");
+		}
+	}
+	
+	void check_not_end(){
+		if(_it == get_container().end()){
+			runtime_error("iterator points to end");
 		}
 	}
 	
@@ -40,20 +60,28 @@ public:
 		_it(it){
 	}
 	
-	void inc(){
+	void pre_inc(){
 		check_deleted();
-		if(_it == get_container().end()){
-			runtime_error("iterating after container");
-		}
+		check_not_end();
 		++_it;
 	}
 	
-	void dec(){
+	variable post_inc(){
+		auto it = _it;
+		pre_inc();
+		return variable(new iterator(_container, it));
+	}
+	
+	void pre_dec(){
 		check_deleted();
-		if(_it == get_container().begin()){
-			runtime_error("iterating before container");
-		}
+		check_not_begin();
 		--_it;
+	}
+	
+	variable post_dec(){
+		auto it = _it;
+		pre_dec();
+		return variable(new iterator(_container, it));
 	}
 	
 	integer diff(ThisType* oth){
@@ -62,9 +90,43 @@ public:
 		return _it - oth->_it;
 	}
 	
-	variable value(){
+	variable add(number n){
 		check_deleted();
+		
+		variable ret(new iterator(_container, _it));
+		
+		ret.as_t_unsafe<ThisType>()->advance(n);
+		
+		return ret;
+	}
+	
+	variable sub(variable voth){
+		if(voth.get_var_type() == var_type::number){
+			return add(-voth.as_integer_unsafe());
+		}
+		
+		if(voth.get_vtable() != get_vtable()){
+			runtime_error(get_vtable()->get_full_name() + " expected");
+		}
+		
+		check_deleted();
+		
+		ThisType* oth = voth.as_t_unsafe<ThisType>();
+		
+		check_same(oth);
+		return variable(_it - oth->_it);
+	}
+	
+	variable get_item(){
+		check_deleted();
+		check_not_end();
 		return *_it;
+	}
+	
+	void set_item(variable v){
+		check_deleted();
+		check_not_end();
+		*_it = v;
 	}
 	
 	void advance(integer sz){
@@ -81,6 +143,10 @@ public:
 		_it += sz;
 	}
 	
+	void advance_back(integer sz){
+		return advance(-sz);
+	}
+
 	integer lt(ThisType* oth){
 		check_same(oth);
 		check_deleted();
@@ -88,33 +154,42 @@ public:
 	}
 	
 	integer gt(ThisType* oth){
-		check_same(oth);
-		check_deleted();
-		return _it > oth->_it;
+		return oth->lt(this);
 	}
 	
 	integer le(ThisType* oth){
-		check_same(oth);
-		check_deleted();
-		return _it <= oth->_it;
+		return !oth->lt(this);
 	}
 	
 	integer ge(ThisType* oth){
-		check_same(oth);
-		check_deleted();
-		return _it >= oth->_it;
+		return !lt(oth);
 	}
 	
-	integer eq(ThisType* oth){
-		check_same(oth);
-		check_deleted();
+	integer eq(variable voth){
+		if(voth.get_vtable() != get_vtable()){
+			return 0;
+		}
+		
+		ThisType* oth = voth.as_t_unsafe<ThisType>();
+		
+		if(!is_same(oth)){
+			return 0;
+		}
+		
+		if(is_deleted()){
+			return 1;
+		}
+		
 		return _it == oth->_it;
 	}
 	
-	integer ne(ThisType* oth){
-		check_same(oth);
+	integer ne(variable voth){
+		return !eq(voth);
+	}
+	
+	integer to_bool(){
 		check_deleted();
-		return _it != oth->_it;
+		return _it != get_container().end();
 	}
 	
 	vtable* get_vtable(){
@@ -158,7 +233,7 @@ public:
 		return _data[idx];
 	}
 	
-	void set_item(integer idx, variable v){
+	void set_item(variable v, integer idx){
 		if(idx < 0 || idx >= integer(_data.size())){
 			runtime_error("subscript out of range");
 		}

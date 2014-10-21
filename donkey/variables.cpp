@@ -80,4 +80,8 @@ std::string variable::to_string() const{
 	}
 }
 
+bool variable::_to_bool(runtime_context& ctx) const{
+	return get_vtable()->call_member(*this, ctx, 0, "toBool").as_number() != 0;
+}
+
 }//donkey

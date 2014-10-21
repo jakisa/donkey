@@ -66,6 +66,10 @@ public:
 	virtual void as_void(runtime_context & ctx) final override{
 		as_param(ctx);
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) final override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 class function_call_expression_byval final: public expression{
@@ -106,6 +110,10 @@ public:
 	virtual void as_void(runtime_context & ctx) final override{
 		as_param(ctx);
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) final override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 
@@ -135,11 +143,11 @@ public:
 		init(ret, ctx);
 		return ret;
 	}
-	virtual number as_number(runtime_context& ctx) final override{
+	virtual number as_number(runtime_context& ctx) override{
 		return as_param(ctx).as_number();
 	}
 	
-	virtual std::string as_string(runtime_context& ctx) final override{
+	virtual std::string as_string(runtime_context& ctx) override{
 		return as_param(ctx).to_string();
 	}
 
@@ -147,8 +155,12 @@ public:
 		return as_param(ctx).call(ctx, params_size);
 	}
 
-	virtual void as_void(runtime_context & ctx) final override{
+	virtual void as_void(runtime_context & ctx) override{
 		as_param(ctx);
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
 	}
 };
 
@@ -196,6 +208,10 @@ public:
 	virtual void as_void(runtime_context & ctx) override{
 		as_param(ctx);
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 
@@ -237,6 +253,10 @@ public:
 
 	virtual void as_void(runtime_context & ctx) override{
 		as_param(ctx);
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
 	}
 };
 

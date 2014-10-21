@@ -5,12 +5,13 @@
 
 namespace donkey{
 
+template<class E1, class E2>
 class fallback_expression final: public expression{
 private:
-	expression_ptr _e1;
-	expression_ptr _e2;
+	E1 _e1;
+	E2 _e2;
 public:
-	fallback_expression(expression_ptr e1, expression_ptr e2):
+	fallback_expression(E1 e1, E2 e2):
 		expression(combined_expression_type(e1, e2)),
 		_e1(e1),
 		_e2(e2){
@@ -21,9 +22,9 @@ public:
 	}
 
 	virtual variable as_param(runtime_context& ctx) override{
-		variable v = _e1->as_param(ctx);
+		auto v = _e1->as_var(ctx);
 		if(v.get_data_type() == var_type::nothing){
-			return _e2->as_param(ctx);
+			return _e2->as_var(ctx);
 		}
 		return v;
 	}
@@ -31,21 +32,25 @@ public:
 	virtual void as_void(runtime_context& ctx) override{
 		as_param(ctx);
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
-
+template<class E2>
 class fallback_assignment_expression final: public lvalue_expression{
 private:
 	lvalue_expression_ptr _e1;
-	expression_ptr _e2;
+	E2 _e2;
 public:
-	fallback_assignment_expression(lvalue_expression_ptr e1, expression_ptr e2):
+	fallback_assignment_expression(lvalue_expression_ptr e1, E2 e2):
 		_e1(e1),
 		_e2(e2){
 	}
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
-		variable v2 = _e2->as_param(ctx);
+		auto v2 = _e2->as_param(ctx);
 		
 		variable& v1 = _e1->as_lvalue(ctx);
 		if(v1.get_data_type() == var_type::nothing){

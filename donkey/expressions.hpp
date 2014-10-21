@@ -58,8 +58,15 @@ public:
 	}
 
 	virtual variable as_param(runtime_context&) = 0;
+	
+	variable as_var(runtime_context& ctx){
+		return as_param(ctx);
+	}
+
+	virtual bool as_bool(runtime_context&) = 0;
 
 	virtual void as_void(runtime_context&) = 0;
+
 
 	expression_type get_type(){
 		return _t;
@@ -111,6 +118,18 @@ public:
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
 		return as_lvalue(ctx).call(ctx, params_size);
 	}
+	
+	variable& as_var(runtime_context& ctx){
+		return as_lvalue(ctx);
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		as_lvalue(ctx);
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_lvalue(ctx).to_bool(ctx);
+	}
 };
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
@@ -120,10 +139,10 @@ typedef std::pair<variable, variable> item_handle;
 inline void set_item(runtime_context& ctx, const variable& that, variable idx, variable&& value){
 	stack_pusher pusher(ctx);
 	
-	pusher.push(std::move(idx));
 	pusher.push(std::move(value));
+	pusher.push(std::move(idx));
 	
-	get_vtable(ctx, that)->call_member(that, ctx, 2, "setItem");
+	get_vtable(ctx, that)->call_member(that, ctx, 2, "opSet");
 }
 
 inline variable get_item(runtime_context &ctx, const variable& that, variable idx){
@@ -131,7 +150,7 @@ inline variable get_item(runtime_context &ctx, const variable& that, variable id
 	
 	pusher.push(std::move(idx));
 	
-	return get_vtable(ctx, that)->call_member(that, ctx, 1, "getItem");
+	return get_vtable(ctx, that)->call_member(that, ctx, 1, "opGet");
 }
 
 class item_expression: public expression{
@@ -166,6 +185,10 @@ public:
 	
 	virtual void as_void(runtime_context& ctx) override{
 		get_this_item(ctx);
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return get_this_item(ctx).to_bool(ctx);
 	}
 };
 
@@ -227,11 +250,13 @@ enum class oper{
 	pre_inc              = 245,
 	construct            = 246,
 	array_init           = 247,
+	deref                = 248,
 	post_dec             = 260,
 	post_inc             = 261,
 	dot                  = 262,
 	call                 = 263,
 	subscript            = 264,
+	arrow                = 265,
 	scope                = 280,
 };
 
@@ -268,7 +293,6 @@ expression_ptr build_array_initializer(const std::vector<expression_ptr>& items)
 
 expression_ptr build_function_call_expression(expression_ptr f, const std::vector<expression_ptr>& params, const std::vector<size_t>& byref);
 
-expression_ptr build_index_expression(expression_ptr e1, expression_ptr e2);
 
 }//namespace donkey
 

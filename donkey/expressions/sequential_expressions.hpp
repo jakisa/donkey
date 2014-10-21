@@ -36,6 +36,10 @@ public:
 	virtual void as_void(runtime_context& ctx) override{
 		_e1->as_void(ctx), _e2->as_void(ctx);
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return _e1->as_void(ctx), _e2->as_bool(ctx); 
+	}
 };
 
 }//donkey

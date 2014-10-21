@@ -18,6 +18,10 @@ public:
 	}
 	virtual void as_void(runtime_context&) override{
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 class this_expression final: public expression{
@@ -32,6 +36,23 @@ public:
 		return *ctx.that();
 	}
 	virtual void as_void(runtime_context&) override{
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return ctx.that()->to_bool(ctx);
+	}
+};
+
+class deref_expression final: public item_expression{
+private:
+	expression_ptr _e;
+public:
+	deref_expression(expression_ptr e):
+		_e(e){
+	}
+	
+	virtual item_handle as_item(runtime_context& ctx) override{
+		return item_handle(_e->as_param(ctx), variable(number(0)));
 	}
 };
 
@@ -53,6 +74,11 @@ public:
 
 	virtual void as_void(runtime_context&) override{
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_number(ctx) != 0;
+	}
+	
 };
 
 class const_string_expression final: public expression{
@@ -71,6 +97,10 @@ public:
 	}
 
 	virtual void as_void(runtime_context&) override{
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return _s.to_bool(ctx);
 	}
 };
 
@@ -94,6 +124,10 @@ public:
 
 	virtual void as_void(runtime_context&) override{
 	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 
@@ -108,9 +142,6 @@ public:
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		return ctx.local(_idx);
 	}
-
-	virtual void as_void(runtime_context&) override{
-	}
 };
 
 class global_variable_expression final: public lvalue_expression{
@@ -124,9 +155,6 @@ public:
 	}
 	virtual variable& as_lvalue(runtime_context & ctx) override{
 		return global_variable(ctx, _module_idx, _var_idx);
-	}
-
-	virtual void as_void(runtime_context&) override{
 	}
 };
 
@@ -183,9 +211,6 @@ public:
 		variable that = _that->as_param(ctx);
 		return get_vtable(ctx, that)->get_field(that, _type, _idx);
 	}
-
-	virtual void as_void(runtime_context&) override{
-	}
 };
 
 class method_expression final: public expression{
@@ -215,6 +240,11 @@ public:
 
 	virtual void as_void(runtime_context&) override{
 		runtime_error("methods cannot be used as objects");
+	}
+	
+	virtual bool as_bool(runtime_context&) override{
+		runtime_error("methods cannot be used as objects");
+		return false;
 	}
 };
 }//donkey

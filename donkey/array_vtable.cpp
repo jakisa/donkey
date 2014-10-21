@@ -40,15 +40,15 @@ public:
 		return idx < 0 ? variable() : idx >= _cnt ? variable() : _data[idx];
 	}
 	
-	void set_item_unsafe(integer idx, variable v){
+	void set_item_unsafe(variable v, integer idx){
 		_data[idx] = v;
 	}
 	
-	void set_item(integer idx, variable v){
+	void set_item(variable v, integer idx){
 		if(idx < 0 || idx >= _cnt){
 			return;
 		}
-		set_item_unsafe(idx, v);
+		set_item_unsafe(v, idx);
 	}
 	
 	static variable clone(const variable& that, runtime_context& ctx, size_t){
@@ -85,7 +85,7 @@ static variable create_array_helper(runtime_context& ctx, size_t current_param){
 	
 	if(current_param > 0){
 		for(integer i = 0; i != sz; ++i){
-			ret.as_t_unsafe<array>()->set_item(i, create_array_helper(ctx, current_param-1));
+			ret.as_t_unsafe<array>()->set_item(create_array_helper(ctx, current_param-1), i);
 		}
 	}
 	
@@ -106,8 +106,8 @@ vtable_ptr array_vtable(){
 		std::unordered_map<std::string, method_ptr> methods;
 		
 		methods.emplace("size", create_native_method("array::size", &array::size));
-		methods.emplace("getItem", create_native_method("array::getItem", &array::get_item));
-		methods.emplace("setItem", create_native_method("array::setItem", &array::set_item));
+		methods.emplace("opGet", create_native_method("array::opGet", &array::get_item));
+		methods.emplace("opSet", create_native_method("array::opSet", &array::set_item));
 		
 		ret.reset(new vtable("", "array", &create_array, std::move(methods), true));
 		

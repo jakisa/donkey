@@ -27,6 +27,10 @@ public:
 	bool operator==(const code_address& oth) const{
 		return _module_index == oth._module_index && _function_index == oth._function_index;
 	}
+	
+	bool operator!=(const code_address& oth) const{
+		return _module_index != oth._module_index || _function_index != oth._function_index;
+	}
 
 	size_t get_module_index() const{
 		return _module_index;
@@ -235,6 +239,9 @@ private:
 			_dec_counts_impl();
 		}
 	}
+	
+	bool _to_bool(runtime_context& ctx) const;
+	
 public:
 	variable():
 		_vt(var_type::nothing){
@@ -248,6 +255,13 @@ public:
 	explicit variable(number n):
 		_n(n),
 		_vt(var_type::number){
+	}
+	
+	variable& operator=(number n){
+		_dec_counts();
+		_n = n;
+		_vt = var_type::number;
+		return *this;
 	}
 	
 	explicit variable(code_address f):
@@ -391,6 +405,10 @@ public:
 		_dec_counts();
 	}
 	
+	var_type get_var_type() const{
+		return _vt;
+	}
+	
 	var_type get_data_type() const{
 		if(is_weak(_vt)){
 			return _h_ptr->_p == nullptr ? var_type::nothing : shared_version(_vt);
@@ -416,6 +434,10 @@ public:
 	
 	integer as_integer() const{
 		return (integer)as_number();
+	}
+	
+	integer as_integer_unsafe() const{
+		return (integer)as_number_unsafe();
 	}
 	
 	number& as_lnumber_unsafe(){
@@ -482,60 +504,6 @@ public:
 		return as_t_unsafe<T>();
 	}
 	
-	
-	bool operator==(const variable& oth) const{
-		var_type dt = get_data_type();
-		
-		if(dt != oth.get_data_type()){
-			return false;
-		}
-		
-		switch(dt){
-			case var_type::number:
-				return as_number_unsafe() == oth.as_number_unsafe();
-			case var_type::code_address:
-				return as_code_address_unsafe() == oth.as_code_address_unsafe();
-			case var_type::string:
-				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) == 0;
-			case var_type::nothing:
-				return true;
-			default:
-				return as_reference_unsafe() == oth.as_reference_unsafe();
-		}
-	}
-	
-	bool operator!=(const variable& oth) const{
-		return !(*this == oth);
-	}
-	
-	bool operator<(const variable& oth) const{
-		var_type dt = get_data_type();
-		if(dt != oth.get_data_type()){
-			runtime_error("cannot compare " + get_full_type_name() + " and " + oth.get_full_type_name());
-		}
-		switch(dt){
-			case var_type::number:
-				return as_number_unsafe() < oth.as_number_unsafe();
-			case var_type::string:
-				return strcmp(as_string_unsafe(), oth.as_string_unsafe()) < 0;
-			default:
-				runtime_error("cannot compare " + get_full_type_name() + " and " + oth.get_full_type_name());
-				return false;
-		}
-	}
-	
-	bool operator>(const variable& oth) const{
-		return oth < *this;
-	}
-	
-	bool operator<=(const variable& oth) const{
-		return !(oth < *this);
-	}
-	
-	bool operator>=(const variable& oth) const{
-		return !(*this < oth);
-	}
-	
 	variable& nth_field(size_t n) const{
 		if(get_data_type() == var_type::object){
 			return _h_ptr->as_t<donkey_object>()->get_field(n);
@@ -546,6 +514,13 @@ public:
 	}
 	
 	vtable* get_vtable() const;
+	
+	bool to_bool(runtime_context& ctx) const{
+		if(_vt == var_type::number){
+			return _n != 0;
+		}
+		return _to_bool(ctx);
+	}
 	
 };
 

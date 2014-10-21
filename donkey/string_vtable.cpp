@@ -61,6 +61,30 @@ static std::string string_trim(const std::string& that){
 	return std::string(begin, end);
 }
 
+static number string_eq(const std::string& that, const variable& oth){
+	return oth.get_data_type() == var_type::string && that == oth.as_string_unsafe();
+}
+
+static number string_ne(const std::string& that, const variable& oth){
+	return oth.get_data_type() != var_type::string || that != oth.as_string_unsafe();
+}
+
+static number string_lt(const std::string& that, const std::string& oth){
+	return that < oth;
+}
+
+static number string_gt(const std::string& that, const std::string& oth){
+	return that > oth;
+}
+
+static number string_le(const std::string& that, const std::string& oth){
+	return that <= oth;
+}
+
+static number string_ge(const std::string& that, const std::string& oth){
+	return that >= oth;
+}
+
 vtable_ptr string_vtable(){
 	static vtable_ptr ret;
 	if(!ret){
@@ -75,6 +99,13 @@ vtable_ptr string_vtable(){
 		
 		methods.emplace("split", create_native_method("string::split", &string_split));
 		methods.emplace("trim", create_native_method("string::trim", &string_trim));
+		
+		methods.emplace("opEQ", create_native_method("string::opEQ", &string_eq));
+		methods.emplace("opNE", create_native_method("string::opNE", &string_ne));
+		methods.emplace("opLT", create_native_method("string::opLT", &string_lt));
+		methods.emplace("opGT", create_native_method("string::opGT", &string_gt));
+		methods.emplace("opLE", create_native_method("string::opLE", &string_le));
+		methods.emplace("opGE", create_native_method("string::opGE", &string_ge));
 		
 		ret.reset(new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());

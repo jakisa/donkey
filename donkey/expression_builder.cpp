@@ -69,7 +69,6 @@ inline operator_type get_operator_type(oper op){
 				case oper::post_inc:
 					return operator_type::unary_postfix;
 				case oper::call:
-				case oper::subscript:
 					return operator_type::call;
 				default:
 					return operator_type::binary;
@@ -97,6 +96,8 @@ inline int get_number_of_operands(oper op){
 
 inline oper bin_post_variant(oper op){
 	switch(op){
+		case oper::deref:
+			return oper::mul;
 		case oper::pre_inc:
 			return oper::post_inc;
 		case oper::pre_dec:
@@ -128,7 +129,7 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{"&=", oper::and_assignment},
 	{"(", oper::bracket_open},
 	{")", oper::bracket_close},
-	{"*", oper::mul},
+	{"*", oper::deref},
 	{"*=", oper::mul_assignment},
 	{"+", oper::unary_plus},
 	{"++", oper::pre_inc},
@@ -137,6 +138,7 @@ const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
 	{"-", oper::unary_minus},
 	{"--", oper::pre_dec},
 	{"-=", oper::minus_assignment},
+	{"->", oper::arrow},
 	{".", oper::dot},
 	{"..", oper::concat},
 	{"..=", oper::concat_assignment},
@@ -594,10 +596,14 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				return build_array_initializer(items);
 			}
 		case oper::dot:
+		case oper::arrow:
 			{
 				expression_ptr that;
 				bool self = false;
 				if(tree->first_child->str == "self"){
+					if(tree->op == oper::arrow){
+						unexpected_error("->");
+					}
 					if(!lookup.in_class()){
 						semantic_error("self is only allowed inside class");
 					}
@@ -605,6 +611,9 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 					that = build_this_expression();
 				}else{
 					that = tree_to_expression(tree->first_child, lookup);
+					if(tree->op == oper::arrow){
+						that = build_unary_expression(oper::deref, that);
+					}
 				}
 				
 				if(self){
@@ -650,11 +659,6 @@ static expression_ptr tree_to_expression(part_ptr tree, const identifier_lookup&
 				return build_function_call_expression(f, params, byref);
 			}
 			break;
-		case oper::subscript:
-			return build_index_expression(
-				tree_to_expression(tree->first_child, lookup),
-				tree_to_expression(tree->first_child->next_sibling, lookup)
-			);
 		case oper::scope:
 			{
 				return identifier_to_expression(tree_to_identifier(tree, lookup));

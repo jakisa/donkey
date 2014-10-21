@@ -27,6 +27,9 @@ public:
 	virtual void as_void(runtime_context& ctx) override{
 		as_string(ctx);
 	}
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
 };
 
 class concat_assignment_expression final: public lvalue_expression{
