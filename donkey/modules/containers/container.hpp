@@ -90,7 +90,7 @@ public:
 		return _it - oth->_it;
 	}
 	
-	variable add(number n){
+	variable add(integer n){
 		check_deleted();
 		
 		variable ret(new iterator(_container, _it));

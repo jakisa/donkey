@@ -45,12 +45,12 @@ public:
 	}
 };
 
-variable& mod_assign_full(variable& l, const variable& r, runtime_context& ctx);
-inline variable& mod_assign(variable& l, const variable& r, runtime_context& ctx) {
+void mod_assign_full(variable& l, const variable& r, runtime_context& ctx);
+inline void mod_assign(variable& l, const variable& r, runtime_context& ctx) {
 	if(l.get_var_type() == var_type::number && r.get_var_type() == var_type::number){
 		l.as_lnumber_unsafe() = fmod(l.as_number_unsafe(), r.as_number_unsafe());
 	}
-	return mod_assign_full(l, r, ctx);
+	mod_assign_full(l, r, ctx);
 }
 BIN_OPERATOR_L(mod_assignment, mod_assign)
 

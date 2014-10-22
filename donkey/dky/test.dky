@@ -1,0 +1,30 @@
+using io;
+using containers;
+import other;
+
+function sieve(n){
+	var ret = new Vector();
+	var mask = [1] * (n+1);
+	
+	for(var i = 2; i <= n; ++i){
+		if(mask[i]){
+			ret.push_back(i);
+			for(var j = i*i; j <= n;  j += i){
+				mask[j] = 0;
+			}
+		}
+	}
+	return ret;
+}
+
+var v = sieve(100);
+
+for(var it = v.begin(); it != v.end(); ++it){
+	console.writeln(*it);
+}
+
+{
+	var c = new other::C();
+}
+
+console.writeln("other "..other::count);

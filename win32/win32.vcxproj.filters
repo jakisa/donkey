@@ -1,0 +1,320 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\donkey">
+      <UniqueIdentifier>{53d8ea01-8de5-4734-9058-a1735dfd54c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\expressions">
+      <UniqueIdentifier>{a8cd6dda-ab61-43df-b7f5-4415c4233401}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\modules">
+      <UniqueIdentifier>{65f53e6d-61eb-400d-b70e-2de0c09a29ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\cpp">
+      <UniqueIdentifier>{caa63b02-ead5-4639-9ccd-1330d13a2319}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\compilers">
+      <UniqueIdentifier>{27856463-78be-4752-8103-68f2fe163bff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\modules\io">
+      <UniqueIdentifier>{ba4f9a9f-ce5d-485b-9b5d-a0c4e3ac897d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\donkey\modules\containers">
+      <UniqueIdentifier>{db5df8b4-2bdc-4b3d-9b40-790e05720c7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey">
+      <UniqueIdentifier>{c8b99825-2a8d-4b0b-b590-49dcbfb59621}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\compilers">
+      <UniqueIdentifier>{5397d975-d466-4695-81c4-4fafde0711a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\cpp">
+      <UniqueIdentifier>{5168663a-6e2d-4561-99e0-de49843c3edf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\expressions">
+      <UniqueIdentifier>{f873146f-da29-4e15-9ffe-925322924e1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\modules">
+      <UniqueIdentifier>{2117b9ef-781c-4a21-9830-c6cf1a139daa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\modules\io">
+      <UniqueIdentifier>{4147f537-a7ae-48a8-9e30-5a0ec3f81d12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\donkey\modules\containers">
+      <UniqueIdentifier>{cdea4a2b-1c2a-4a10-8c88-8eb574c4c9c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\dky">
+      <UniqueIdentifier>{0bb44a08-dee0-473c-90ab-26cb070261f6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\donkey\expressions\operators.cpp">
+      <Filter>Source Files\donkey\expressions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\array_vtable.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\core_vtables.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\donkey.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\donkey_object.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\errors.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\expression_builder.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\expressions.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\main.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\module.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\module_bundle.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\runtime_context.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\string_vtable.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\tokenizer.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\variables.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\vtable.cpp">
+      <Filter>Source Files\donkey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\branch_compilers.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\class_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\expression_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\function_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\jump_compilers.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\loop_compilers.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\scope_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\statement_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\using_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\compilers\variable_compiler.cpp">
+      <Filter>Source Files\donkey\compilers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\modules\io\io_module.cpp">
+      <Filter>Source Files\donkey\modules\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\modules\containers\container.cpp">
+      <Filter>Source Files\donkey\modules\containers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\donkey\modules\containers\containers_module.cpp">
+      <Filter>Source Files\donkey\modules\containers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\donkey\compiler.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compiler_helpers.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\config.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\donkey.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\donkey_function.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\donkey_object.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\errors.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expression_builder.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\function.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\helpers.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\identifiers.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\module.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\module_bundle.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\runtime_context.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\scope.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\stack.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\statements.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\string_functions.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\tokenizer.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\variables.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\vtable.hpp">
+      <Filter>Header Files\donkey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\branch_compilers.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\class_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\expression_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\function_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\jump_compilers.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\loop_compilers.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\scope_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\statement_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\using_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\compilers\variable_compiler.hpp">
+      <Filter>Header Files\donkey\compilers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\cpp\donkey_callback.hpp">
+      <Filter>Header Files\donkey\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\cpp\native_converter.hpp">
+      <Filter>Header Files\donkey\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\cpp\native_function.hpp">
+      <Filter>Header Files\donkey\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\cpp\native_module.hpp">
+      <Filter>Header Files\donkey\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\cpp\native_object.hpp">
+      <Filter>Header Files\donkey\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\arithmetic_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\assignment_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\core_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\functional_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\item_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\logical_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\null_check_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\operators.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\relation_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\sequential_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\string_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\ternary_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\expressions\unary_expressions.hpp">
+      <Filter>Header Files\donkey\expressions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\modules\io\io_module.hpp">
+      <Filter>Header Files\donkey\modules\io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\modules\containers\container.hpp">
+      <Filter>Header Files\donkey\modules\containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\donkey\modules\containers\containers_module.hpp">
+      <Filter>Header Files\donkey\modules\containers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\donkey\dky\other.dky">
+      <Filter>Resource Files\dky</Filter>
+    </None>
+    <None Include="..\donkey\dky\test.dky">
+      <Filter>Resource Files\dky</Filter>
+    </None>
+  </ItemGroup>
+</Project>

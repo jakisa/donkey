@@ -11,6 +11,7 @@
 #include <cstring>
 #include <cstdint>
 #include <vector>
+#include <array>
 
 
 namespace donkey{
@@ -20,9 +21,11 @@ private:
 	uint32_t _module_index;
 	uint32_t _function_index;
 public:
-	code_address(uint32_t module_index, uint32_t function_index):
-		_module_index(module_index),
-		_function_index(function_index){
+	static code_address create(uint32_t module_index, uint32_t function_index){
+		code_address ret;
+		ret._module_index = module_index;
+		ret._function_index = function_index;
+		return ret;
 	}
 	bool operator==(const code_address& oth) const{
 		return _module_index == oth._module_index && _function_index == oth._function_index;
@@ -65,31 +68,31 @@ enum{
 };
 
 inline bool is_shared(var_type vt){
-	return sharedptr_mask & char(vt);
+	return (sharedptr_mask & char(vt)) != 0;
 }
 
 inline bool is_weak(var_type vt){
-	return weakptr_mask & char(vt);
+	return (weakptr_mask & char(vt)) != 0;
 }
 
 inline bool is_smart(var_type vt){
-	return smartptr_mask & char(vt);
+	return (smartptr_mask & char(vt)) != 0;
 }
 
 inline bool is_string(var_type vt){
-	return char(var_type::string) & char(vt);
+	return (char(var_type::string) & char(vt)) != 0;
 }
 
 inline bool is_function(var_type vt){
-	return char(var_type::function) & char(vt);
+	return (char(var_type::function) & char(vt)) != 0;
 }
 
 inline bool is_object(var_type vt){
-	return char(var_type::object) & char(vt);
+	return (char(var_type::object) & char(vt)) != 0;
 }
 
 inline bool is_native(var_type vt){
-	return char(var_type::native) & char(vt);
+	return (char(var_type::native) & char(vt)) != 0;
 }
 
 inline var_type shared_version(var_type vt){
@@ -192,6 +195,7 @@ public:
 	}
 };
 
+/*
 inline constexpr size_t max(size_t x, size_t y){
 	return x > y ? x : y;
 }
@@ -202,7 +206,7 @@ inline constexpr size_t stack_var_union_size(){
 		max(sizeof(number), sizeof(code_address)),
 		sizeof(heap_header*)
 	);
-}
+}*/
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
 
@@ -213,13 +217,14 @@ vtable_ptr function_vtable(); //core_vtables.cpp
 
 class variable final{
 private:
+#define max_size(T1, T2, T3) (sizeof(T1) > sizeof(T2) ? (sizeof(T1) > sizeof(T3) ? sizeof(T1) : sizeof(T3)) : (sizeof(T2) > sizeof(T3) ? sizeof(T2) : sizeof(T3)))
 	union{
 		number _n;
 		code_address _f;
 		heap_header* _h_ptr;
-		std::array<char, stack_var_union_size()> _;
+		std::array<char, max_size(number, code_address, heap_header)> _;
 	};
-	
+#undef max_size
 	var_type _vt;
 	
 	void _runtime_error(std::string msg) const;

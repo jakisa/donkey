@@ -6,11 +6,9 @@
 
 namespace donkey{
 
-struct module;
+class module;
 
 typedef std::shared_ptr<module> module_ptr;
-
-//module_ptr compile(const char* begin, const char* end);
 
 
 typedef std::function<module_ptr(size_t)> module_loader;

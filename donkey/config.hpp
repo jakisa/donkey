@@ -2,6 +2,11 @@
 #define __config_hpp__
 
 #include <cstdint>
+#include <cstddef>
+
+#ifdef _MSC_VER
+#	define noexcept
+#endif
 
 namespace donkey{
 

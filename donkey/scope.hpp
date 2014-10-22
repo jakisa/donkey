@@ -231,7 +231,7 @@ public:
 		if(_functions.find(name) != _functions.end()){
 			return;
 		}
-		_functions[name].reset(new function_identifier(name, code_address(get_module_index(), _definitions.size())));
+		_functions[name].reset(new function_identifier(name, code_address::create(get_module_index(), _definitions.size())));
 		if(is_public){
 			_public_functions[name] = _definitions.size();
 		}
@@ -244,7 +244,7 @@ public:
 		if(ptr){
 			_definitions[ptr->get_function().get_function_index()] = std::move(f);
 		}else{
-			ptr.reset(new function_identifier(name, code_address(get_module_index(), _definitions.size())));
+			ptr.reset(new function_identifier(name, code_address::create(get_module_index(), _definitions.size())));
 			_definitions.push_back(std::move(f));
 		}
 	}
@@ -312,7 +312,7 @@ public:
 	virtual std::vector<identifier_ptr> get_all_public() const override{
 		std::vector<identifier_ptr> ret = scope::get_all_public();
 		for(const auto& p: _public_functions){
-			ret.push_back(identifier_ptr(new function_identifier(p.first, code_address(get_module_index(), p.second))));
+			ret.push_back(identifier_ptr(new function_identifier(p.first, code_address::create(get_module_index(), p.second))));
 		}
 		for(const auto& p: _vtables){
 			if(p.second->is_public()){

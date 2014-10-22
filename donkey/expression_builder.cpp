@@ -114,12 +114,14 @@ inline oper bin_post_variant(oper op){
 
 template<int i>
 struct tlookup{
-	static const std::pair<const char*, oper> string_to_oper[];
-	static const size_t string_to_oper_size = sizeof(string_to_oper)/sizeof(string_to_oper[0]);
+	enum{
+		string_to_oper_size = 50
+	};
+	static const std::pair<const char*, oper> string_to_oper[string_to_oper_size];
 };
 
 template<int i>
-const std::pair<const char*, oper> tlookup<i>::string_to_oper[] = {
+const std::pair<const char*, oper> tlookup<i>::string_to_oper[string_to_oper_size] = {
 	{"!", oper::logical_not},
 	{"!=", oper::unequal},
 	{"%", oper::mod},

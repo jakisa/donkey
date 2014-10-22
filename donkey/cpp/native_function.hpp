@@ -56,11 +56,14 @@ namespace detail{
 	template<typename... TArgs, size_t Idx>
 	struct dflt_unpacker<std::tuple<TArgs...>, true, Idx>{
 		typedef std::tuple<TArgs...> Tupple;
+		enum{
+			more = Idx+1 < sizeof...(TArgs)
+		};
 		static void unpack(size_t start_idx, Tupple t, runtime_context& ctx, stack_pusher& pusher){
 			if(start_idx <= Idx){
 				pusher.push(detail::param_converter<typename std::tuple_element<Idx, Tupple>::type>::from_native(std::get<Idx>(t), ctx));
 			}
-			dflt_unpacker<Tupple, Idx+1 < sizeof...(TArgs), Idx+1>::unpack(start_idx, t, ctx, pusher);
+			dflt_unpacker<Tupple, more, Idx+1>::unpack(start_idx, t, ctx, pusher);
 		}
 	};
 }//detail
@@ -126,7 +129,6 @@ public:
 	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
 		try{
 			size_t missing = sizeof...(Args) > sz ? sizeof...(Args) - sz : 0;
-		
 			stack_pusher pusher(ctx, missing);
 			if(missing){
 				if(missing > dflts_size){
@@ -137,6 +139,7 @@ public:
 				detail::dflt_unpacker<D, dflts_size != 0, 0>::unpack(dflts_size - missing, _d, ctx, pusher);
 				sz = sizeof...(Args);
 			}
+			
 		
 			return detail::caller<F, R, std::tuple<T>, std::tuple<Args...> >::call(sz-1, _f, ctx, detail::this_converter<T>::to_native(that, ctx));
 		}catch(const runtime_exception& e){
@@ -200,7 +203,12 @@ method_ptr create_native_method(std::string name, R(*f)(T, Args...), D d){
 
 template<typename R, typename T, typename... Args>
 method_ptr create_native_method(std::string name, R (T::*f)(Args...)){
-	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(std::move(name), f)));
+	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(std::move(name), std::mem_fn(f))));
+}
+
+template<class D, typename R, typename T, typename... Args>
+method_ptr create_native_method(std::string name, R (T::*f)(Args...), D d){
+	return method_ptr(new method(native_method<std::tuple<>, R, T*, Args...>(std::move(name), std::mem_fn(f), d)));
 }
 
 namespace detail{

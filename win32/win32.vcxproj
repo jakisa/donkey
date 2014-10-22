@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{88E1F7B7-3E2D-45A1-8E4E-B23386622D51}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>win32</RootNamespace>
+    <ProjectName>donkey</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)..\$(Configuration)Win32\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)..\$(Configuration)Win32\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\donkey;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\donkey;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\donkey\array_vtable.cpp" />
+    <ClCompile Include="..\donkey\compilers\branch_compilers.cpp" />
+    <ClCompile Include="..\donkey\compilers\class_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\expression_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\function_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\jump_compilers.cpp" />
+    <ClCompile Include="..\donkey\compilers\loop_compilers.cpp" />
+    <ClCompile Include="..\donkey\compilers\scope_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\statement_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\using_compiler.cpp" />
+    <ClCompile Include="..\donkey\compilers\variable_compiler.cpp" />
+    <ClCompile Include="..\donkey\core_vtables.cpp" />
+    <ClCompile Include="..\donkey\donkey.cpp" />
+    <ClCompile Include="..\donkey\donkey_object.cpp" />
+    <ClCompile Include="..\donkey\errors.cpp" />
+    <ClCompile Include="..\donkey\expressions.cpp" />
+    <ClCompile Include="..\donkey\expressions\operators.cpp" />
+    <ClCompile Include="..\donkey\expression_builder.cpp" />
+    <ClCompile Include="..\donkey\main.cpp" />
+    <ClCompile Include="..\donkey\module.cpp" />
+    <ClCompile Include="..\donkey\modules\containers\container.cpp" />
+    <ClCompile Include="..\donkey\modules\containers\containers_module.cpp" />
+    <ClCompile Include="..\donkey\modules\io\io_module.cpp" />
+    <ClCompile Include="..\donkey\module_bundle.cpp" />
+    <ClCompile Include="..\donkey\runtime_context.cpp" />
+    <ClCompile Include="..\donkey\string_vtable.cpp" />
+    <ClCompile Include="..\donkey\tokenizer.cpp" />
+    <ClCompile Include="..\donkey\variables.cpp" />
+    <ClCompile Include="..\donkey\vtable.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\donkey\compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\branch_compilers.hpp" />
+    <ClInclude Include="..\donkey\compilers\class_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\expression_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\function_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\jump_compilers.hpp" />
+    <ClInclude Include="..\donkey\compilers\loop_compilers.hpp" />
+    <ClInclude Include="..\donkey\compilers\scope_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\statement_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\using_compiler.hpp" />
+    <ClInclude Include="..\donkey\compilers\variable_compiler.hpp" />
+    <ClInclude Include="..\donkey\compiler_helpers.hpp" />
+    <ClInclude Include="..\donkey\config.hpp" />
+    <ClInclude Include="..\donkey\cpp\donkey_callback.hpp" />
+    <ClInclude Include="..\donkey\cpp\native_converter.hpp" />
+    <ClInclude Include="..\donkey\cpp\native_function.hpp" />
+    <ClInclude Include="..\donkey\cpp\native_module.hpp" />
+    <ClInclude Include="..\donkey\cpp\native_object.hpp" />
+    <ClInclude Include="..\donkey\donkey.hpp" />
+    <ClInclude Include="..\donkey\donkey_function.hpp" />
+    <ClInclude Include="..\donkey\donkey_object.hpp" />
+    <ClInclude Include="..\donkey\errors.hpp" />
+    <ClInclude Include="..\donkey\expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\arithmetic_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\assignment_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\core_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\functional_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\item_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\logical_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\null_check_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\operators.hpp" />
+    <ClInclude Include="..\donkey\expressions\relation_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\sequential_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\string_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\ternary_expressions.hpp" />
+    <ClInclude Include="..\donkey\expressions\unary_expressions.hpp" />
+    <ClInclude Include="..\donkey\expression_builder.hpp" />
+    <ClInclude Include="..\donkey\function.hpp" />
+    <ClInclude Include="..\donkey\helpers.hpp" />
+    <ClInclude Include="..\donkey\identifiers.hpp" />
+    <ClInclude Include="..\donkey\module.hpp" />
+    <ClInclude Include="..\donkey\modules\containers\container.hpp" />
+    <ClInclude Include="..\donkey\modules\containers\containers_module.hpp" />
+    <ClInclude Include="..\donkey\modules\io\io_module.hpp" />
+    <ClInclude Include="..\donkey\module_bundle.hpp" />
+    <ClInclude Include="..\donkey\runtime_context.hpp" />
+    <ClInclude Include="..\donkey\scope.hpp" />
+    <ClInclude Include="..\donkey\stack.hpp" />
+    <ClInclude Include="..\donkey\statements.hpp" />
+    <ClInclude Include="..\donkey\string_functions.hpp" />
+    <ClInclude Include="..\donkey\tokenizer.hpp" />
+    <ClInclude Include="..\donkey\variables.hpp" />
+    <ClInclude Include="..\donkey\vtable.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\donkey\dky\other.dky" />
+    <None Include="..\donkey\dky\test.dky" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

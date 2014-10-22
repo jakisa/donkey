@@ -39,7 +39,7 @@ identifier_ptr module::get_identifier(std::string name) const{
 	
 	auto fit = _public_functions.find(name);
 	if(fit != _public_functions.end()){
-		return identifier_ptr(new function_identifier(fit->first, code_address(_module_index, fit->second)));
+		return identifier_ptr(new function_identifier(fit->first, code_address::create(_module_index, fit->second)));
 	}
 	
 	auto git = _public_globals.find(name);
@@ -57,7 +57,7 @@ std::vector<identifier_ptr> module::get_all_public() const{
 		ret.push_back(identifier_ptr(new global_variable_identifier(p.first, _module_index, p.second)));
 	}
 	for(const auto& p: _public_functions){
-		ret.push_back(identifier_ptr(new function_identifier(p.first, code_address(_module_index, p.second))));
+		ret.push_back(identifier_ptr(new function_identifier(p.first, code_address::create(_module_index, p.second))));
 	}
 	for(const auto& p: _vtables){
 		if(p.second->is_public()){

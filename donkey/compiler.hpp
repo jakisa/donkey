@@ -10,11 +10,14 @@ namespace donkey{
 
 template<int dummy>
 struct tkeywords{
-	static const char* arr[];
+	enum{
+		count = 28
+	};
+	static const char* arr[count];
 };
 
 template<int dummy>
-const char* tkeywords<dummy>::arr[] = {
+const char* tkeywords<dummy>::arr[count] = {
 	"array",
 	"break",
 	"case",
@@ -52,7 +55,7 @@ inline bool str_less(const char* l, const char* r){
 }
 
 inline bool is_keyword(const std::string& name){
-	return std::binary_search(keywords::arr, keywords::arr + sizeof(keywords::arr)/sizeof(keywords::arr[0]), name.c_str(), &str_less);
+	return std::binary_search(keywords::arr, keywords::arr + keywords::count, name.c_str(), &str_less);
 }
 
 inline void parse(const std::string& token, tokenizer& parser){

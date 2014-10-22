@@ -9,6 +9,36 @@
 
 namespace donkey{
 
+static bool get_file(const std::string fname, std::vector<char>& v){
+#ifdef _MSC_VER
+	//FILE* fp = fopen(fname.c_str(), "rb");
+	FILE* fp = nullptr;
+	fopen_s(&fp, fname.c_str(), "rb");
+#else
+	FILE* fp = fopen(fname.c_str(), "rb");
+#endif
+
+	if(!fp){
+		return false;
+	}
+
+	fseek(fp, 0, SEEK_END);
+
+	size_t len = ftell(fp);
+
+	fseek(fp, 0, SEEK_SET);
+
+	v.clear();
+	v.resize(len);
+
+	if(fread(&v[0], 1, len, fp) != len){
+		fclose(fp);
+		return false;
+	}
+
+	return true;
+}
+
 
 class compiler::priv{
 private:
@@ -85,6 +115,10 @@ public:
 	priv(const char* root, size_t stack_size):
 		_root(root),
 		_modules(stack_size){
+
+		if(!_root.empty() && _root.back() != '/'){
+			_root += '/';
+		}
 	}
 	
 	void add_module_loader(const char* module_name, const module_loader& loader){
@@ -100,25 +134,11 @@ public:
 			return true;
 		}
 	
-		FILE* fp = fopen((_root + module_name + ".dky").c_str(), "rb");
-
-		if(!fp){
+		
+		std::vector<char> v;
+		if(!get_file(_root + module_name + ".dky", v)){
 			return false;
 		}
-
-		fseek(fp, 0, SEEK_END);
-
-		size_t len = ftell(fp);
-
-		fseek(fp, 0, SEEK_SET);
-
-		std::vector<char> v(len);
-
-		if(fread(&v[0], 1, len, fp) != len){
-			return false;
-		}
-
-		fclose(fp);
 		
 		std::unique_ptr<tokenizer> parser;
 		
@@ -126,7 +146,7 @@ public:
 		
 		try{
 			try{
-				parser.reset(new tokenizer(module_name, &v[0], &v[0] + len));
+				parser.reset(new tokenizer(module_name, &v[0], &v[0] + v.size()));
 				compile_module(*parser, module_name);
 				return true;
 			}catch(const exception_raw& e){

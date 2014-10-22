@@ -9,9 +9,11 @@
 # Build results
 [Dd]ebug/
 [Dd]ebug-linux/
+[Dd]ebugWin32/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]elease-linux/
+[Rr]eleaseWin32/
 x64/
 build/
 build*/

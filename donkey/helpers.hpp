@@ -107,7 +107,7 @@ inline std::string to_string(number d){
 	
 	for(int i = 0; i < 5 && after_dot; ++i){
 		after_dot *= 10;
-		int digit = floor(after_dot);
+		int digit = int(floor(after_dot));
 		after_dot_str += char('0' + digit);
 		after_dot -= digit;
 	}
