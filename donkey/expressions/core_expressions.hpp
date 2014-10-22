@@ -43,16 +43,22 @@ public:
 	}
 };
 
-class deref_expression final: public item_expression{
+template<class E>
+class deref_expression final: public item_expression<typename handle_version<E>::type>{
 private:
-	expression_ptr _e;
+	typedef typename handle_version<E>::type handle;
+	E _e;
 public:
-	deref_expression(expression_ptr e):
+	deref_expression(E e):
 		_e(e){
 	}
 	
-	virtual item_handle as_item(runtime_context& ctx) override{
-		return item_handle(_e->as_param(ctx), variable(number(0)));
+	virtual handle as_item(runtime_context& ctx) override{
+		return handle(_e->as_var(ctx), variable(number(0)));
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		_e->as_void(ctx);
 	}
 };
 
@@ -162,24 +168,59 @@ class member_expression final: public lvalue_expression{
 private:
 	std::string _name;
 	expression_ptr _that;
+	vtable* _vt;
+	method* _m;
+	size_t _f;
+	
+	void update_member(const variable& that){
+		vtable* vt = that.get_vtable();
+		
+		if(vt != _vt){
+			if(vt->has_field(_name)){
+				_f = vt->get_field_index(_name);
+				_m = nullptr;
+			}else if(vt->has_method(_name)){
+				_f = size_t(-1);
+				_m = vt->get_method(_name).get();
+			}
+			_vt = vt;
+		}
+	}
+	
 public:
 	member_expression(expression_ptr that, std::string name):
 		_name(name),
-		_that(that){
+		_that(that),
+		_vt(nullptr),
+		_m(nullptr),
+		_f(size_t(-1)){
 	}
 	
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->get_field(that, _name);
+		update_member(that);
+		if(_f == size_t(-1)){
+			runtime_error("field " + _name + " is not defined for " + that.get_full_type_name());
+		}
+		return that.nth_field(_f);
 	}
 	
 	virtual variable call(runtime_context &ctx, size_t params_size) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->call_member(that, ctx, params_size, _name);
+		update_member(that);
+		
+		if(_m){
+			return (*_m)(that, ctx, params_size);
+		}else if(_f != size_t(-1)){
+			return that.nth_field(_f).call(ctx, params_size);
+		}else{
+			runtime_error("member " + _name + " is not defined for " + that.get_full_type_name());
+			return variable();
+		}
 	}
 	
 	virtual void as_void(runtime_context& ctx) override{
-		as_param(ctx);
+		as_lvalue(ctx);
 	}
 	
 	virtual number as_number(runtime_context& ctx) override{
@@ -209,7 +250,7 @@ public:
 
 	virtual variable& as_lvalue(runtime_context& ctx) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->get_field(that, _type, _idx);
+		return that.get_vtable()->get_field(that, _type, _idx);
 	}
 };
 
@@ -227,7 +268,7 @@ public:
 	}
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
 		variable that = _that->as_param(ctx);
-		return get_vtable(ctx, that)->call_method(that, ctx, params_size, _type, _m);
+		return that.get_vtable()->call_method(that, ctx, params_size, _type, _m);
 	}
 	virtual std::string as_string(runtime_context&) override{
 		runtime_error("methods cannot be used as objects");

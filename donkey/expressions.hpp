@@ -17,6 +17,7 @@ enum class expression_type{
 	lvalue,
 	variant,
 	item,
+	litem,
 };
 
 
@@ -134,38 +135,78 @@ public:
 
 typedef std::shared_ptr<lvalue_expression> lvalue_expression_ptr;
 
-typedef std::pair<variable, variable> item_handle;
+struct item_handle{
+	item_handle(const item_handle& orig) = delete;
+	void operator=(const item_handle& orig) = delete;
+	
+	typedef item_handle&& rvalue;
 
-inline void set_item(runtime_context& ctx, const variable& that, variable idx, variable&& value){
-	stack_pusher pusher(ctx);
+	variable that;
+	variable index;
+	item_handle(variable&& that, variable&& index):
+		that(std::move(that)),
+		index(std::move(index)){
+	}
+	
+	
+	item_handle(item_handle&& orig):
+		that(std::move(orig.that)),
+		index(std::move(orig.index)){
+	}
+};
+
+struct l_item_handle{
+	typedef l_item_handle&& rvalue;
+
+	variable& that;
+	variable index;
+	l_item_handle(variable& that, variable&& index):
+		that(that),
+		index(std::move(index)){
+	}
+	
+	l_item_handle(const l_item_handle& orig):
+		that(orig.that),
+		index(orig.index){
+	}
+	
+	l_item_handle(l_item_handle&& orig):
+		that(orig.that),
+		index(std::move(orig.index)){
+	}
+};
+
+inline void set_item(runtime_context &ctx, const variable& that, variable&& index, variable&& value){
+	stack_pusher pusher(ctx, 2);
 	
 	pusher.push(std::move(value));
-	pusher.push(std::move(idx));
+	pusher.push(std::move(index));
 	
-	get_vtable(ctx, that)->call_member(that, ctx, 2, "opSet");
+	that.get_vtable()->call_setter(that, ctx, 2);
 }
 
-inline variable get_item(runtime_context &ctx, const variable& that, variable idx){
-	stack_pusher pusher(ctx);
+inline variable get_item(runtime_context &ctx, const variable& that, variable&& index){
+	stack_pusher pusher(ctx, 1);
 	
-	pusher.push(std::move(idx));
+	pusher.push(std::move(index));
 	
-	return get_vtable(ctx, that)->call_member(that, ctx, 1, "opGet");
+	return that.get_vtable()->call_getter(that, ctx, 1);
 }
 
+template<class Handle>
 class item_expression: public expression{
 protected:
 	item_expression():
-		expression(expression_type::item){
+		expression(std::is_same<Handle, item_handle>::value ? expression_type::item : expression_type::litem){
 	}
 	
 	variable get_this_item(runtime_context& ctx){
-		item_handle i = as_item(ctx);
-		return get_item(ctx, i.first, std::move(i.second));
+		Handle i = as_item(ctx);
+		return get_item(ctx, i.that, std::move(i.index));
 	}
 	
 public:
-	virtual item_handle as_item(runtime_context&) = 0;
+	virtual Handle as_item(runtime_context&) = 0;
 	
 	virtual variable as_param(runtime_context& ctx) override{
 		return get_this_item(ctx);
@@ -183,17 +224,29 @@ public:
 		return get_this_item(ctx).call(ctx, params_size);
 	}
 	
-	virtual void as_void(runtime_context& ctx) override{
-		get_this_item(ctx);
-	}
-	
 	virtual bool as_bool(runtime_context& ctx) override{
 		return get_this_item(ctx).to_bool(ctx);
 	}
 };
 
 
-typedef std::shared_ptr<item_expression> item_expression_ptr;
+typedef std::shared_ptr<item_expression<item_handle> > item_expression_ptr;
+typedef std::shared_ptr<item_expression<l_item_handle> > l_item_expression_ptr;
+
+template<class Expression>
+struct handle_version{
+	typedef item_handle type;
+};
+
+template<>
+struct handle_version<lvalue_expression_ptr>{
+	typedef l_item_handle type;
+};
+
+template<typename Handle>
+struct handle_version<std::shared_ptr<item_expression<Handle> > >{
+	typedef Handle type;
+};
 
 enum class oper{
 	none                 =   0,

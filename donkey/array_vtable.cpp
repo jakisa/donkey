@@ -40,15 +40,38 @@ public:
 		return idx < 0 ? variable() : idx >= _cnt ? variable() : _data[idx];
 	}
 	
-	void set_item_unsafe(variable v, integer idx){
-		_data[idx] = v;
+	void set_all(variable v){
+		for(integer i = 0; i < _cnt; ++i){
+			_data[i] = v;
+		}
+	}
+	
+	void set_item_unsafe(variable&& v, integer idx){
+		_data[idx] = std::move(v);
 	}
 	
 	void set_item(variable v, integer idx){
 		if(idx < 0 || idx >= _cnt){
 			return;
 		}
-		set_item_unsafe(v, idx);
+		_data[idx] = std::move(v);
+	}
+	
+	variable mul(integer sz){
+		sz *= _cnt;
+		std::unique_ptr<variable[]> p(new variable[sz]);
+		for(integer i = 0, j = 0; i < sz; ++i, ++j){
+			if(j == _cnt){
+				j = 0;
+			}
+			p[i] = _data[j];
+		}
+		
+		variable ret(new array(p.get(), sz));
+		
+		p.release();
+		
+		return ret;
 	}
 	
 	static variable clone(const variable& that, runtime_context& ctx, size_t){
@@ -108,6 +131,9 @@ vtable_ptr array_vtable(){
 		methods.emplace("size", create_native_method("array::size", &array::size));
 		methods.emplace("opGet", create_native_method("array::opGet", &array::get_item));
 		methods.emplace("opSet", create_native_method("array::opSet", &array::set_item));
+		methods.emplace("setAll", create_native_method("array::setAll", &array::set_all));
+		methods.emplace("opMul", create_native_method("array::opMul", &array::mul));
+		methods.emplace("opMulInv", create_native_method("array::opMulInv", &array::mul));
 		
 		ret.reset(new vtable("", "array", &create_array, std::move(methods), true));
 		

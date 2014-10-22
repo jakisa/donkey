@@ -127,29 +127,40 @@ public:\
 };
 
 #define ITEM_PRE_OPERATOR(name, op)\
-class name##_expression final: public item_expression{\
+template<class E>\
+class name##_expression final: public item_expression<typename handle_version<E>::type>{\
 private:\
-	item_expression_ptr _e;\
+	typedef typename handle_version<E>::type handle;\
+	E _e;\
 public:\
-	name##_expression(item_expression_ptr e):\
+	name##_expression(E e):\
 		_e(e){\
 	}\
 \
-	virtual item_handle as_item(runtime_context& ctx) override{\
-		item_handle ret = _e->as_item(ctx);\
-		variable v = get_item(ctx, ret.first, ret.second);\
+	virtual handle as_item(runtime_context& ctx) override{\
+		handle ret = _e->as_item(ctx);\
+		variable v = get_item(ctx, ret.that, variable(ret.index));\
 		op(v, ctx);\
-		set_item(ctx, ret.first, ret.second, std::move(v));\
+		set_item(ctx, ret.that, variable(ret.index), std::move(v));\
 		return ret;\
+	}\
+\
+	virtual void as_void(runtime_context& ctx) override{\
+		handle ret = _e->as_item(ctx);\
+		variable v = get_item(ctx, ret.that, variable(ret.index));\
+		op(v, ctx);\
+		set_item(ctx, ret.that, std::move(ret.index), std::move(v));\
 	}\
 };
 
 #define ITEM_POST_OPERATOR(name, op)\
+template<class E>\
 class name##_expression final: public expression{\
 private:\
-	item_expression_ptr _e;\
+	typedef typename handle_version<E>::type handle;\
+	E _e;\
 public:\
-	name##_expression(item_expression_ptr e):\
+	name##_expression(E e):\
 		expression(expression_type::variant),\
 		_e(e){\
 	}\
@@ -159,10 +170,10 @@ public:\
 	}\
 \
 	virtual variable as_param(runtime_context& ctx) override{\
-		item_handle handle = _e->as_item(ctx);\
-		variable v = get_item(ctx, handle.first, handle.second);\
+		handle h = _e->as_item(ctx);\
+		variable v = get_item(ctx, h.that, variable(h.index));\
 		variable ret = op(v, ctx);\
-		set_item(ctx, handle.first, handle.second, std::move(v));\
+		set_item(ctx, h.that, std::move(h.index), std::move(v));\
 		return ret;\
 	}\
 \
@@ -176,24 +187,32 @@ public:\
 };
 
 #define ITEM_ASSIGN_OPERATOR(name, op)\
-template<class E2>\
-class name##_expression final: public item_expression{\
+template<class E1, class E2>\
+class name##_expression final: public item_expression<typename handle_version<E1>::type>{\
 private:\
-	item_expression_ptr _e1;\
+	typedef typename handle_version<E1>::type handle;\
+	E1 _e1;\
 	E2 _e2;\
 public:\
-	name##_expression(item_expression_ptr e1, E2 e2):\
+	name##_expression(E1 e1, E2 e2):\
 		_e1(e1),\
 		_e2(e2){\
 	}\
 \
-	virtual item_handle as_item(runtime_context& ctx) override{\
-		item_handle ret = _e1->as_item(ctx);\
-		variable v = get_item(ctx, ret.first, ret.second);\
+	virtual handle as_item(runtime_context& ctx) override{\
+		handle ret = _e1->as_item(ctx);\
+		variable v = get_item(ctx, ret.that, variable(ret.index));\
 		op(v, _e2->as_var(ctx), ctx);\
 \
-		set_item(ctx, ret.first, ret.second, std::move(v));\
+		set_item(ctx, ret.that, variable(ret.index), std::move(v));\
 		return ret;\
+	}\
+	virtual void as_void(runtime_context& ctx) override{\
+		handle ret = _e1->as_item(ctx);\
+		variable v = get_item(ctx, ret.that, variable(ret.index));\
+		op(v, _e2->as_var(ctx), ctx);\
+\
+		set_item(ctx, ret.that, std::move(ret.index), std::move(v));\
 	}\
 };
 

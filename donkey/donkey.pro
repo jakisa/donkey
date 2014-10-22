@@ -35,7 +35,9 @@ SOURCES += main.cpp \
     array_vtable.cpp \
     modules/containers/containers_module.cpp \
     modules/containers/container.cpp \
-    expressions/operators.cpp
+    expressions/operators.cpp \
+    vtable.cpp \
+    errors.cpp
 
 HEADERS += \
     errors.hpp \

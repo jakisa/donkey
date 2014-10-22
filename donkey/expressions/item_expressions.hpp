@@ -8,18 +8,24 @@
 
 namespace donkey{
 
-class index_expression final: public item_expression{
+template<class E>
+class index_expression final: public item_expression<typename handle_version<E>::type>{
 private:
-	expression_ptr _e1;
+	typedef typename handle_version<E>::type handle;
+	E _e1;
 	expression_ptr _e2;
 public:
-	index_expression(expression_ptr e1, expression_ptr e2):
+	index_expression(E e1, expression_ptr e2):
 		_e1(e1),
 		_e2(e2){
 	}
 	
-	virtual item_handle as_item(runtime_context& ctx) override{
-		return item_handle(_e1->as_param(ctx), _e2->as_param(ctx));
+	virtual handle as_item(runtime_context& ctx) override{
+		return handle(_e1->as_var(ctx), _e2->as_param(ctx));
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		_e1->as_void(ctx), _e2->as_void(ctx);
 	}
 };
 
@@ -28,41 +34,56 @@ ITEM_POST_OPERATOR(item_post_inc, post_inc)
 ITEM_PRE_OPERATOR(item_pre_dec, pre_dec)
 ITEM_POST_OPERATOR(item_post_dec, post_dec)
 
-class item_assignment_expression final: public item_expression{
+template<class E>
+class item_assignment_expression final: public item_expression<typename handle_version<E>::type>{
 private:
-	item_expression_ptr _e1;
+	typedef typename handle_version<E>::type handle;
+	E _e1;
 	expression_ptr _e2;
 public:
-	item_assignment_expression(item_expression_ptr e1, expression_ptr e2):
+	item_assignment_expression(E e1, expression_ptr e2):
 		_e1(e1),
 		_e2(e2){
 	}
 
-	virtual item_handle as_item(runtime_context& ctx) override{
-		item_handle ret = _e1->as_item(ctx);
-		set_item(ctx, ret.first, ret.second, _e2->as_param(ctx));
+	virtual handle as_item(runtime_context& ctx) override{
+		handle ret = _e1->as_item(ctx);
+		set_item(ctx, ret.that, variable(ret.index), _e2->as_param(ctx));
 		return ret;
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		handle ret = _e1->as_item(ctx);
+		set_item(ctx, ret.that, std::move(ret.index), _e2->as_param(ctx));
 	}
 };
 
 ITEM_ASSIGN_OPERATOR(item_mul_assignment, mul_assign)
 ITEM_ASSIGN_OPERATOR(item_div_assignment, div_assign)
 
-class item_idiv_assignment_expression final: public item_expression{
+template<class E>
+class item_idiv_assignment_expression final: public item_expression<typename handle_version<E>::type>{
 private:
-	item_expression_ptr _e1;
+	typedef typename handle_version<E>::type handle;
+	E _e1;
 	expression_ptr _e2;
 public:
-	item_idiv_assignment_expression(item_expression_ptr e1, expression_ptr e2):
+	item_idiv_assignment_expression(E e1, expression_ptr e2):
 		_e1(e1),
 		_e2(e2){
 	}
 
-	virtual item_handle as_item(runtime_context& ctx) override{
-		item_handle ret = _e1->as_item(ctx);
-		variable v = get_item(ctx, ret.first, ret.second);
-		set_item(ctx, ret.first, ret.second, variable(integer(v.as_number()) / integer(_e2->as_number(ctx))));
+	virtual handle as_item(runtime_context& ctx) override{
+		handle ret = _e1->as_item(ctx);
+		variable v = get_item(ctx, ret.that, variable(ret.index));
+		set_item(ctx, ret.that, variable(ret.index), variable(integer(v.as_number()) / integer(_e2->as_number(ctx))));
 		return ret;
+	}
+	
+	virtual void as_void(runtime_context& ctx) override{
+		handle ret = _e1->as_item(ctx);
+		number n = get_item(ctx, ret.that, variable(ret.index)).as_number();
+		set_item(ctx, ret.that, std::move(ret.index), variable(integer(n) / integer(_e2->as_number(ctx))));
 	}
 };
 

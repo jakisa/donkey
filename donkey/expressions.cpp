@@ -22,7 +22,11 @@ inline lvalue_expression_ptr to_l(expression_ptr e){
 }
 
 inline item_expression_ptr to_item(expression_ptr e){
-	return std::static_pointer_cast<item_expression>(e);
+	return std::static_pointer_cast<item_expression<item_handle> >(e);
+}
+
+inline l_item_expression_ptr to_litem(expression_ptr e){
+	return std::static_pointer_cast<item_expression<l_item_handle> >(e);
 }
 
 template<template<typename> class E>
@@ -47,9 +51,13 @@ inline expression_ptr build_unary_l(expression_ptr e1){
 	return expression_ptr(new E(to_l(e1)));
 }
 
-template<class E>
+template<template<typename> class E>
 inline expression_ptr build_unary_item(expression_ptr e1){
-	return expression_ptr(new E(to_item(e1)));
+	if(e1->get_type() == expression_type::item){
+		return expression_ptr(new E<item_expression_ptr>(to_item(e1)));
+	}else{
+		return expression_ptr(new E<l_item_expression_ptr>(to_litem(e1)));
+	}
 }
 
 
@@ -95,12 +103,29 @@ inline expression_ptr build_binary_l(expression_ptr e1, expression_ptr e2){
 	return expression_ptr(new E(to_l(e1), e2));
 }
 
-template<template<typename> class E>
+template<template<typename, typename> class E>
 inline expression_ptr build_binary_item(expression_ptr e1, expression_ptr e2){
 	if(e2->get_type() == expression_type::lvalue){
-		return expression_ptr(new E<lvalue_expression_ptr>(to_item(e1), to_l(e2)));
+		if(e1->get_type() == expression_type::item){
+			return expression_ptr(new E<item_expression_ptr, lvalue_expression_ptr>(to_item(e1), to_l(e2)));
+		}else{
+			return expression_ptr(new E<l_item_expression_ptr, lvalue_expression_ptr>(to_litem(e1), to_l(e2)));
+		}
 	}else{
-		return expression_ptr(new E<expression_ptr>(to_item(e1), e2));
+		if(e1->get_type() == expression_type::item){
+			return expression_ptr(new E<item_expression_ptr, expression_ptr>(to_item(e1), e2));
+		}else{
+			return expression_ptr(new E<l_item_expression_ptr, expression_ptr>(to_litem(e1), e2));
+		}
+	}
+}
+
+template<template<typename> class E>
+inline expression_ptr build_binary_item(expression_ptr e1, expression_ptr e2){
+	if(e1->get_type() == expression_type::item){
+		return expression_ptr(new E<item_expression_ptr>(to_item(e1), e2));
+	}else{
+		return expression_ptr(new E<l_item_expression_ptr>(to_litem(e1), e2));
 	}
 }
 
@@ -115,7 +140,7 @@ inline expression_ptr build_ternary(expression_ptr e1, expression_ptr e2, expres
 }
 
 expression_ptr build_unary_expression(oper op, expression_ptr e){
-	if(e->get_type() == expression_type::item){
+	if(e->get_type() == expression_type::item || e->get_type() == expression_type::litem){
 		switch(op){
 			case oper::pre_dec:
 				return build_unary_item<item_pre_dec_expression>(e);
@@ -154,7 +179,7 @@ expression_ptr build_unary_expression(oper op, expression_ptr e){
 }
 
 expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_ptr e2){
-	if(e1->get_type() == expression_type::item){
+	if(e1->get_type() == expression_type::item || e1->get_type() == expression_type::litem){
 		switch(op){
 			case oper::fallback_assignment:
 				return build_binary_item<item_fallback_assignment_expression>(e1, e2);
@@ -262,7 +287,13 @@ expression_ptr build_binary_expression(oper op, expression_ptr e1, expression_pt
 		case oper::mul:
 			return build_binary<mul_expression>(e1, e2);
 		case oper::subscript:
-			return build_binary<index_expression>(e1, e2);
+			{
+				if(e1->get_type() == expression_type::lvalue){
+					return expression_ptr(new index_expression<lvalue_expression_ptr>(to_l(e1), e2));
+				}else{
+					return expression_ptr(new index_expression<expression_ptr>(e1, e2));
+				}
+			}
 		default:
 			return expression_ptr();
 	}

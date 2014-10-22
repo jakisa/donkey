@@ -60,7 +60,7 @@ public:
 		_locals_count(locals_count){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _locals_count);
 		
 		pusher.push_default(_locals_count);
 		
@@ -383,7 +383,7 @@ public:
 		_params(orig._params){
 	}
 	statement_retval operator()(runtime_context& ctx) const{
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _params.size());
 		for(size_t i = 0; i != _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));
 		}

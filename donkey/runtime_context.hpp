@@ -35,6 +35,10 @@ private:
 		_stack.push(std::move(v));
 	}
 	
+	void check_size(size_t sz){
+		_stack.check_size(sz);
+	}
+	
 	void pop(size_t cnt){
 		_stack.pop(cnt);
 	}
@@ -104,9 +108,10 @@ private:
 	runtime_context& _ctx;
 	size_t _cnt;
 public:
-	stack_pusher(runtime_context& _ctx):
+	stack_pusher(runtime_context& _ctx, size_t sz):
 		_ctx(_ctx),
 		_cnt(0){
+		_ctx.check_size(sz);
 	}
 	
 	void push(variable&& v){
@@ -179,7 +184,7 @@ private:
 public:
 	function_stack_manipulator(runtime_context& ctx, size_t expected_params, size_t passed_params, const variable* that = nullptr):
 		_remover(ctx, expected_params < passed_params ? passed_params - expected_params : 0),
-		_pusher(ctx),
+		_pusher(ctx, expected_params > passed_params ? expected_params - passed_params + 1 : 1),
 		_ctx(ctx),
 		_function_stack_bottom(ctx._function_stack_bottom),
 		_retval_stack_index(ctx._retval_stack_index),
@@ -204,9 +209,6 @@ public:
 };
 
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size);
-	
-vtable* get_vtable(runtime_context& ctx, std::string module_name, std::string name);
-vtable* get_vtable(runtime_context& ctx, const variable& v);
 
 variable& global_variable(runtime_context& ctx, uint32_t module_index, uint32_t var_index);
 

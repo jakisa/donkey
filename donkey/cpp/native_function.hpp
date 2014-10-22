@@ -84,9 +84,10 @@ public:
 
 	variable operator()(runtime_context& ctx, size_t sz){
 		try{
-			stack_pusher pusher(ctx);
-			if(sz < sizeof...(Args)){
-				size_t missing = sizeof...(Args) - sz;
+			size_t missing = sizeof...(Args) > sz ? sizeof...(Args) - sz : 0;
+		
+			stack_pusher pusher(ctx, missing);
+			if(missing){
 				if(missing > dflts_size){
 					runtime_error("not enough function parameters provided");
 					return variable();
@@ -124,9 +125,10 @@ public:
 
 	variable operator()(const variable& that, runtime_context& ctx, size_t sz){
 		try{
-			stack_pusher pusher(ctx);
-			if(sz < sizeof...(Args)){
-				size_t missing = sizeof...(Args) - sz;
+			size_t missing = sizeof...(Args) > sz ? sizeof...(Args) - sz : 0;
+		
+			stack_pusher pusher(ctx, missing);
+			if(missing){
 				if(missing > dflts_size){
 					runtime_error("not enough function parameters provided");
 					return variable();

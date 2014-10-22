@@ -18,7 +18,7 @@ static const char* two_letter_operators[] = {
 	"--",
 	"-=",
 	"->",
-	".."
+	"..",
 	"/=",
 	"::",
 	"<<",

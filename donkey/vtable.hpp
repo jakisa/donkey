@@ -28,19 +28,19 @@ private:
 	std::unordered_map<std::string, size_t> _fields;
 	method_ptr _constructor;
 	method_ptr _destructor;
+	method_ptr _getter;
+	method_ptr _setter;
 	size_t _fields_size;
 	bool _is_public;
 	bool _is_final;
 	bool _is_native;
 	function _creator;
 	
-	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
-		auto it = _fields.find(name);
-		if(it == _fields.end()){
-			runtime_error("method " + name + " is not defined for " + _full_name);
-		}
-		return that.nth_field(it->second).call(ctx, params_size);
-	}
+	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const;
+	
+	void update_getter();
+	
+	void update_setter();
 	
 public:
 	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor,
@@ -57,6 +57,9 @@ public:
 		_is_public(is_public),
 		_is_final(is_final),
 		_is_native(false){
+		
+		update_getter();
+		update_setter();
 	}
 	
 	vtable(std::string&& module_name, std::string&& name, function creator, std::unordered_map<std::string, method_ptr>&& methods, bool is_public):
@@ -69,74 +72,26 @@ public:
 		_is_final(true),
 		_is_native(true),
 		_creator(creator){
+		
+		update_getter();
+		update_setter();
 	}
 	
-	variable create(runtime_context& ctx, size_t params_size) const{
-		if(_creator){
-			return _creator(ctx, params_size);
-		}
-		return variable();
-	}
+	variable create(runtime_context& ctx, size_t params_size) const;
 	
-	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
-		if(_constructor && !ctx.is_constructed(_full_name)){
-			(*_constructor)(that, ctx, params_size);
-			ctx.set_constructed(_full_name);
-		}
-	}
+	void call_base_constructor(const variable& that, runtime_context& ctx, size_t params_size) const;
 	
-	void call_constructor(const variable& that, runtime_context& ctx, size_t params_size) const{
-		if(_constructor){
-			constructor_stack_manipulator _(ctx);
-			(*_constructor)(that, ctx, params_size);
-		}
-	}
+	void call_constructor(const variable& that, runtime_context& ctx, size_t params_size) const;
 	
-	void call_base_destructor(const variable& that, runtime_context& ctx) const{
-		if(_destructor && !ctx.is_destroyed(_full_name)){
-			(*_destructor)(that, ctx, 0);
-			ctx.set_destroyed(_full_name);
-		}
-	}
+	void call_base_destructor(const variable& that, runtime_context& ctx) const;
 	
-	void call_destructor(const variable& that, runtime_context& ctx) const{
-		if(_destructor){
-			destructor_stack_manipulator _(ctx);
-			(*_destructor)(that, ctx, 0);
-		}
-	}
+	void call_destructor(const variable& that, runtime_context& ctx) const;
 
-	variable call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
-		auto it = _methods.find(name);
-		if(it == _methods.end()){
-			return call_field(that, ctx, params_size, name);
-		}
-		return (*it->second)(that, ctx, params_size);
-	}
+	variable call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const;
 	
-	bool try_call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name, variable& rslt) const{
-		auto mit = _methods.find(name);
-		if(mit != _methods.end()){
-			rslt = (*mit->second)(that, ctx, params_size);
-			return true;
-		}
-		
-		auto fit = _fields.find(name);
-		if(fit != _fields.end()){
-			rslt = that.nth_field(fit->second).call(ctx, params_size);
-			return true;
-		}
-		
-		return false;
-	}
+	bool try_call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name, variable& rslt) const;
 	
-	variable& get_field(const variable& that, const std::string& name) const{
-		auto it = _fields.find(name);
-		if(it == _fields.end()){
-			runtime_error("field " + name + " is not defined for " + _full_name);
-		}
-		return that.nth_field(it->second);
-	}
+	variable& get_field(const variable& that, const std::string& name) const;
 	
 	variable call_method(const variable& that, runtime_context& ctx, size_t params_size, const std::string& type, method& m){
 		if(_full_name != type && _bases.find(type) == _bases.end()){
@@ -156,6 +111,22 @@ public:
 		}
 		
 		return that.nth_field(it->second.data_begin + idx);
+	}
+	
+	variable call_getter(const variable& that, runtime_context& ctx, size_t params_size){
+		if(!_getter){
+			runtime_error("method opGet is not defined for " + _full_name);
+		}
+		
+		return (*_getter)(that, ctx, params_size);
+	}
+	
+	void call_setter(const variable& that, runtime_context& ctx, size_t params_size){
+		if(!_setter){
+			runtime_error("method opSet is not defined for " + _full_name);
+		}
+		
+		(*_setter)(that, ctx, params_size);
 	}
 	
 	bool has_member(const std::string& name) const{
@@ -182,42 +153,7 @@ public:
 		return _fields_size;
 	}
 	
-	void derive_from(const vtable& base){
-		if(_bases.find(base._full_name) != _bases.end()){
-			return;
-		}
-		
-		size_t base_begin = _fields_size;
-		
-		_bases[base._full_name] = base_class{&base, base_begin};
-		
-		for(const auto& p: base._bases){
-			_bases.insert(std::unordered_map<std::string, base_class>::value_type(p.first, base_class{p.second.vt, base_begin + p.second.data_begin}));
-		}
-		
-		_fields_size += base._fields_size;
-		
-		for(const auto& p: base._methods){
-			if(_methods.find(p.first) != _methods.end()){
-				continue;
-			}
-			if(_fields.find(p.first) != _fields.end()){
-				continue;
-			}
-			_methods[p.first] = p.second;
-		}
-		
-		for(const auto& p: base._fields){
-			if(_methods.find(p.first) != _methods.end()){
-				continue;
-			}
-			if(_fields.find(p.first) != _fields.end()){
-				continue;
-			}
-			
-			_fields[p.first] = base_begin + p.second;
-		}
-	}
+	void derive_from(const vtable& base);
 	
 	const std::string& get_name() const{
 		return _name;
@@ -231,13 +167,7 @@ public:
 		return _full_name;
 	}
 	
-	std::vector<const vtable*> get_bases() const{
-		std::vector<const vtable*> ret;
-		for(const auto& p: _bases){
-			ret.push_back(p.second.vt);
-		}
-		return ret;
-	}
+	std::vector<const vtable*> get_bases() const;
 	
 	bool is_public() const{
 		return _is_public;

@@ -28,15 +28,15 @@ public:
 	
 	void add_size(size_t sz){
 		_sz += sz;
-		if(_sz > _cap){
+	}
+	
+	void check_size(size_t sz){
+		if(_sz + sz > _cap){
 			runtime_error("stack overflow");
 		}
 	}
 	
 	void push(variable&& v){
-		if(_sz >= _cap){
-			runtime_error("stack overflow");
-		}
 		_v[_sz++] = std::move(v);
 	}
 	

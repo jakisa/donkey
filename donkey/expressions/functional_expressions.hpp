@@ -40,7 +40,7 @@ public:
 	virtual variable as_param(runtime_context& ctx) final override{
 		std::vector<variable*> refs(_params.size());
 	
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _params.size());
 		
 		for(size_t i = 0; i < _params.size(); ++i){
 			if(_byref[i]){
@@ -97,7 +97,7 @@ public:
 	}
 
 	virtual variable as_param(runtime_context& ctx) final override{
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _params.size());
 		
 		for(size_t i = 0; i < _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));
@@ -123,7 +123,7 @@ private:
 	std::vector<expression_ptr> _params;
 	
 	void init(variable& that, runtime_context& ctx){
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _params.size());
 	
 		for(size_t i = 0; i < _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));
@@ -171,7 +171,7 @@ private:
 	std::vector<expression_ptr> _params;
 	
 	variable create(runtime_context& ctx){
-		stack_pusher pusher(ctx);
+		stack_pusher pusher(ctx, _params.size());
 	
 		for(size_t i = 0; i < _params.size(); ++i){
 			pusher.push(_params[i]->as_param(ctx));

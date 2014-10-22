@@ -6,36 +6,41 @@ namespace donkey{
 
 #define UNARY_SIMPLE(name, op)\
 variable name##_full(const variable& l, runtime_context& ctx){\
-	return l.get_vtable()->call_member(l, ctx, 1, "op"#op);\
+	static const std::string method_name("op"#op);\
+	return l.get_vtable()->call_member(l, ctx, 1, method_name);\
 }
 
 #define UNARY_LVALUE(name, op)\
 void name##_full(variable& l, runtime_context& ctx){\
-	l.get_vtable()->call_member(l, ctx, 1, "op"#op);\
+	static const std::string method_name("op"#op);\
+	l.get_vtable()->call_member(l, ctx, 1, method_name);\
 }
 
 #define BINARY_SIMPLE(name, op)\
 variable name##_full(const variable& l, const variable& r, runtime_context& ctx){\
-	stack_pusher pusher(ctx);\
+	static const std::string method_name("op"#op);\
+	stack_pusher pusher(ctx, 1);\
 	pusher.push(variable(r));\
 \
-	return l.get_vtable()->call_member(l, ctx, 1, "op"#op);\
+	return l.get_vtable()->call_member(l, ctx, 1, method_name);\
 }
 
 #define BINARY_DOUBLE(name, op)\
 variable name##_full(const variable& l, const variable& r, runtime_context& ctx){\
 	variable ret;\
 	{\
-		stack_pusher pusher(ctx);\
+		static const std::string method_name("op"#op);\
+		stack_pusher pusher(ctx, 1);\
 		pusher.push(variable(r));\
-		if(l.get_vtable()->try_call_member(l, ctx, 1, "op"#op, ret)){\
+		if(l.get_vtable()->try_call_member(l, ctx, 1, method_name, ret)){\
 			return ret;\
 		}\
 	}\
 	{\
-		stack_pusher pusher(ctx);\
+		static const std::string method_name("op"#op"Inv");\
+		stack_pusher pusher(ctx, 1);\
 		pusher.push(variable(l));\
-		if(r.get_vtable()->try_call_member(r, ctx, 1, "op"#op"Inv", ret)){\
+		if(r.get_vtable()->try_call_member(r, ctx, 1, method_name, ret)){\
 			return ret;\
 		}\
 	}\
@@ -46,10 +51,11 @@ variable name##_full(const variable& l, const variable& r, runtime_context& ctx)
 
 #define BINARY_LVALUE(name, op)\
 void name##_full(variable& l, const variable& r, runtime_context& ctx){\
-	stack_pusher pusher(ctx);\
+	static const std::string method_name("op"#op);\
+	stack_pusher pusher(ctx, 1);\
 	pusher.push(variable(r));\
 \
-	l.get_vtable()->call_member(l, ctx, 1, "op"#op);\
+	l.get_vtable()->call_member(l, ctx, 1, method_name);\
 }
 
 
