@@ -195,19 +195,6 @@ public:
 	}
 };
 
-/*
-inline constexpr size_t max(size_t x, size_t y){
-	return x > y ? x : y;
-}
-
-
-inline constexpr size_t stack_var_union_size(){
-	return max(
-		max(sizeof(number), sizeof(code_address)),
-		sizeof(heap_header*)
-	);
-}*/
-
 variable call_function_by_address(code_address addr, runtime_context& ctx, size_t params_size); //runtime_context.cpp
 
 typedef std::shared_ptr<vtable> vtable_ptr;
@@ -222,7 +209,7 @@ private:
 		number _n;
 		code_address _f;
 		heap_header* _h_ptr;
-		std::array<char, max_size(number, code_address, heap_header)> _;
+		std::array<char, max_size(number, code_address, heap_header*)> _;
 	};
 #undef max_size
 	var_type _vt;
