@@ -28,8 +28,6 @@ private:
 	std::unordered_map<std::string, size_t> _fields;
 	method_ptr _constructor;
 	method_ptr _destructor;
-	method_ptr _getter;
-	method_ptr _setter;
 	size_t _fields_size;
 	bool _is_public;
 	bool _is_final;
@@ -38,44 +36,32 @@ private:
 	
 	variable call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const;
 	
-	void update_getter();
+	void update_predefined_methods();
 	
-	void update_setter();
-	
+	typedef method* pmethod;
 public:
+	pmethod opGet, opSet, opCall,
+	        opEQ, opNE,
+	        opLT, opGT, opLE, opGE,
+	        opLTInv, opGTInv, opLEInv, opGEInv,
+	        opNot,
+	        opAnd, opOr, opXor,
+	        opAndInv, opOrInv, opXorInv,
+	        opAndSet, opOrSet, opXorSet,
+	        opPreInc, opPreDec,
+	        opPostInc, opPostDec,
+	        opPos, opNeg,
+	        opMul, opDiv, opMod, opAdd, opSub, opSL, opSR,
+	        opMulInv, opDivInv, opModInv, opAddInv, opSubInv, opSLInv, opSRInv,
+	        opMulSet, opDivSet, opModSet, opAddSet, opSubSet, opSLSet, opSRSet;
+	
+	pmethod clone, strong, weak, toString, toBool;
+
 	vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor,
 	       std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields,
-	       size_t fields_size, bool is_public, bool is_final):
-		_full_name(module_name.empty() ? name : module_name + "::" + name),
-		_module_name(std::move(module_name)),
-		_name(std::move(name)),
-		_methods(std::move(methods)),
-		_fields(std::move(fields)),
-		_constructor(constructor),
-		_destructor(destructor),
-		_fields_size(fields_size),
-		_is_public(is_public),
-		_is_final(is_final),
-		_is_native(false){
-		
-		update_getter();
-		update_setter();
-	}
+	       size_t fields_size, bool is_public, bool is_final);
 	
-	vtable(std::string&& module_name, std::string&& name, function creator, std::unordered_map<std::string, method_ptr>&& methods, bool is_public):
-		_full_name(module_name.empty() ? name : module_name + "::" + name),
-		_module_name(std::move(module_name)),
-		_name(std::move(name)),
-		_methods(std::move(methods)),
-		_fields_size(0),
-		_is_public(is_public),
-		_is_final(true),
-		_is_native(true),
-		_creator(creator){
-		
-		update_getter();
-		update_setter();
-	}
+	vtable(std::string&& module_name, std::string&& name, function creator, std::unordered_map<std::string, method_ptr>&& methods, bool is_public);
 	
 	variable create(runtime_context& ctx, size_t params_size) const;
 	
@@ -111,22 +97,6 @@ public:
 		}
 		
 		return that.nth_field(it->second.data_begin + idx);
-	}
-	
-	variable call_getter(const variable& that, runtime_context& ctx, size_t params_size){
-		if(!_getter){
-			runtime_error("method opGet is not defined for " + _full_name);
-		}
-		
-		return (*_getter)(that, ctx, params_size);
-	}
-	
-	void call_setter(const variable& that, runtime_context& ctx, size_t params_size){
-		if(!_setter){
-			runtime_error("method opSet is not defined for " + _full_name);
-		}
-		
-		(*_setter)(that, ctx, params_size);
 	}
 	
 	bool has_member(const std::string& name) const{

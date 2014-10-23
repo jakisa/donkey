@@ -11,7 +11,7 @@ public:
 		expression(expression_type::variant){
 	}
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 	virtual variable as_param(runtime_context&) override{
 		return variable();
@@ -30,7 +30,7 @@ public:
 		expression(expression_type::variant){
 	}
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 	virtual variable as_param(runtime_context& ctx) override{
 		return *ctx.that();
@@ -96,7 +96,7 @@ public:
 		_s(s){
 	}
 	virtual std::string as_string(runtime_context&) override{
-		return _s.to_string();
+		return _s.as_string_unsafe();
 	}
 	virtual variable as_param(runtime_context&) override{
 		return _s;
@@ -228,7 +228,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_lvalue(ctx).to_string();
+		return as_lvalue(ctx).to_string(ctx);
 	}
 	
 	virtual variable as_param(runtime_context& ctx) override{

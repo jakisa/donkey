@@ -77,8 +77,8 @@ namespace detail{
 	
 	template<>
 	struct param_converter<std::string>{
-		static std::string to_native(const variable& v, runtime_context&){
-			return v.to_string();
+		static std::string to_native(const variable& v, runtime_context& ctx){
+			return v.to_string(ctx);
 		}
 		static variable from_native(const std::string& s, runtime_context&){
 			return variable(s);

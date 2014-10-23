@@ -2,6 +2,103 @@
 
 namespace donkey{
 
+#define UPDATE_METHOD(name)\
+if(!name){\
+	auto it = _methods.find(#name);\
+	if(it != _methods.end()){\
+		name = it->second.get();\
+	}\
+	if(_fields.find(#name) != _fields.end()){\
+		semantic_error(#name "cannot be declared as field");\
+	}\
+}
+
+void vtable::update_predefined_methods(){
+	UPDATE_METHOD(opGet) UPDATE_METHOD(opSet) UPDATE_METHOD(opCall)
+	UPDATE_METHOD(opEQ) UPDATE_METHOD(opNE)
+	UPDATE_METHOD(opLT) UPDATE_METHOD(opGT) UPDATE_METHOD(opLE) UPDATE_METHOD(opGE)
+	UPDATE_METHOD(opLTInv) UPDATE_METHOD(opGTInv) UPDATE_METHOD(opLEInv) UPDATE_METHOD(opGEInv)
+	UPDATE_METHOD(opNot)
+	UPDATE_METHOD(opAnd) UPDATE_METHOD(opOr) UPDATE_METHOD(opXor)
+	UPDATE_METHOD(opAndInv) UPDATE_METHOD(opOrInv) UPDATE_METHOD(opXorInv)
+	UPDATE_METHOD(opAndSet) UPDATE_METHOD(opOrSet) UPDATE_METHOD(opXorSet)
+	UPDATE_METHOD(opPreInc) UPDATE_METHOD(opPreDec)
+	UPDATE_METHOD(opPostInc) UPDATE_METHOD(opPostDec)
+	UPDATE_METHOD(opPos) UPDATE_METHOD(opNeg)
+	UPDATE_METHOD(opMul) UPDATE_METHOD(opDiv) UPDATE_METHOD(opMod) UPDATE_METHOD(opAdd) UPDATE_METHOD(opSub) UPDATE_METHOD(opSL) UPDATE_METHOD(opSR)
+	UPDATE_METHOD(opMulInv) UPDATE_METHOD(opDivInv) UPDATE_METHOD(opModInv) UPDATE_METHOD(opAddInv) UPDATE_METHOD(opSubInv) UPDATE_METHOD(opSLInv) UPDATE_METHOD(opSRInv)
+	UPDATE_METHOD(opMulSet) UPDATE_METHOD(opDivSet) UPDATE_METHOD(opModSet) UPDATE_METHOD(opAddSet) UPDATE_METHOD(opSubSet) UPDATE_METHOD(opSLSet) UPDATE_METHOD(opSRSet)
+	UPDATE_METHOD(clone) UPDATE_METHOD(strong) UPDATE_METHOD(weak) UPDATE_METHOD(toString) UPDATE_METHOD(toBool)
+}
+
+#undef UPDATE_METHOD
+
+vtable::vtable(std::string&& module_name, std::string&& name, method_ptr constructor, method_ptr destructor,
+	           std::unordered_map<std::string, method_ptr>&& methods, std::unordered_map<std::string, size_t>&& fields,
+	           size_t fields_size, bool is_public, bool is_final):
+	_full_name(module_name.empty() ? name : module_name + "::" + name),
+	_module_name(std::move(module_name)),
+	_name(std::move(name)),
+	_methods(std::move(methods)),
+	_fields(std::move(fields)),
+	_constructor(constructor),
+	_destructor(destructor),
+	_fields_size(fields_size),
+	_is_public(is_public),
+	_is_final(is_final),
+	_is_native(false){
+	
+	opGet=opSet=opCall=
+	opEQ=opNE=
+	opLT=opGT=opLE=opGE=
+	opLTInv=opGTInv=opLEInv=opGEInv=
+	opNot=
+	opAnd=opOr=opXor=
+	opAndInv=opOrInv=opXorInv=
+	opAndSet=opOrSet=opXorSet=
+	opPreInc=opPreDec=
+	opPostInc=opPostDec=
+	opPos=opNeg=
+	opMul=opDiv=opMod=opAdd=opSub=opSL=opSR=
+	opMulInv=opDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
+	opMulSet=opDivSet=opModSet=opAddSet=opSubSet=opSLSet=opSRSet = nullptr;
+	
+	clone=strong=weak=toString=toBool = nullptr;
+	
+	update_predefined_methods();
+}
+
+vtable::vtable(std::string&& module_name, std::string&& name, function creator, std::unordered_map<std::string, method_ptr>&& methods, bool is_public):
+	_full_name(module_name.empty() ? name : module_name + "::" + name),
+	_module_name(std::move(module_name)),
+	_name(std::move(name)),
+	_methods(std::move(methods)),
+	_fields_size(0),
+	_is_public(is_public),
+	_is_final(true),
+	_is_native(true),
+	_creator(creator){
+	
+	opGet=opSet=opCall=
+	opEQ=opNE=
+	opLT=opGT=opLE=opGE=
+	opLTInv=opGTInv=opLEInv=opGEInv=
+	opNot=
+	opAnd=opOr=opXor=
+	opAndInv=opOrInv=opXorInv=
+	opAndSet=opOrSet=opXorSet=
+	opPreInc=opPreDec=
+	opPostInc=opPostDec=
+	opPos=opNeg=
+	opMul=opDiv=opMod=opAdd=opSub=opSL=opSR=
+	opMulInv=opDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
+	opMulSet=opDivSet=opModSet=opAddSet=opSubSet=opSLSet=opSRSet = nullptr;
+	
+	clone=strong=weak=toString=toBool = nullptr;
+	
+	update_predefined_methods();
+}
+
 variable vtable::call_field(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 	auto it = _fields.find(name);
 	if(it == _fields.end()){
@@ -10,25 +107,6 @@ variable vtable::call_field(const variable& that, runtime_context& ctx, size_t p
 	return that.nth_field(it->second).call(ctx, params_size);
 }
 
-void vtable::update_getter(){
-	if(_getter){
-		return;
-	}
-	auto it = _methods.find("opGet");
-	if(it != _methods.end()){
-		_getter = it->second;
-	}
-}
-
-void vtable::update_setter(){
-	if(_setter){
-		return;
-	}
-	auto it = _methods.find("opSet");
-	if(it != _methods.end()){
-		_setter = it->second;
-	}
-}
 
 variable vtable::call_member(const variable& that, runtime_context& ctx, size_t params_size, const std::string& name) const{
 	auto it = _methods.find(name);
@@ -98,8 +176,7 @@ void vtable::derive_from(const vtable& base){
 		_fields[p.first] = base_begin + p.second;
 	}
 	
-	update_getter();
-	update_setter();
+	update_predefined_methods();
 }
 
 std::vector<const vtable*> vtable::get_bases() const{

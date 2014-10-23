@@ -6,7 +6,7 @@
 namespace donkey{
 
 static variable object_to_string(const variable& that, runtime_context&, size_t){
-	return variable(that.to_string());
+	return variable(that.get_full_type_name());
 }
 
 static variable object_strong(const variable& that, runtime_context&, size_t){
@@ -83,6 +83,10 @@ static variable number_to_bool(const variable& that, runtime_context&, size_t){
 	return variable(that.as_number_unsafe() != 0);
 }
 
+static variable number_to_string(const variable& that, runtime_context&, size_t){
+	return variable(donkey::to_string(that.as_number_unsafe()));
+}
+
 vtable_ptr number_vtable(){
 	static vtable_ptr ret;
 	if(!ret){
@@ -90,6 +94,7 @@ vtable_ptr number_vtable(){
 		std::unordered_map<std::string, size_t> fields;
 		
 		methods.emplace("toBool", method_ptr(new method(&number_to_bool)));
+		methods.emplace("toString", method_ptr(new method(&number_to_string)));
 		
 		ret.reset(new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
 		ret->derive_from(*object_vtable());

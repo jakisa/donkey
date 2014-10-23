@@ -30,7 +30,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) final override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context& ctx, size_t params_size) final override{
@@ -89,7 +89,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) final override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context& ctx, size_t params_size) final override{
@@ -148,7 +148,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
@@ -198,7 +198,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
@@ -244,7 +244,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_param(ctx).to_string();
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context& ctx, size_t params_size) override{

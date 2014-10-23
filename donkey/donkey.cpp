@@ -35,7 +35,7 @@ static bool get_file(const std::string fname, std::vector<char>& v){
 		fclose(fp);
 		return false;
 	}
-
+	fclose(fp);
 	return true;
 }
 

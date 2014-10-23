@@ -33,7 +33,11 @@ void variable::_dec_counts_impl() const{
 }
 
 variable variable::call_functor(runtime_context& ctx, size_t params_size) const{
-	return get_vtable()->call_member(*this, ctx, params_size, "call");
+	vtable* vt = get_vtable();
+	if(!vt->opCall){
+		_runtime_error("opCall is not defined for " + get_full_type_name());
+	}
+	return (*vt->opCall)(*this, ctx, params_size);
 }
 
 void variable::_inc_counts_impl() const{
@@ -63,25 +67,35 @@ std::string variable::get_full_type_name() const{
 }
 
 
-std::string variable::to_string() const{
+std::string variable::to_string(runtime_context& ctx) const{
 	switch(get_data_type()){
 		case var_type::string:
 			return std::string(as_string_unsafe());
 		case var_type::number:
-			return donkey::to_string(as_number());
+			return donkey::to_string(as_number_unsafe());
 		case var_type::code_address:
 		case var_type::function:
 			return std::string("function");
 		case var_type::object:
 		case var_type::native:
-			return _h_ptr->get_vtable()->get_name();
+			{
+				vtable* vt = get_vtable();
+				if(!vt->toString){
+					return get_full_type_name();
+				}
+				return (*vt->toString)(*this, ctx, 0).as_string();
+			}
 		default:
 			return std::string("null");
 	}
 }
 
 bool variable::_to_bool(runtime_context& ctx) const{
-	return get_vtable()->call_member(*this, ctx, 0, "toBool").as_number() != 0;
+	vtable* vt = get_vtable();
+	if(!vt->toBool){
+		_runtime_error("toBool is not defined for " + get_full_type_name());
+	}
+	return (*vt->toBool)(*this, ctx, 0).as_number();
 }
 
 }//donkey

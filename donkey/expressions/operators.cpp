@@ -4,58 +4,66 @@
 
 namespace donkey{
 
-#define UNARY_SIMPLE(name, op)\
+static void not_defined_error(const std::string& op, const std::string& type){
+	return runtime_error(op + " is not defined for " + type);
+}
+
+#define CHECK_DEFINED(tbl, o)\
+if(!tbl->op##o){\
+	not_defined_error("op"#o, tbl->get_full_name());\
+}
+
+#define INVOKE_OPERATOR(tbl, o, that, cnt)\
+(*tbl->op##o)(that, ctx, cnt)
+
+#define UNARY_SIMPLE(name, o)\
 variable name##_full(const variable& l, runtime_context& ctx){\
-	static const std::string method_name("op"#op);\
-	return l.get_vtable()->call_member(l, ctx, 1, method_name);\
+	vtable* vt = l.get_vtable();\
+	CHECK_DEFINED(vt, o)\
+	return INVOKE_OPERATOR(vt, o, l, 0);\
 }
 
-#define UNARY_LVALUE(name, op)\
+#define UNARY_LVALUE(name, o)\
 void name##_full(variable& l, runtime_context& ctx){\
-	static const std::string method_name("op"#op);\
-	l.get_vtable()->call_member(l, ctx, 1, method_name);\
+	vtable* vt = l.get_vtable();\
+	CHECK_DEFINED(vt, o)\
+	INVOKE_OPERATOR(vt, o, l, 0);\
 }
 
-#define BINARY_SIMPLE(name, op)\
+#define BINARY_SIMPLE(name, o)\
 variable name##_full(const variable& l, const variable& r, runtime_context& ctx){\
-	static const std::string method_name("op"#op);\
+	vtable* vt = l.get_vtable();\
+	CHECK_DEFINED(vt, o)\
 	stack_pusher pusher(ctx, 1);\
 	pusher.push(variable(r));\
-\
-	return l.get_vtable()->call_member(l, ctx, 1, method_name);\
+	return INVOKE_OPERATOR(vt, o, l, 1);\
 }
 
-#define BINARY_DOUBLE(name, op)\
+#define BINARY_DOUBLE(name, o)\
 variable name##_full(const variable& l, const variable& r, runtime_context& ctx){\
-	variable ret;\
-	{\
-		static const std::string method_name("op"#op);\
-		stack_pusher pusher(ctx, 1);\
-		pusher.push(variable(r));\
-		if(l.get_vtable()->try_call_member(l, ctx, 1, method_name, ret)){\
-			return ret;\
+	vtable* lvt = l.get_vtable();\
+	if(!lvt->op##o){\
+		vtable* rvt = r.get_vtable();\
+		if(!rvt->op##o##Inv){\
+			not_defined_error("op"#o, lvt->get_full_name());\
 		}\
-	}\
-	{\
-		static const std::string method_name("op"#op"Inv");\
 		stack_pusher pusher(ctx, 1);\
 		pusher.push(variable(l));\
-		if(r.get_vtable()->try_call_member(r, ctx, 1, method_name, ret)){\
-			return ret;\
-		}\
+		return INVOKE_OPERATOR(rvt, o##Inv, r, 1);\
+	}else{\
+		stack_pusher pusher(ctx, 1);\
+		pusher.push(variable(r));\
+		return INVOKE_OPERATOR(lvt, o, l, 1);\
 	}\
-\
-	runtime_error(std::string("op"#op) + " is not defined for " + l.get_full_type_name());\
-	return variable();\
 }
 
-#define BINARY_LVALUE(name, op)\
+#define BINARY_LVALUE(name, o)\
 void name##_full(variable& l, const variable& r, runtime_context& ctx){\
-	static const std::string method_name("op"#op);\
+	vtable* vt = l.get_vtable();\
+	CHECK_DEFINED(vt, o)\
 	stack_pusher pusher(ctx, 1);\
 	pusher.push(variable(r));\
-\
-	l.get_vtable()->call_member(l, ctx, 1, method_name);\
+	INVOKE_OPERATOR(vt, o, l, 1);\
 }
 
 

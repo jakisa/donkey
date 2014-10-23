@@ -471,7 +471,7 @@ public:
 		return as_string_unsafe();
 	}
 	
-	std::string to_string() const;
+	std::string to_string(runtime_context& ctx) const;
 	
 	heap_header* as_reference_unsafe() const{
 		return _h_ptr;

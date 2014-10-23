@@ -50,7 +50,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx){
-		return to_string(as_number(ctx));
+		return as_param(ctx).to_string(ctx);
 	}
 
 	virtual variable call(runtime_context&, size_t){
@@ -113,7 +113,7 @@ public:
 	}
 
 	virtual std::string as_string(runtime_context& ctx) override{
-		return as_lvalue(ctx).to_string();
+		return as_lvalue(ctx).to_string(ctx);
 	}
 	
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
@@ -182,7 +182,13 @@ inline void set_item(runtime_context &ctx, const variable& that, variable&& inde
 	pusher.push(std::move(value));
 	pusher.push(std::move(index));
 	
-	that.get_vtable()->call_setter(that, ctx, 2);
+	vtable* vt = that.get_vtable();
+	
+	if(!vt->opSet){
+		runtime_error("opSet is not defined for " + that.get_full_type_name());
+	}
+	
+	(*vt->opSet)(that, ctx, 2);
 }
 
 inline variable get_item(runtime_context &ctx, const variable& that, variable&& index){
@@ -190,7 +196,13 @@ inline variable get_item(runtime_context &ctx, const variable& that, variable&& 
 	
 	pusher.push(std::move(index));
 	
-	return that.get_vtable()->call_getter(that, ctx, 1);
+	vtable* vt = that.get_vtable();
+	
+	if(!vt->opGet){
+		runtime_error("opGet is not defined for " + that.get_full_type_name());
+	}
+	
+	return (*vt->opGet)(that, ctx, 1);
 }
 
 template<class Handle>
@@ -217,7 +229,7 @@ public:
 	}
 	
 	virtual std::string as_string(runtime_context& ctx) override{
-		return get_this_item(ctx).to_string();
+		return get_this_item(ctx).to_string(ctx);
 	}
 	
 	virtual variable call(runtime_context& ctx, size_t params_size) override{
