@@ -1,6 +1,5 @@
 using io;
 using containers;
-import other;
 
 function sieve(n){
 	var ret = new Vector();
@@ -17,14 +16,4 @@ function sieve(n){
 	return ret;
 }
 
-var v = sieve(100);
-
-for(var it = v.begin(); it != v.end(); ++it){
-	console.writeln(*it);
-}
-
-{
-	var c = new other::C();
-}
-
-console.writeln("other "..other::count);
+var v = sieve(1000000);
