@@ -14,6 +14,8 @@ enum class identifier_type{
 	module,
 	method,
 	field,
+	number,
+	string,
 };
 
 class identifier{
@@ -137,7 +139,7 @@ public:
 	method_identifier(const std::string& name, method& m, std::string classname):
 		identifier(identifier_type::method, name),
 		_m(m),
-		_classname(classname){
+		_classname(std::move(classname)){
 	}
 	
 	method& get_method() const{
@@ -157,7 +159,7 @@ public:
 	field_identifier(const std::string& name, size_t f, std::string classname):
 		identifier(identifier_type::field, name),
 		_f(f),
-		_classname(classname){
+		_classname(std::move(classname)){
 	}
 	
 	size_t get_field() const{
@@ -166,6 +168,35 @@ public:
 	
 	const std::string& get_classname() const{
 		return _classname;
+	}
+};
+
+class number_constant_indentifier: public identifier{
+private:
+	number _n;
+public:
+	number_constant_indentifier(const std::string& name, number n):
+		identifier(identifier_type::number, name),
+		_n(n){
+	}
+	
+	number get_number(){
+		return _n;
+	}
+};
+
+
+class string_constant_indentifier: public identifier{
+private:
+	std::string _s;
+public:
+	string_constant_indentifier(const std::string& name, std::string s):
+		identifier(identifier_type::string, name),
+		_s(std::move(s)){
+	}
+	
+	const std::string& get_string(){
+		return _s;
 	}
 };
 

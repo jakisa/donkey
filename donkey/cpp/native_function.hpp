@@ -150,7 +150,7 @@ public:
 };
 
 template<typename R, typename... Args>
-function create_native_functions(std::string name, R(*f)(Args...)){
+function create_native_function(std::string name, R(*f)(Args...)){
 	return native_function<std::tuple<>, R, Args...>(std::move(name), f);
 }
 

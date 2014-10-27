@@ -35,3 +35,6 @@ public class D: C, A{
 public function f(){
     return 42;
 }
+
+
+public const c = 3;

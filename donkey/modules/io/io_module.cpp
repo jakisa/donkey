@@ -42,22 +42,23 @@ public:
 	}
 	
 	static vtable_ptr vt(){
-		static vtable_ptr ret;
-		if(!ret){
+		static vtable_ptr ret([](){
 			std::unordered_map<std::string, method_ptr> methods;
 			
 			methods.emplace("write", create_native_method("io::console.write", &console::write));
 			methods.emplace("writeln", create_native_method("io::console.writeln", &console::writeln));
 			
-			ret.reset(new vtable(
+			vtable* vt = new vtable(
 				"io",
 				"ConsoleStream",
 				function(),
 				std::move(methods),
 				false
-			));
-			ret->derive_from(*object_vtable());
-		}
+			);
+			vt->derive_from(*object_vtable());
+			return vt;
+		}());
+		
 		return ret;
 	}
 	

@@ -24,7 +24,7 @@ public:
 	
 	void add_module_loader(const char* module_name, const module_loader& loader);
 	
-	bool compile_module(const char* module_name);
+	bool load_module(const char* module_name);
 	~compiler();
 };
 

@@ -86,8 +86,7 @@ static number string_ge(const std::string& that, const std::string& oth){
 }
 
 vtable_ptr string_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
@@ -107,10 +106,13 @@ vtable_ptr string_vtable(){
 		methods.emplace("opLE", create_native_method("string::opLE", &string_le));
 		methods.emplace("opGE", create_native_method("string::opGE", &string_ge));
 		
-		ret.reset(new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
-		ret->derive_from(*object_vtable());
-	}
+		vtable* vt = new vtable("", "string", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true);
+		
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
 	return ret;
+	
 }
 
 

@@ -46,9 +46,10 @@ inline void compile_function_helper(std::string name, scope& target, tokenizer& 
 	scope function_scope(&target, true);
 	
 	for(const std::string& prm: params){
-		if(!function_scope.add_variable(prm, false)){
+		if(!function_scope.is_allowed(prm)){
 			semantic_error(prm + " is already defined");
 		}
+		function_scope.add_variable(prm, false);
 	}
 	
 	function_scope.add_variable("%RETVAL%", false);

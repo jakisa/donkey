@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += console
+CONFIG += X11
 CONFIG -= app_bundle
 CONFIG -= qt
 INCLUDEPATH += ../donkey/
@@ -38,7 +38,9 @@ SOURCES += ../donkey/main.cpp \
     ../donkey/modules/containers/container.cpp \
     ../donkey/expressions/operators.cpp \
     ../donkey/vtable.cpp \
-    ../donkey/errors.cpp
+    ../donkey/errors.cpp \
+    ../donkey/modules/gui/gui_module.cpp \
+    ../donkey/modules/gui/window_X11.cpp
 
 HEADERS += \
     ../donkey/errors.hpp \
@@ -94,7 +96,8 @@ HEADERS += \
     ../donkey/modules/io/io_module.hpp \
     ../donkey/modules/containers/containers_module.hpp \
     ../donkey/modules/containers/container.hpp \
-    ../donkey/expressions/operators.hpp
+    ../donkey/expressions/operators.hpp \
+    ../donkey/modules/gui/gui_module.hpp
 
 OTHER_FILES += \
     ../donkey/examples.txt \

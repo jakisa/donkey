@@ -3,6 +3,7 @@
 
 #include "modules/io/io_module.hpp"
 #include "modules/containers/containers_module.hpp"
+#include "modules/gui/gui_module.hpp"
 
 
 int main(int argc, char* argv[]){
@@ -17,8 +18,9 @@ int main(int argc, char* argv[]){
 	
 	c.add_module_loader("io", &donkey::load_io_module);
 	c.add_module_loader("containers", &donkey::load_containers_module);
+	c.add_module_loader("gui", &donkey::load_gui_module);
 	
-	if(!c.compile_module(argv[1])){
+	if(!c.load_module(argv[1])){
 		printf("cannot load module %s/%s.dky\n", root, argv[1]);
 		return 2;
 	}

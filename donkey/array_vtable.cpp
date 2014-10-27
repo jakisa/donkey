@@ -124,9 +124,9 @@ static variable create_array(runtime_context& ctx, size_t params_count){
 
 
 vtable_ptr array_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
+		std::unordered_map<std::string, size_t> fields;
 		
 		methods.emplace("size", create_native_method("array::size", &array::size));
 		methods.emplace("opGet", create_native_method("array::opGet", &array::get_item));
@@ -135,10 +135,11 @@ vtable_ptr array_vtable(){
 		methods.emplace("opMul", create_native_method("array::opMul", &array::mul));
 		methods.emplace("opMulInv", create_native_method("array::opMulInv", &array::mul));
 		
-		ret.reset(new vtable("", "array", &create_array, std::move(methods), true));
+		vtable* vt = new vtable("", "array", &create_array, std::move(methods), true);
 		
-		ret->derive_from(*object_vtable());
-	}
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
 	return ret;
 }
 

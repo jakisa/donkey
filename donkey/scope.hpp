@@ -18,6 +18,8 @@ private:
 	std::unordered_map<std::string, identifier_ptr> _usings;
 	std::unordered_map<std::string, identifier_ptr> _variables;
 	std::unordered_map<std::string, size_t> _public_variables;
+	std::unordered_map<std::string, identifier_ptr> _constants;
+	std::unordered_map<std::string, identifier_ptr> _public_constants;
 	std::vector<statement> _statements;
 	scope* _parent;
 	int _var_index;
@@ -79,6 +81,10 @@ public:
 		if(vit != _variables.end()){
 			return vit->second;
 		}
+		auto cit = _constants.find(name);
+		if(cit != _constants.end()){
+			return cit->second;
+		}
 		auto uit = _usings.find(name);
 		if(uit != _usings.end()){
 			return uit->second;
@@ -87,7 +93,7 @@ public:
 	}
 	
 	virtual bool is_allowed(std::string name) const override{
-		return _variables.find(name) == _variables.end();
+		return _variables.find(name) == _variables.end() && _constants.find(name) == _constants.end();
 	}
 	
 	bool is_global() const{
@@ -118,19 +124,22 @@ public:
 		return _can_continue;
 	}
 	
-	bool add_variable(std::string name, bool is_public){
-		if(_variables.find(name) == _variables.end()){
-			if(is_public){
-				_public_variables[name] = _var_index;
-			}
-			if(is_global()){
-				_variables[name].reset(new global_variable_identifier(name, _module_index, _var_index++));
-			}else{
-				_variables[name].reset(new local_variable_identifier(name, _var_index++));
-			}
-			return true;
+	void add_variable(std::string name, bool is_public){
+		if(is_public){
+			_public_variables[name] = _var_index;
 		}
-		return false;
+		if(is_global()){
+			_variables[name].reset(new global_variable_identifier(name, _module_index, _var_index++));
+		}else{
+			_variables[name].reset(new local_variable_identifier(name, _var_index++));
+		}
+	}
+	
+	void add_constant(identifier_ptr id, bool is_public){
+		_constants[id->get_name()] = id;
+		if(is_public){
+			_public_constants[id->get_name()] = id;
+		}
 	}
 	
 	template<typename T>
@@ -183,6 +192,10 @@ public:
 		return _public_variables;
 	}
 	
+	std::unordered_map<std::string, identifier_ptr> get_public_constants() const{
+		return _public_constants;
+	}
+	
 	virtual vtable* get_current_vtable() const override{
 		return _parent ? _parent->get_current_vtable() : nullptr;
 	}
@@ -191,6 +204,9 @@ public:
 		std::vector<identifier_ptr> ret;
 		for(const auto& p: _public_variables){
 			ret.push_back(identifier_ptr(new global_variable_identifier(p.first, _module_index, p.second)));
+		}
+		for(const auto& p: _public_constants){
+			ret.push_back(p.second);
 		}
 		return ret;
 	}

@@ -422,6 +422,10 @@ static expression_ptr identifier_to_expression(identifier_ptr id){
 			return build_local_variable_expression(static_cast<local_variable_identifier&>(*id).get_index());
 		case identifier_type::function:
 			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
+		case identifier_type::number:
+			return build_const_number_expression(static_cast<number_constant_indentifier&>(*id).get_number());
+		case identifier_type::string:
+			return build_const_string_expression(static_cast<string_constant_indentifier&>(*id).get_string());
 		case identifier_type::classname:
 			semantic_error("unexpected class " + id->get_name());
 			break;
@@ -523,6 +527,8 @@ static identifier_ptr tree_to_identifier(part_ptr tree, const identifier_lookup&
 					case identifier_type::method:
 					case identifier_type::field:
 					case identifier_type::function:
+					case identifier_type::number:
+					case identifier_type::string:
 						semantic_error(l->get_name() + " is not module nor class");
 						return identifier_ptr();
 					case identifier_type::module:
@@ -706,6 +712,182 @@ expression_ptr build_expression(const identifier_lookup& lookup, tokenizer& pars
 	}
 	
 	return ret;
+}
+
+static constant tree_to_const(part_ptr tree, const identifier_lookup& lookup);
+
+static number tree_to_num(part_ptr tree, const identifier_lookup& lookup){
+	constant c = tree_to_const(tree, lookup);
+	if(!c.is_number){
+		syntax_error("number expected");
+	}
+	return c.n;
+}
+
+static integer tree_to_int(part_ptr tree, const identifier_lookup& lookup){
+	return int(tree_to_num(tree, lookup));
+}
+
+static std::string tree_to_string(part_ptr tree, const identifier_lookup& lookup){
+	constant c = tree_to_const(tree, lookup);
+	return c.is_number ? to_string(c.n) : c.s;
+}
+
+static constant to_constant(number n){
+	return constant{true, n, ""};
+}
+
+static constant to_constant(const std::string& s){
+	return constant{false, 0, s};
+}
+
+static constant id_to_const(identifier_ptr id){
+	if(!id){
+		semantic_error("invalid constant expression");
+	}
+
+	switch(id->get_type()){
+		case identifier_type::number:
+			return constant{true, static_cast<number_constant_indentifier&>(*id).get_number(), ""};
+		case identifier_type::string:
+			return constant{false, 0, static_cast<string_constant_indentifier&>(*id).get_string()};
+		default:
+			semantic_error(id->get_name() + " is not constant");
+			return constant();
+	}
+}
+
+static constant str_to_const(const std::string& str, const identifier_lookup& lookup){
+	if(isdigit(str.front())){
+		double n = parse_number(str);
+		if(isnan(n)){
+			syntax_error("invalid number constant");
+		}
+		return constant{true, n, ""};
+	}
+	if(str.front() == '"'){
+		return constant{false, 0, tokenizer::unquoted_string(str)};
+	}
+	
+	identifier_ptr id = lookup.get_identifier(str);
+	
+	return id_to_const(id);
+}
+
+static bool less(const constant& l, const constant& r){
+	if(l.is_number != r.is_number){
+		syntax_error("cannot compare string and number");
+	}
+	
+	if(l.is_number){
+		return l.n < r.n;
+	}else{
+		return l.s < r.s;
+	}
+}
+
+static bool operator<(const constant& l, const constant& r){
+	return less(l, r);
+}
+
+static bool operator>(const constant& l, const constant& r){
+	return less(r, l);
+}
+
+static bool operator<=(const constant& l, const constant& r){
+	return !less(r, l);
+}
+
+static bool operator>=(const constant& l, const constant& r){
+	return !less(l, r);
+}
+
+static bool operator==(const constant& l, const constant& r){
+	return !less(l, r) && !less(r, l);
+}
+
+static bool operator!=(const constant& l, const constant& r){
+	return less(l, r) || less(r, l);
+}
+
+static constant tree_to_const(part_ptr tree, const identifier_lookup& lookup){
+	if(!tree){
+		syntax_error("invalid constant expression");
+	}
+	switch(tree->op){
+		case oper::none:
+			return str_to_const(tree->str, lookup);
+		case oper::scope:
+			{
+				identifier_ptr id = tree_to_identifier(tree, lookup);
+				return id_to_const(id);
+			}
+			break;
+		case oper::conditional_question:
+			return to_constant(
+				tree_to_num(tree->first_child, lookup) ?
+				tree_to_num(tree->first_child->next_sibling, lookup) :
+				tree_to_num(tree->first_child->next_sibling->next_sibling, lookup)
+			);
+		case oper::logical_or:
+			return to_constant(tree_to_num(tree->first_child, lookup) || tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::logical_and:
+			return to_constant(tree_to_num(tree->first_child, lookup) && tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::unequal:
+			return to_constant(tree_to_const(tree->first_child, lookup) != tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::equal:
+			return to_constant(tree_to_const(tree->first_child, lookup) == tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::greater_equal:
+			return to_constant(tree_to_const(tree->first_child, lookup) >= tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::less_equal:
+			return to_constant(tree_to_const(tree->first_child, lookup) <= tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::greater:
+			return to_constant(tree_to_const(tree->first_child, lookup) > tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::less:
+			return to_constant(tree_to_const(tree->first_child, lookup) < tree_to_const(tree->first_child->next_sibling, lookup));
+		case oper::shiftr:
+			return to_constant(tree_to_int(tree->first_child, lookup) >> tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::shiftl:
+			return to_constant(tree_to_int(tree->first_child, lookup) << tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::bitwise_or:
+			return to_constant(tree_to_int(tree->first_child, lookup) | tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::bitwise_xor:
+			return to_constant(tree_to_int(tree->first_child, lookup) ^ tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::concat:
+			return to_constant(tree_to_string(tree->first_child, lookup) + tree_to_string(tree->first_child->next_sibling, lookup));
+		case oper::minus:
+			return to_constant(tree_to_num(tree->first_child, lookup) - tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::plus:
+			return to_constant(tree_to_num(tree->first_child, lookup) + tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::bitwise_and:
+			return to_constant(tree_to_int(tree->first_child, lookup) & tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::mod:
+			return to_constant(fmod(tree_to_num(tree->first_child, lookup), tree_to_num(tree->first_child->next_sibling, lookup)));
+		case oper::idiv:
+			return to_constant(tree_to_int(tree->first_child, lookup) / tree_to_int(tree->first_child->next_sibling, lookup));
+		case oper::div:
+			return to_constant(tree_to_num(tree->first_child, lookup) / tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::mul:
+			return to_constant(tree_to_num(tree->first_child, lookup) * tree_to_num(tree->first_child->next_sibling, lookup));
+		case oper::logical_not:
+			return to_constant(!tree_to_num(tree->first_child, lookup));
+		case oper::bitwise_not:
+			return to_constant(~tree_to_int(tree->first_child, lookup));
+		case oper::unary_minus:
+			return to_constant(-tree_to_num(tree->first_child, lookup));
+		case oper::unary_plus:
+			return to_constant(+tree_to_num(tree->first_child, lookup));
+		default:
+			syntax_error("invalid constant expression");
+		
+	}
+	return constant();
+}
+
+constant get_const(const identifier_lookup& lookup, tokenizer& parser){
+	part_ptr tree = create_expression_tree(parser, true, false);
+	
+	return tree_to_const(tree, lookup);
 }
 
 }//donkey

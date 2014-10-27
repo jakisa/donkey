@@ -73,17 +73,19 @@ void compile_switch(scope& target, tokenizer& parser){
 		}
 		if(*parser == "case"){
 			++parser;
-			number d = parse_number(*parser);
-			if(isnan(d)){
-				unexpected_error(*parser);
+			
+			constant c = get_const(target, parser);
+			
+			if(!c.is_number){
+				syntax_error("number expected");
 			}
 			
-			if(cases.find(d) != cases.end()){
+			if(cases.find(c.n) != cases.end()){
 				semantic_error("duplicated case " + *parser);
 			}
-			++parser;
+			
 			parse(":", parser);
-			cases[d] = s.get_number_of_statements();
+			cases[c.n] = s.get_number_of_statements();
 		}else if(*parser == "default"){
 			++parser;
 			if(has_dflt){

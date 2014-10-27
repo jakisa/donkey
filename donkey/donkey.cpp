@@ -48,7 +48,7 @@ private:
 	
 	std::unordered_map<std::string, module_loader> _loaders;
 	
-	void compile_module(tokenizer& parser, std::string module_name){
+	void load_donkey_module(tokenizer& parser, std::string module_name){
 		size_t idx = _modules.reserve_module(module_name);
 		
 		
@@ -67,7 +67,7 @@ private:
 				if(_modules.module_in_progress(import_name)){
 					semantic_error("circular import detected for " + import_name);
 				}
-				if(!compile_module(import_name.c_str())){
+				if(!load_module(import_name.c_str())){
 					semantic_error("unknown module " + import_name);
 				}
 				m = _modules.get_module(import_name);
@@ -99,7 +99,8 @@ private:
 			target.get_functions(),
 			target.get_vtables(),
 			target.get_public_functions(),
-			target.get_public_vars()
+			target.get_public_vars(),
+			target.get_public_constants()
 		)));
 	}
 	
@@ -126,7 +127,7 @@ public:
 	}
 	
 
-	bool compile_module(const char* module_name){
+	bool load_module(const char* module_name){
 		auto it = _loaders.find(module_name);
 		
 		if(it != _loaders.end()){
@@ -147,14 +148,14 @@ public:
 		try{
 			try{
 				parser.reset(new tokenizer(module_name, &v[0], &v[0] + v.size()));
-				compile_module(*parser, module_name);
+				load_donkey_module(*parser, module_name);
 				return true;
 			}catch(const exception_raw& e){
 				e.throw_formatted(parser->get_file_name(), parser->get_line_number() + 1);
 			}
 		}catch(const exception& e){
 			_modules.unload_from(idx);
-			printf("%s\n", e.what());
+			fprintf(stderr, "%s\n", e.what());
 		}
 		return false;
 	}
@@ -169,8 +170,8 @@ void compiler::add_module_loader(const char* module_name, const module_loader& l
 	_private->add_module_loader(module_name, loader);
 }
 
-bool compiler::compile_module(const char* module_name){
-	return _private->compile_module(module_name);
+bool compiler::load_module(const char* module_name){
+	return _private->load_module(module_name);
 }
 
 

@@ -22,6 +22,8 @@ private:
 	std::unordered_map<std::string, size_t> _public_functions;
 	std::unordered_map<std::string, size_t> _public_globals;
 	
+	std::unordered_map<std::string, identifier_ptr> _public_constants;
+	
 public:
 	module(statement&& s,
 	       std::string module_name,
@@ -30,7 +32,8 @@ public:
 	       std::vector<function>&& functions,
 	       std::unordered_map<std::string, vtable_ptr>&& vtables,
 	       std::unordered_map<std::string, size_t>&& public_functions,
-	       std::unordered_map<std::string, size_t>&& public_globals);
+	       std::unordered_map<std::string, size_t>&& public_globals,
+	       std::unordered_map<std::string, identifier_ptr>&& public_constants);
 	       
 	void load(runtime_context& ctx);
 	

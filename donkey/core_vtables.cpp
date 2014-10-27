@@ -57,8 +57,7 @@ static variable object_not_equals(const variable& that, variable oth){
 
 
 vtable_ptr object_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
@@ -74,8 +73,8 @@ vtable_ptr object_vtable(){
 		
 		methods.emplace("opNE", create_native_method("object::opNE", &object_not_equals));
 		
-		ret.reset(new vtable("", "object", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false));
-	}
+		return new vtable("", "object", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, false);
+	}());
 	return ret;
 }
 
@@ -88,41 +87,41 @@ static variable number_to_string(const variable& that, runtime_context&, size_t)
 }
 
 vtable_ptr number_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
 		methods.emplace("toBool", method_ptr(new method(&number_to_bool)));
 		methods.emplace("toString", method_ptr(new method(&number_to_string)));
 		
-		ret.reset(new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
-		ret->derive_from(*object_vtable());
-	}
+		vtable* vt = new vtable("", "number", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true);
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
 	return ret;
 }
 
 vtable_ptr function_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		ret.reset(new vtable("", "function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
-		ret->derive_from(*object_vtable());
-	}
+		vtable* vt = new vtable("", "function", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true);
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
 	return ret;
 }
 
 vtable_ptr null_vtable(){
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		std::unordered_map<std::string, size_t> fields;
 		
-		ret.reset(new vtable("", "null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true));
-		ret->derive_from(*object_vtable());
-	}
+		vtable* vt = new vtable("", "null", method_ptr(), method_ptr(), std::move(methods), std::move(fields), 0, true, true);
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
 	return ret;
 }
 

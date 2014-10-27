@@ -21,6 +21,7 @@ private:
 	std::unordered_map<std::string, size_t> _globals;
 	std::unordered_map<std::string, function> _functions;
 	std::unordered_map<std::string, vtable_ptr> _vtables;
+	std::unordered_map<std::string, identifier_ptr> _constants;
 	statement _init;
 public:
 	native_module(const std::string& name, size_t idx):
@@ -45,6 +46,14 @@ public:
 	
 	void add_vtable(vtable_ptr vt){
 		_vtables.emplace(vt->get_name(), vt);
+	}
+	
+	void add_constant(std::string name, number n){
+		_constants[name].reset(new number_constant_indentifier(name, n));
+	}
+	
+	void add_constant(std::string name, std::string s){
+		_constants[name].reset(new string_constant_indentifier(name, s));
 	}
 	
 	
@@ -76,7 +85,8 @@ public:
 			std::move(functions),
 			std::move(vtables),
 			std::move(public_functions),
-			std::move(public_globals)
+			std::move(public_globals),
+			std::unordered_map<std::string, identifier_ptr>(_constants)
 		));
 	}
 };

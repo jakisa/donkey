@@ -16,11 +16,5 @@ function sieve(n){
 	return ret;
 }
 
-class C{
-	var ppp;
-	var kua;
-}
 
 var v = sieve(1000000);
-
-console.writeln(v.toString());

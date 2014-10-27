@@ -51,6 +51,8 @@ void compile_statement(scope& target, tokenizer& parser){
 		++parser;
 		if(*parser == "var"){
 			compile_variable(target, parser, true);
+		}else if(*parser == "const"){
+			compile_constant(target, parser, true);
 		}else if(*parser == "function"){
 			compile_function(target, parser, true);
 		}else if(*parser == "class"){
@@ -66,6 +68,8 @@ void compile_statement(scope& target, tokenizer& parser){
 		}
 	}else if(*parser == "using"){
 		compile_using(target, parser);
+	}else if(*parser == "const"){
+		compile_constant(target, parser);
 	}else{
 		if(is_keyword(*parser) && *parser != "this" && *parser != "self" && *parser != "new" && *parser != "self"){
 			unexpected_error(*parser);

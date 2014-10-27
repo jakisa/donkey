@@ -11,7 +11,7 @@ namespace donkey{
 template<int dummy>
 struct tkeywords{
 	enum{
-		count = 28
+		count = 29
 	};
 	static const char* arr[count];
 };
@@ -21,6 +21,7 @@ const char* tkeywords<dummy>::arr[count] = {
 	"array",
 	"break",
 	"case",
+	"const",
 	"class",
 	"continue",
 	"default",

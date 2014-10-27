@@ -46,9 +46,36 @@ expression_ptr compile_variable(scope& target, tokenizer& parser, bool is_public
 			++parser;
 		}
 	}
-	++parser;
+	parse(";", parser);
 	
 	return ret;
+}
+
+void compile_constant(scope& target, tokenizer& parser, bool is_public){
+	if(target.is_switch()){
+		unexpected_error(*parser);
+	}
+	
+	++parser;
+	
+	while(parser && *parser != ";"){
+		std::string name = parse_allowed_name(target, parser);
+		
+		parse("=", parser);
+		
+		constant c = get_const(target, parser);
+		
+		if(c.is_number){
+			target.add_constant(identifier_ptr(new number_constant_indentifier(name, c.n)), is_public);
+		}else{
+			target.add_constant(identifier_ptr(new string_constant_indentifier(name, c.s)), is_public);
+		}
+		
+		if(*parser == ","){
+			++parser;
+		}
+	}
+	parse(";", parser);
 }
 
 }//donkey

@@ -9,7 +9,8 @@ module::module(statement&& s,
 	           std::vector<function>&& functions,
 	           std::unordered_map<std::string, vtable_ptr>&& vtables,
 	           std::unordered_map<std::string, size_t>&& public_functions,
-	           std::unordered_map<std::string, size_t>&& public_globals):
+	           std::unordered_map<std::string, size_t>&& public_globals,
+	           std::unordered_map<std::string, identifier_ptr>&& public_constants):
 	_functions(std::move(functions)),
 	_vtables(std::move(vtables)),
 	_s(std::move(s)),
@@ -17,7 +18,8 @@ module::module(statement&& s,
 	_module_index(module_index),
 	_globals_count(globals_count),
 	_public_functions(std::move(public_functions)),
-	_public_globals(std::move(public_globals)){
+	_public_globals(std::move(public_globals)),
+	_public_constants(std::move(public_constants)){
 }
 
 void module::load(runtime_context& ctx){
@@ -32,9 +34,9 @@ identifier_ptr module::get_identifier(std::string name) const{
 	if(name == _module_name){
 		return identifier_ptr(new module_identifier(_module_name, *this));
 	}
-	auto cit = _vtables.find(name);
-	if(cit != _vtables.end() && cit->second->is_public()){
-		return identifier_ptr(new class_identifier(cit->second->get_name(), cit->second.get(), _module_name));
+	auto vit = _vtables.find(name);
+	if(vit != _vtables.end() && vit->second->is_public()){
+		return identifier_ptr(new class_identifier(vit->second->get_name(), vit->second.get(), _module_name));
 	}
 	
 	auto fit = _public_functions.find(name);
@@ -45,6 +47,11 @@ identifier_ptr module::get_identifier(std::string name) const{
 	auto git = _public_globals.find(name);
 	if(git != _public_globals.end()){
 		return identifier_ptr(new global_variable_identifier(git->first, _module_index, git->second));
+	}
+	
+	auto cit = _public_constants.find(name);
+	if(cit != _public_constants.end()){
+		return cit->second;
 	}
 	
 	return identifier_ptr();
@@ -58,6 +65,9 @@ std::vector<identifier_ptr> module::get_all_public() const{
 	}
 	for(const auto& p: _public_functions){
 		ret.push_back(identifier_ptr(new function_identifier(p.first, code_address::create(_module_index, p.second))));
+	}
+	for(const auto& p: _public_constants){
+		ret.push_back(p.second);
 	}
 	for(const auto& p: _vtables){
 		if(p.second->is_public()){

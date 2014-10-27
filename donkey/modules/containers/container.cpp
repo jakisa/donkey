@@ -72,9 +72,7 @@ static void add_random_access_methods(const std::string& type, std::unordered_ma
 vtable_ptr vector_vt(){
 	typedef container<std::vector<variable> > vector;
 	
-	static vtable_ptr ret;
-	
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		
 		add_sequence_methods<vector>("Vector", methods);
@@ -84,46 +82,49 @@ vtable_ptr vector_vt(){
 		methods.emplace("reserve", create_native_method("containers::Vector::reserve", &vector::reserve));
 		methods.emplace("capacity", create_native_method("containers::Vector::capacity", &vector::capacity));
 	
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"Vector",
 			&vector::create,
 			std::move(methods),
 			true
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
 vtable_ptr vector_iterator_vt(){
 	typedef iterator<std::vector<variable> > iterator;
 	
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 	
 		add_sequence_iterator_methods<iterator>("VectorIterator", methods);
 		add_random_iterator_methods<iterator>("VectorIterator", methods);
 		
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"VectorIterator",
 			function(),
 			std::move(methods),
 			false
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
 vtable_ptr deque_vt(){
 	typedef container<std::deque<variable> > deque;
 	
-	static vtable_ptr ret;
-	
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		
 		add_sequence_methods<deque>("Deque", methods);
@@ -131,15 +132,18 @@ vtable_ptr deque_vt(){
 		add_front_insertion_methods<deque>("Deque", methods);
 		add_random_access_methods<deque>("Deque", methods);
 	
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"Deque",
 			&deque::create,
 			std::move(methods),
 			true
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
@@ -147,67 +151,72 @@ vtable_ptr deque_vt(){
 vtable_ptr deque_iterator_vt(){
 	typedef iterator<std::deque<variable> > iterator;
 	
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 	
 		add_sequence_iterator_methods<iterator>("DequeIterator", methods);
 		add_random_iterator_methods<iterator>("DequeIterator", methods);
 		
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"DequeIterator",
 			function(),
 			std::move(methods),
 			false
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
 vtable_ptr list_vt(){
 	typedef container<std::list<variable> > list;
 	
-	static vtable_ptr ret;
-	
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 		
 		add_sequence_methods<list>("List", methods);
 		add_back_insertion_methods<list>("List", methods);
 		add_front_insertion_methods<list>("List", methods);
 	
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"List",
 			&list::create,
 			std::move(methods),
 			true
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
 vtable_ptr list_iterator_vt(){
 	typedef iterator<std::list<variable> > iterator;
 	
-	static vtable_ptr ret;
-	if(!ret){
+	static vtable_ptr ret([](){
 		std::unordered_map<std::string, method_ptr> methods;
 	
 		add_sequence_iterator_methods<iterator>("ListIterator", methods);
 		
-		ret.reset(new vtable(
+		auto vt = new vtable(
 			"containers",
 			"ListIterator",
 			function(),
 			std::move(methods),
 			false
-		));
-		ret->derive_from(*object_vtable());
-	}
+		);
+			
+		vt->derive_from(*object_vtable());
+		return vt;
+	}());
+	
 	return ret;
 }
 
@@ -241,7 +250,7 @@ struct container_virtual_tables<std::list<variable> >{
 	}
 };
 
-void add_vtables(native_module& m){
+void add_containers_vtables(native_module& m){
 	m.add_vtable(vector_vt());
 	m.add_vtable(vector_iterator_vt());
 	m.add_vtable(deque_vt());
