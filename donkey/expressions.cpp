@@ -339,6 +339,10 @@ expression_ptr build_const_function_expression(code_address addr){
 	return expression_ptr(new const_function_expression(addr));
 }
 
+expression_ptr build_free_method_expression(const std::string& name, method& m){
+	return expression_ptr(new free_method_expression(name, m));
+}
+
 expression_ptr build_local_variable_expression(size_t idx){
 	return expression_ptr(new local_variable_expression(idx));
 }

@@ -136,6 +136,40 @@ public:
 	}
 };
 
+class free_method_expression final: public expression{
+private:
+	method& _m;
+	std::string _type;
+public:
+	free_method_expression(const std::string& type, method& m):
+		expression(expression_type::function),
+		_m(m),
+		_type(type){
+	}
+	virtual variable call(runtime_context& ctx, size_t params_size) override{
+		if(params_size == 0){
+			runtime_error("method called without object");
+		}
+		variable that = ctx.top(params_size-1);
+		return that.get_vtable()->call_method(that, ctx, params_size-1, _type, _m);
+	}
+	virtual std::string as_string(runtime_context&) override{
+		return "method";
+	}
+	virtual variable as_param(runtime_context&) override{
+		return variable(function([this](runtime_context& ctx, size_t params_size){
+			return call(ctx, params_size);
+		}));
+	}
+
+	virtual void as_void(runtime_context&) override{
+	}
+	
+	virtual bool as_bool(runtime_context& ctx) override{
+		return as_param(ctx).to_bool(ctx);
+	}
+};
+
 
 class local_variable_expression final: public lvalue_expression{
 private:

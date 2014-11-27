@@ -336,6 +336,8 @@ expression_ptr build_const_string_expression(const std::string& str);
 
 expression_ptr build_const_function_expression(code_address addr);
 
+expression_ptr build_free_method_expression(const std::string& name, method& m);
+
 expression_ptr build_local_variable_expression(size_t idx);
 
 expression_ptr build_global_variable_expression(size_t module_idx, size_t var_idx);

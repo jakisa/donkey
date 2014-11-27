@@ -49,11 +49,11 @@ public:
 	}
 	
 	void add_constant(std::string name, number n){
-		_constants[name].reset(new number_constant_indentifier(name, n));
+		_constants[name].reset(new number_constant_identifier(name, n));
 	}
 	
 	void add_constant(std::string name, std::string s){
-		_constants[name].reset(new string_constant_indentifier(name, s));
+		_constants[name].reset(new string_constant_identifier(name, s));
 	}
 	
 	

@@ -171,11 +171,11 @@ public:
 	}
 };
 
-class number_constant_indentifier: public identifier{
+class number_constant_identifier: public identifier{
 private:
 	number _n;
 public:
-	number_constant_indentifier(const std::string& name, number n):
+	number_constant_identifier(const std::string& name, number n):
 		identifier(identifier_type::number, name),
 		_n(n){
 	}
@@ -186,11 +186,11 @@ public:
 };
 
 
-class string_constant_indentifier: public identifier{
+class string_constant_identifier: public identifier{
 private:
 	std::string _s;
 public:
-	string_constant_indentifier(const std::string& name, std::string s):
+	string_constant_identifier(const std::string& name, std::string s):
 		identifier(identifier_type::string, name),
 		_s(std::move(s)){
 	}

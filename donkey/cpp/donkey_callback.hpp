@@ -20,7 +20,7 @@ class donkey_callback{
 	
 	template<typename T, typename... Args2>
 	variable _push_and_call(stack_pusher& pusher, const variable& v, runtime_context& ctx, size_t sz, T t, Args2... args){
-		pusher.push(detail::param_converter<T>::from_native(t));
+		pusher.push(detail::param_converter<T>::from_native(t, ctx));
 		return _push_and_call(pusher, v, ctx, sz+1, args...);
 	}
 	
@@ -30,7 +30,7 @@ public:
 		_ctx(ctx){
 	}
 	R operator()(Args... args){
-		stack_pusher pusher(_ctx);
+		stack_pusher pusher(_ctx, sizeof...(Args));
 		return detail::param_converter<R>::to_native(_push_and_call(pusher, _v, _ctx, 0, args...), _ctx);
 	}
 };

@@ -51,8 +51,8 @@ public:
 	        opPreInc, opPreDec,
 	        opPostInc, opPostDec,
 	        opPos, opNeg,
-	        opMul, opDiv, opMod, opAdd, opSub, opSL, opSR,
-	        opMulInv, opDivInv, opModInv, opAddInv, opSubInv, opSLInv, opSRInv,
+	        opMul, opDiv, opIDiv, opMod, opAdd, opSub, opSL, opSR,
+	        opMulInv, opDivInv, opIDivInv, opModInv, opAddInv, opSubInv, opSLInv, opSRInv,
 	        opMulSet, opDivSet, opModSet, opAddSet, opSubSet, opSLSet, opSRSet;
 	
 	pmethod clone, strong, weak, toString, toBool;

@@ -40,7 +40,8 @@ SOURCES += ../donkey/main.cpp \
     ../donkey/vtable.cpp \
     ../donkey/errors.cpp \
     ../donkey/modules/gui/gui_module.cpp \
-    ../donkey/modules/gui/window_X11.cpp
+    ../donkey/modules/gui/window_X11.cpp \
+    ../donkey/modules/functional/functional_module.cpp
 
 HEADERS += \
     ../donkey/errors.hpp \
@@ -97,7 +98,8 @@ HEADERS += \
     ../donkey/modules/containers/containers_module.hpp \
     ../donkey/modules/containers/container.hpp \
     ../donkey/expressions/operators.hpp \
-    ../donkey/modules/gui/gui_module.hpp
+    ../donkey/modules/gui/gui_module.hpp \
+    ../donkey/modules/functional/functional_module.hpp
 
 OTHER_FILES += \
     ../donkey/examples.txt \

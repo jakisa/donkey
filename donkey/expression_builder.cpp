@@ -423,16 +423,16 @@ static expression_ptr identifier_to_expression(identifier_ptr id){
 		case identifier_type::function:
 			return build_const_function_expression(static_cast<function_identifier&>(*id).get_function());
 		case identifier_type::number:
-			return build_const_number_expression(static_cast<number_constant_indentifier&>(*id).get_number());
+			return build_const_number_expression(static_cast<number_constant_identifier&>(*id).get_number());
 		case identifier_type::string:
-			return build_const_string_expression(static_cast<string_constant_indentifier&>(*id).get_string());
+			return build_const_string_expression(static_cast<string_constant_identifier&>(*id).get_string());
 		case identifier_type::classname:
 			semantic_error("unexpected class " + id->get_name());
 			break;
 		case identifier_type::module:
 			semantic_error("unexpected module " + id->get_name());
 		case identifier_type::method:
-			semantic_error("unexpected method" + id->get_name());
+			return build_free_method_expression(static_cast<method_identifier&>(*id).get_classname(), static_cast<method_identifier&>(*id).get_method());
 		case identifier_type::field:
 			semantic_error("unexpected field" + id->get_name());
 	}
@@ -748,9 +748,9 @@ static constant id_to_const(identifier_ptr id){
 
 	switch(id->get_type()){
 		case identifier_type::number:
-			return constant{true, static_cast<number_constant_indentifier&>(*id).get_number(), ""};
+			return constant{true, static_cast<number_constant_identifier&>(*id).get_number(), ""};
 		case identifier_type::string:
-			return constant{false, 0, static_cast<string_constant_indentifier&>(*id).get_string()};
+			return constant{false, 0, static_cast<string_constant_identifier&>(*id).get_string()};
 		default:
 			semantic_error(id->get_name() + " is not constant");
 			return constant();

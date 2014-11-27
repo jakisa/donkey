@@ -25,8 +25,8 @@ void vtable::update_predefined_methods(){
 	UPDATE_METHOD(opPreInc) UPDATE_METHOD(opPreDec)
 	UPDATE_METHOD(opPostInc) UPDATE_METHOD(opPostDec)
 	UPDATE_METHOD(opPos) UPDATE_METHOD(opNeg)
-	UPDATE_METHOD(opMul) UPDATE_METHOD(opDiv) UPDATE_METHOD(opMod) UPDATE_METHOD(opAdd) UPDATE_METHOD(opSub) UPDATE_METHOD(opSL) UPDATE_METHOD(opSR)
-	UPDATE_METHOD(opMulInv) UPDATE_METHOD(opDivInv) UPDATE_METHOD(opModInv) UPDATE_METHOD(opAddInv) UPDATE_METHOD(opSubInv) UPDATE_METHOD(opSLInv) UPDATE_METHOD(opSRInv)
+	UPDATE_METHOD(opMul) UPDATE_METHOD(opDiv) UPDATE_METHOD(opIDiv) UPDATE_METHOD(opMod) UPDATE_METHOD(opAdd) UPDATE_METHOD(opSub) UPDATE_METHOD(opSL) UPDATE_METHOD(opSR)
+	UPDATE_METHOD(opMulInv) UPDATE_METHOD(opDivInv) UPDATE_METHOD(opIDivInv) UPDATE_METHOD(opModInv) UPDATE_METHOD(opAddInv) UPDATE_METHOD(opSubInv) UPDATE_METHOD(opSLInv) UPDATE_METHOD(opSRInv)
 	UPDATE_METHOD(opMulSet) UPDATE_METHOD(opDivSet) UPDATE_METHOD(opModSet) UPDATE_METHOD(opAddSet) UPDATE_METHOD(opSubSet) UPDATE_METHOD(opSLSet) UPDATE_METHOD(opSRSet)
 	UPDATE_METHOD(clone) UPDATE_METHOD(strong) UPDATE_METHOD(weak) UPDATE_METHOD(toString) UPDATE_METHOD(toBool)
 }
@@ -59,8 +59,8 @@ vtable::vtable(std::string&& module_name, std::string&& name, method_ptr constru
 	opPreInc=opPreDec=
 	opPostInc=opPostDec=
 	opPos=opNeg=
-	opMul=opDiv=opMod=opAdd=opSub=opSL=opSR=
-	opMulInv=opDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
+	opMul=opDiv=opIDiv=opMod=opAdd=opSub=opSL=opSR=
+	opMulInv=opDivInv=opIDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
 	opMulSet=opDivSet=opModSet=opAddSet=opSubSet=opSLSet=opSRSet = nullptr;
 	
 	clone=strong=weak=toString=toBool = nullptr;
@@ -90,8 +90,8 @@ vtable::vtable(std::string&& module_name, std::string&& name, function creator, 
 	opPreInc=opPreDec=
 	opPostInc=opPostDec=
 	opPos=opNeg=
-	opMul=opDiv=opMod=opAdd=opSub=opSL=opSR=
-	opMulInv=opDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
+	opMul=opDiv=opIDiv=opMod=opAdd=opSub=opSL=opSR=
+	opMulInv=opDivInv=opIDivInv=opModInv=opAddInv=opSubInv=opSLInv=opSRInv=
 	opMulSet=opDivSet=opModSet=opAddSet=opSubSet=opSLSet=opSRSet = nullptr;
 	
 	clone=strong=weak=toString=toBool = nullptr;

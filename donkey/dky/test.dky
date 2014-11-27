@@ -1,4 +1,4 @@
-using io;
+/*using io;
 using containers;
 
 function sieve(n){
@@ -18,3 +18,48 @@ function sieve(n){
 
 
 var v = sieve(1000000);
+*/
+/*
+using gui;
+using io;
+
+
+function onChar(str){
+	console.writeln(str);
+}
+
+class Functor{
+	function opCall(str){
+		console.writeln("Functor: " .. str);
+	}
+};
+
+
+var f = new Functor();
+f("aaa");
+
+var wnd = new Window(1024, 768);
+
+wnd.setOnChar(f);
+
+wnd.loop();*/
+
+
+using io;
+using functional;
+
+class C{
+	var str;
+	C(str){
+		this.str = str;
+	}
+	function f(str){
+		console.writeln(this.str..","..str);
+	}
+};
+
+var c = new C("abcd");
+
+C::f(c, "sedam");
+
+c.C::f("aaa");

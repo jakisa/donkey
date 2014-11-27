@@ -66,9 +66,9 @@ void compile_constant(scope& target, tokenizer& parser, bool is_public){
 		constant c = get_const(target, parser);
 		
 		if(c.is_number){
-			target.add_constant(identifier_ptr(new number_constant_indentifier(name, c.n)), is_public);
+			target.add_constant(identifier_ptr(new number_constant_identifier(name, c.n)), is_public);
 		}else{
-			target.add_constant(identifier_ptr(new string_constant_indentifier(name, c.s)), is_public);
+			target.add_constant(identifier_ptr(new string_constant_identifier(name, c.s)), is_public);
 		}
 		
 		if(*parser == ","){

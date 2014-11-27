@@ -13,8 +13,6 @@ module_ptr load_gui_module(size_t module_idx){
 	
 	add_window_vtables(m);
 	
-	//m.set_init(std::bind(&init_gui, _1, module_idx, console_idx));
-	
 	return m.create_module();
 }
 
