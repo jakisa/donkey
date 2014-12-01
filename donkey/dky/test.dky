@@ -53,8 +53,8 @@ class C{
 	C(str){
 		this.str = str;
 	}
-	function f(str){
-		console.writeln(this.str..","..str);
+	function f(str, str2){
+		console.writeln(this.str..","..str..str2);
 	}
 };
 
@@ -63,3 +63,7 @@ var c = new C("abcd");
 C::f(c, "sedam");
 
 c.C::f("aaa");
+
+var f = bind(C::f, c, "hah", _[1]);
+
+f("jedan", "dva");

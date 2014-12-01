@@ -78,24 +78,65 @@ public:
 	}
 };
 
-static statement_retval init_functional(runtime_context& ctx, size_t module_idx, size_t placeholders_idx){
-	variable& v_placeholders = global_variable(ctx, module_idx, placeholders_idx);
+
+static variable bind(runtime_context& ctx, size_t params_size){
+	using namespace std::placeholders;
 	
-	v_placeholders = variable(new placeholders());
+	if(params_size == 0){
+		return variable();
+	}
+	variable f = ctx.top(params_size-1);
 	
-	return statement_retval::nxt;
+	std::vector<function> params;
+	params.reserve(params_size-1);
+	
+	for(size_t i = 0; i != params_size-1; ++i){
+		variable v = ctx.top(params_size - i - 2);
+		if(v.get_vtable() == placeholder::vt().get()){
+			size_t param_idx = v.as_t_unsafe<placeholder>()->get_idx();
+			params.push_back([param_idx](runtime_context& ctx, size_t params_size){
+				return param_idx < params_size ? ctx.top(params_size - param_idx - 1) : variable();
+			});
+		}else{
+			params.push_back([v](runtime_context&, size_t){
+				return v;
+			});
+		}
+	}
+	
+	return variable(function([f, params](runtime_context& ctx, size_t params_size){
+		std::vector<variable> evaluated;
+		evaluated.reserve(params.size());
+		for(function f: params){
+			evaluated.push_back(f(ctx, params_size));
+		}
+		stack_pusher pusher(ctx, params.size());
+		
+		for(variable& v: evaluated){
+			pusher.push(std::move(v));
+		}
+		
+		return f.call(ctx, params.size());
+	}));
 }
 
 module_ptr load_functional_module(size_t module_idx){
-	using namespace std::placeholders;
-	
 	native_module m("functional", module_idx);
 	
 	m.add_vtable(placeholders::vt());
 	
+	m.add_function("bind", &bind);
+	
 	size_t placeholders_idx = m.add_global("_");
 	
-	m.set_init(std::bind(&init_functional, _1, module_idx, placeholders_idx));
+	
+	m.set_init([module_idx, placeholders_idx](runtime_context& ctx){
+		variable& v_placeholders = global_variable(ctx, module_idx, placeholders_idx);
+	
+		v_placeholders = variable(new placeholders());
+		
+		return statement_retval::nxt;
+	});
 	
 	return m.create_module();
 }
