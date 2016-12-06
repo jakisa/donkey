@@ -67,9 +67,18 @@ private:
 	XIC _xic;
 	
 	std::function<void(std::string)> _on_char;
+	std::function<void(integer)> _on_key_down;
 	
 	window(integer w, integer h){
 		_screen = DefaultScreen(display::handle());
+		
+		int depth = XDefaultDepth(display::handle(), _screen);
+		Visual* visual = XDefaultVisual(display::handle(), _screen);
+		
+		if(depth != 24 || visual->red_mask != 0xFF0000 || visual->green_mask != 0xFF00 || visual->blue_mask != 0xFF){
+			runtime_error("display format is not supported");
+		}
+		
 		_handle = XCreateSimpleWindow(
 			display::handle(),
 			RootWindow(display::handle(), _screen),
@@ -107,6 +116,7 @@ public:
 			
 			methods.emplace("loop", create_native_method("gui::Window::loop", &window::loop));
 			methods.emplace("setOnChar", create_native_method("gui::Window::setOnChar", &window::set_on_char));
+			methods.emplace("setOnKeyDown", create_native_method("gui::Window::setOnKeyDown", &window::set_on_key_down));
 			
 			vtable* vt = new vtable("gui", "Window", create_native_function("gui::Window::Window", &window::create_window), std::move(methods), true);
 			vt->derive_from(*object_vtable());
@@ -121,6 +131,10 @@ public:
 	
 	void set_on_char(std::function<void(std::string)> on_char){
 		_on_char = on_char;
+	}
+	
+	void set_on_key_down(std::function<void(integer)> on_key_down){
+		_on_key_down = on_key_down;
 	}
 	
 	void loop(){
@@ -150,16 +164,34 @@ public:
 						
 						buff[len] = 0;
 						
-						//XLookupChars
-						
 						if(status == XLookupChars || status == XLookupBoth){
 							if(_on_char){
 								_on_char(std::string(buff, len));
 							}
 						}
 						
-						//printf("%d %ld %d %s\n", len, ks, status, buff);
-						//fflush(stdout);
+						if(status == XLookupKeySym || status == XLookupBoth){
+							if(_on_key_down){
+								integer key_code = 0;
+								switch(ks){
+									case XK_Left:
+										key_code = key_left;
+										break;
+									case XK_Right:
+										key_code = key_right;
+										break;
+									case XK_Up:
+										key_code = key_up;
+										break;
+									case XK_Down:
+										key_code = key_down;
+										break;
+								}
+								if(key_code){
+									_on_key_down(key_code);
+								}
+							}
+						}
 					}
 					break;
 				case ClientMessage:

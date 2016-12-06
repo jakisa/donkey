@@ -106,7 +106,6 @@ inline oper bin_post_variant(oper op){
 			return oper::plus;
 		case oper::unary_minus:
 			return oper::minus;
-			return oper::bitwise_and;
 		default:
 			return get_precedence(op) == precedence::unary_prefix ? oper::none : op;
 	}

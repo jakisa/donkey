@@ -2,7 +2,7 @@ TEMPLATE = app
 CONFIG += X11
 CONFIG -= app_bundle
 CONFIG -= qt
-INCLUDEPATH += ../donkey/
+INCLUDEPATH += ../donkey/ $$(AGG)include
 QMAKE_CXXFLAGS += -std=c++11
 
 
@@ -10,7 +10,8 @@ QMAKE_CXXFLAGS_RELEASE += -g
 
 QMAKE_LFLAGS_RELEASE += -g
 
-SOURCES += ../donkey/main.cpp \
+SOURCES += \
+	../donkey/main.cpp \
     ../donkey/tokenizer.cpp \
     ../donkey/donkey.cpp \
     ../donkey/expression_builder.cpp \
@@ -104,5 +105,6 @@ HEADERS += \
 OTHER_FILES += \
     ../donkey/examples.txt \
     ../donkey/dky/test.dky \
-    ../donkey/dky/other.dky
+    ../donkey/dky/other.dky \
+    ../valgrind.supp
 

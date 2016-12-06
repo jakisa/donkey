@@ -18,52 +18,22 @@ function sieve(n){
 
 
 var v = sieve(1000000);
-*/
-/*
-using gui;
-using io;
 
-
-function onChar(str){
-	console.writeln(str);
-}
-
-class Functor{
-	function opCall(str){
-		console.writeln("Functor: " .. str);
-	}
-};
-
-
-var f = new Functor();
-f("aaa");
-
-var wnd = new Window(1024, 768);
-
-wnd.setOnChar(f);
-
-wnd.loop();*/
-
+for(var i = 0; i < v.size(); ++i){
+	console.writeln(v[i]);
+}*/
 
 using io;
 using functional;
 
-class C{
-	var str;
-	C(str){
-		this.str = str;
-	}
-	function f(str, str2){
-		console.writeln(this.str..","..str..str2);
-	}
-};
+function f1(x, y){
+	console.writeln(x+y);
+}
 
-var c = new C("abcd");
+var f = f1;
 
-C::f(c, "sedam");
+f(43, 17);
 
-c.C::f("aaa");
+var ff = bind(f1, _[0], 10);
 
-var f = bind(C::f, c, "hah", _[1]);
-
-f("jedan", "dva");
+ff(11);
