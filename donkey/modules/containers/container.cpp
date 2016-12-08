@@ -14,7 +14,7 @@ static void add_sequence_methods(const std::string& type, std::unordered_map<std
 	methods.emplace("resize", create_native_method("containers::"+type+"::resize", &T::resize));
 	methods.emplace("front", create_native_method("containers::"+type+"::front", &T::front));
 	methods.emplace("back", create_native_method("containers::"+type+"::back", &T::back));
-	methods.emplace("isEmpty", create_native_method("containers::"+type+"::isEmpty", &T::is_empty));
+	methods.emplace("is_empty", create_native_method("containers::"+type+"::is_empty", &T::is_empty));
 	methods.emplace("push_back", create_native_method("containers::"+type+"::push_back", &T::push_back));
 	methods.emplace("pop_back", create_native_method("containers::"+type+"::pop_back", &T::pop_back));
 	methods.emplace("clear", create_native_method("containers::"+type+"::clear", &T::clear));
