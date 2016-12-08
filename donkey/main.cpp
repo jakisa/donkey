@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
 	
 	c.add_module_loader("io", &donkey::load_io_module);
 	c.add_module_loader("containers", &donkey::load_containers_module);
-	c.add_module_loader("gui", &donkey::load_gui_module);
+	//c.add_module_loader("gui", &donkey::load_gui_module);
 	c.add_module_loader("functional", &donkey::load_functional_module);
 	
 	if(!c.load_module(argv[1])){

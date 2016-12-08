@@ -442,7 +442,7 @@ static expression_ptr identifier_to_expression(identifier_ptr id){
 static expression_ptr str_to_expression(const std::string& str, const identifier_lookup& lookup){
 	if(isdigit(str.front())){
 		double n = parse_number(str);
-		if(isnan(n)){
+		if(std::isnan(n)){
 			syntax_error("invalid number constant");
 		}
 		return build_const_number_expression(n);
@@ -759,7 +759,7 @@ static constant id_to_const(identifier_ptr id){
 static constant str_to_const(const std::string& str, const identifier_lookup& lookup){
 	if(isdigit(str.front())){
 		double n = parse_number(str);
-		if(isnan(n)){
+		if(std::isnan(n)){
 			syntax_error("invalid number constant");
 		}
 		return constant{true, n, ""};
